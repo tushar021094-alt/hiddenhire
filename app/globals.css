@@ -1,6 +1,38 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-body { margin: 0; background: #080b12; color: #f5f7fb; font-family: Arial, Helvetica, sans-serif; }
-button, input, select { font: inherit; }
+:root {
+  color-scheme: dark;
+  --background: #020817;
+  --foreground: #e2e8f0;
+  --muted: #94a3b8;
+  --card: rgba(15, 23, 42, 0.8);
+  --border: rgba(148, 163, 184, 0.18);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #020817 0%, #0f172a 100%);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  text-decoration: none;
+}
