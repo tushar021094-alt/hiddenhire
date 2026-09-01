@@ -25,6 +25,11 @@ export interface Job {
   applicationUrl: string;
   source: string;
   postedDate: string;
+  companyWebsite?: string;
+  careersUrl?: string;
+  ats?: 'greenhouse' | 'lever' | 'ashby' | 'workable' | 'other';
+  remotePolicy?: string;
+  freshnessScore?: number;
   isDemo?: boolean;
 }
 
@@ -44,6 +49,7 @@ export interface MatchResult {
   job: Job;
   score: number;
   opportunityScore: number;
+  roleRelevanceScore: number;
   matchTier: MatchTier;
   reasons: string[];
   missingRequirements: string[];
