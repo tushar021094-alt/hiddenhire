@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { applyJobFilters, buildExpandedRoleQueries, CompanyDiscoverySource, createJobSourceRegistry, dedupeJobs } from '../lib/job-source.ts';
 import { verifiedCompanyRegistry } from '../lib/company-registry.ts';
-import { calculateJobMatch, calculateOpportunityScore, getMatchTier } from '../lib/match-engine.ts';
+import { calculateJobMatch, calculateOpportunityScore, classifyJobFunction, getMatchTier } from '../lib/match-engine.ts';
 import type { CandidateProfile, Job } from '../lib/job-types.ts';
 
 const candidate: CandidateProfile = {
@@ -40,6 +40,10 @@ const baseJob: Job = {
   source: 'greenhouse',
   postedDate: new Date().toISOString(),
 };
+
+function roleJob(title: string, description: string, overrides: Partial<Job> = {}): Job {
+  return { ...baseJob, id: `role-${title}`, title, description, ...overrides };
+}
 
 test('role expansion includes related finance titles', () => {
   const roles = buildExpandedRoleQueries(candidate);
@@ -82,6 +86,50 @@ test('match tiering returns expected categories', () => {
   assert.equal(getMatchTier(78), 'Good Match');
   assert.equal(getMatchTier(63), 'Potential Match');
   assert.equal(getMatchTier(30), 'Low Match');
+});
+
+test('classifies job function from title and description', () => {
+  assert.equal(classifyJobFunction('Machine Learning Engineer', 'Build production ML systems.'), 'Engineering');
+  assert.equal(classifyJobFunction('Forward Deployed Engineer, Finance', 'Build production systems.'), 'Engineering');
+  assert.equal(classifyJobFunction('Group Product Manager, Finance Technology', 'Own product strategy.'), 'Product');
+  assert.equal(classifyJobFunction('Marketing Manager', 'Own growth marketing strategy.'), 'Marketing');
+  assert.equal(classifyJobFunction('Finance Manager', 'Own budgeting, forecasting, and financial reporting.'), 'Finance');
+});
+
+test('direct finance roles receive high relevance', () => {
+  for (const title of ['Senior Finance Manager', 'FP&A Manager', 'Financial Controller']) {
+    const result = calculateJobMatch(candidate, roleJob(title, 'Lead budgeting, forecasting, financial reporting, and month-end close.'));
+    assert.ok(result.roleRelevanceScore >= 85, `${title}: ${result.roleRelevanceScore}`);
+  }
+});
+
+test('senior accountant receives moderate relevance', () => {
+  const result = calculateJobMatch(candidate, roleJob('Senior Accountant', 'Own general ledger, accounts payable, and month-end close.'));
+  assert.ok(result.roleRelevanceScore >= 55);
+  assert.ok(result.roleRelevanceScore < 90);
+});
+
+test('finance company context cannot rescue engineering roles', () => {
+  const result = calculateJobMatch(candidate, roleJob('Senior Machine Learning Engineer', 'Build machine learning models and production software.', { industry: 'Finance' }));
+  assert.equal(classifyJobFunction(result.job.title, result.job.description), 'Engineering');
+  assert.ok(result.roleRelevanceScore < 30);
+  assert.ok(result.score < 55);
+});
+
+test('marketing roles remain low relevance at finance companies', () => {
+  const result = calculateJobMatch(candidate, roleJob('Marketing Manager', 'Own growth marketing, campaigns, and brand strategy.', { industry: 'Finance' }));
+  assert.equal(classifyJobFunction(result.job.title, result.job.description), 'Marketing');
+  assert.ok(result.roleRelevanceScore < 30);
+});
+
+test('business partner descriptions can establish finance relevance', () => {
+  const result = calculateJobMatch(candidate, roleJob('Business Partner Analyst', 'Deliver financial planning, budgeting, forecasting, and management reporting.'));
+  assert.ok(result.roleRelevanceScore >= 55);
+});
+
+test('business operations sales descriptions stay low relevance', () => {
+  const result = calculateJobMatch(candidate, roleJob('Business Operations Manager', 'Run sales operations, CRM workflows, and customer acquisition programs.'));
+  assert.ok(result.roleRelevanceScore < 55);
 });
 
 test('different companies with the same title are not deduplicated', () => {

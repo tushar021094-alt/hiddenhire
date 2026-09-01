@@ -2,6 +2,96 @@ import type { CandidateProfile, Job, MatchResult, MatchTier } from './job-types'
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
+export type JobFunction =
+  | 'Finance' | 'Accounting' | 'FP&A' | 'Audit' | 'Tax' | 'Treasury' | 'Risk'
+  | 'Operations' | 'Engineering' | 'Software' | 'Data' | 'Product' | 'Marketing'
+  | 'Sales' | 'HR' | 'Legal' | 'Customer Success' | 'Design' | 'Other';
+
+const functionSignals: Array<{ functionName: JobFunction; terms: string[] }> = [
+  { functionName: 'FP&A', terms: ['fp&a', 'financial planning', 'financial planning and analysis', 'forecasting', 'budgeting', 'variance analysis'] },
+  { functionName: 'Accounting', terms: ['accounting', 'accountant', 'accounts payable', 'accounts receivable', 'ap/ar', 'general ledger', 'month-end close', 'month end close', 'controllership', 'management accounts'] },
+  { functionName: 'Finance', terms: ['finance', 'financial reporting', 'financial analysis', 'p&l', 'balance sheet', 'management reporting', 'financial controls', 'accounting operations'] },
+  { functionName: 'Audit', terms: ['audit', 'auditing'] },
+  { functionName: 'Tax', terms: ['tax', 'vat', 'gst'] },
+  { functionName: 'Treasury', terms: ['treasury', 'cash management'] },
+  { functionName: 'Risk', terms: ['risk', 'underwriting', 'compliance'] },
+  { functionName: 'Engineering', terms: ['engineering', 'software engineer', 'machine learning', 'devops', 'sre', 'infrastructure', 'automation engineer'] },
+  { functionName: 'Software', terms: ['software', 'developer', 'programmer'] },
+  { functionName: 'Data', terms: ['data science', 'data analyst', 'data engineering', 'analytics'] },
+  { functionName: 'Product', terms: ['product manager', 'product management', 'product operations'] },
+  { functionName: 'Marketing', terms: ['marketing', 'social media', 'brand', 'growth marketing'] },
+  { functionName: 'Sales', terms: ['sales', 'account executive', 'business development', 'partnerships', 'partner development'] },
+  { functionName: 'HR', terms: ['human resources', 'hr ', 'recruiting', 'recruiter', 'people partner', 'talent'] },
+  { functionName: 'Legal', terms: ['legal', 'counsel', 'attorney'] },
+  { functionName: 'Customer Success', terms: ['customer success', 'customer support', 'customer engineering'] },
+  { functionName: 'Design', terms: ['design', 'ux', 'user experience'] },
+  { functionName: 'Operations', terms: ['operations', 'business operations', 'program manager', 'project manager'] },
+];
+
+const financeFunctions = new Set<JobFunction>(['Finance', 'Accounting', 'FP&A', 'Audit', 'Tax', 'Treasury', 'Risk']);
+const financeSignals = functionSignals.find((group) => group.functionName === 'Finance')!.terms
+  .concat(functionSignals.find((group) => group.functionName === 'Accounting')!.terms)
+  .concat(functionSignals.find((group) => group.functionName === 'FP&A')!.terms);
+
+function cleanText(value: string): string {
+  return value.replace(/<[^>]*>/g, ' ').replace(/&(?:amp|nbsp|quot|#39|lt|gt);/gi, ' ').toLowerCase();
+}
+
+function countSignals(text: string, signals: string[]): number {
+  return signals.filter((signal) => text.includes(signal)).length;
+}
+
+export function classifyJobFunction(title: string, description = ''): JobFunction {
+  const titleText = cleanText(title);
+  const descriptionText = cleanText(description);
+  if (/software engineer|machine learning engineer|forward deployed engineer|automation engineer|data engineer|devops|site reliability engineer|\bsre\b|infrastructure engineer|customer engineer/i.test(titleText)) return 'Engineering';
+  if (/product manager|product management/i.test(titleText)) return 'Product';
+  if (/marketing|social media/i.test(titleText)) return 'Marketing';
+  if (/human resources|\bhr\b|recruiting|recruiter|people partner|talent partner/i.test(titleText)) return 'HR';
+  if (/sales|account executive|business development|partner development/i.test(titleText)) return 'Sales';
+  let bestFunction: JobFunction = 'Other';
+  let bestScore = 0;
+
+  for (const group of functionSignals) {
+    const score = countSignals(titleText, group.terms) * 5 + Math.min(countSignals(descriptionText, group.terms), 4);
+    if (score > bestScore) {
+      bestScore = score;
+      bestFunction = group.functionName;
+    }
+  }
+  return bestFunction;
+}
+
+function calculateRoleRelevance(candidate: CandidateProfile, job: Job): { score: number; functionName: JobFunction } {
+  const targetFunction = classifyJobFunction(candidate.targetJobTitle);
+  const jobFunction = classifyJobFunction(job.title, job.description);
+  const titleText = cleanText(job.title);
+  const targetText = cleanText(candidate.targetJobTitle);
+  const titleWords = new Set(targetText.split(/\s+/).filter((word) => word.length > 2));
+  const titleOverlap = titleText.split(/\s+/).filter((word) => titleWords.has(word)).length;
+  const exactOrContained = titleText === targetText ? 100 : titleText.includes(targetText) || targetText.includes(titleText) ? 92 : Math.min(80, titleOverlap * 15 + 35);
+  const financeTitleScore = /finance|fp&a|controller|accounting manager|accountant|financial reporting|treasury|audit|tax/i.test(titleText)
+    ? /accountant|analyst/i.test(titleText) ? 70 : 88
+    : /business partner|commercial/i.test(titleText) && financeFunctions.has(jobFunction) ? 62 : exactOrContained;
+  const titleScore = targetFunction === 'Finance' ? Math.max(exactOrContained, financeTitleScore) : exactOrContained;
+  const functionScore = jobFunction === targetFunction ? 100 : targetFunction === 'Finance' && financeFunctions.has(jobFunction) ? 78 : 8;
+  const descriptionScore = targetFunction === 'Finance' || financeFunctions.has(targetFunction)
+    ? Math.min(100, countSignals(cleanText(`${job.title} ${job.description}`), financeSignals) * 14)
+    : Math.min(100, countSignals(cleanText(`${job.title} ${job.description}`), functionSignals.find((group) => group.functionName === targetFunction)?.terms ?? []) * 20);
+  const seniorityScore = /chief|vice president|vp|director|head|lead|manager|senior/i.test(job.title) ? 100 : 65;
+  if (exactOrContained === 100 && jobFunction === targetFunction) return { score: 100, functionName: jobFunction };
+  if (targetFunction === 'Finance' && financeFunctions.has(jobFunction) && /finance\s*(?:&|and)?\s*accounting manager|senior finance manager|fp&a manager|financial controller|accounting manager|finance lead|financial reporting manager|regional finance manager/i.test(titleText)) {
+    return { score: 92, functionName: jobFunction };
+  }
+  let score = Math.round(titleScore * 0.5 + functionScore * 0.25 + descriptionScore * 0.2 + seniorityScore * 0.05);
+  if (targetFunction === 'Finance' && !financeFunctions.has(jobFunction)) score = Math.min(score, jobFunction === 'Operations' ? 48 : 24);
+  return { score: Math.max(0, Math.min(100, score)), functionName: jobFunction };
+}
+
+function targetIsFinanceRole(title: string): boolean {
+  return financeFunctions.has(classifyJobFunction(title));
+}
+
 const getSkillMatches = (candidateSkills: string[], jobSkills: string[]) => {
   const candidateSet = new Set(candidateSkills.map(normalizeSkill));
   return jobSkills.filter((skill) => candidateSet.has(normalizeSkill(skill)));
@@ -46,12 +136,14 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   const candidateSkills = candidate.keySkills.map(normalizeSkill);
   const jobSkills = job.requiredSkills.map(normalizeSkill);
   const matchedSkills = getSkillMatches(candidateSkills, jobSkills);
-  const experienceWeight = 25;
-  const skillWeight = 25;
-  const locationWeight = 20;
-  const salaryWeight = 15;
-  const industryWeight = 10;
+  const experienceWeight = 15;
+  const skillWeight = 15;
+  const locationWeight = 10;
+  const salaryWeight = 10;
+  const industryWeight = 5;
   const seniorityWeight = 5;
+  const roleWeight = 40;
+  const roleRelevance = calculateRoleRelevance(candidate, job);
 
   const experienceScore = job.requiredExperience === null
     ? experienceWeight * 0.5
@@ -82,14 +174,18 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   const seniorityMatch = job.requiredExperience === null || candidate.yearsOfExperience >= job.requiredExperience;
   const seniorityScore = seniorityMatch ? seniorityWeight : 0;
 
-  const totalScore = Math.min(100, Math.round(
-    experienceScore +
+  const rawTotalScore = Math.min(100, Math.round(
+    (roleRelevance.score / 100 * roleWeight) +
       skillScore +
+      experienceScore +
       locationScore +
       salaryScore +
       industryScore +
       seniorityScore
   ));
+  const totalScore = targetIsFinanceRole(candidate.targetJobTitle) && roleRelevance.score < 30
+    ? Math.min(45, rawTotalScore)
+    : rawTotalScore;
 
   const reasons: string[] = [];
   if (job.requiredExperience === null || candidate.yearsOfExperience >= job.requiredExperience) {
@@ -106,9 +202,7 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   } else if (salaryCandidate >= salaryThreshold) {
     reasons.push(`Salary target met: ${candidate.minimumSalary.toLocaleString()} ${candidate.preferredCurrency}`);
   }
-  if (industryMatch) {
-    reasons.push(`Industry fit: ${job.industry}`);
-  }
+  reasons.unshift(`Job function: ${roleRelevance.functionName} (${roleRelevance.score}/100)`);
 
   const missingRequirements: string[] = [];
   if (job.requiredExperience !== null && candidate.yearsOfExperience < job.requiredExperience) {
@@ -128,14 +222,20 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
     missingRequirements.push(`Industry: ${job.industry}`);
   }
 
+  const visibleReasons = reasons.slice(0, 6);
+  if ((salaryThreshold === null || salaryThreshold === undefined) && !visibleReasons.some((reason) => reason === 'Salary not disclosed')) {
+    visibleReasons[visibleReasons.length - 1] = 'Salary not disclosed';
+  }
+
   const opportunityScore = calculateOpportunityScore(candidate, job);
 
   return {
     job,
     score: totalScore,
     opportunityScore,
+    roleRelevanceScore: roleRelevance.score,
     matchTier: getMatchTier(totalScore),
-    reasons: reasons.slice(0, 6),
+    reasons: visibleReasons,
     missingRequirements: missingRequirements.slice(0, 5),
   };
 }
