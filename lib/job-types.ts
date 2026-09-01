@@ -50,6 +50,9 @@ export interface MatchResult {
   score: number;
   opportunityScore: number;
   roleRelevanceScore: number;
+  applicabilityScore: number;
+  roleClassification: string;
+  seniorityCompatibility: 'STRONG' | 'ACCEPTABLE' | 'UNKNOWN' | 'LOW';
   matchTier: MatchTier;
   reasons: string[];
   missingRequirements: string[];

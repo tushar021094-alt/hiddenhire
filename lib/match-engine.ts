@@ -92,6 +92,28 @@ function targetIsFinanceRole(title: string): boolean {
   return financeFunctions.has(classifyJobFunction(title));
 }
 
+function getSeniorityCompatibility(candidate: CandidateProfile, job: Job): MatchResult['seniorityCompatibility'] {
+  if (job.requiredExperience === null) return 'UNKNOWN';
+  if (job.requiredExperience <= candidate.yearsOfExperience) return 'STRONG';
+  if (job.requiredExperience <= candidate.yearsOfExperience + 2) return 'ACCEPTABLE';
+  return 'LOW';
+}
+
+function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, roleRelevanceScore: number): { score: number; seniority: MatchResult['seniorityCompatibility'] } {
+  const indiaEligibility = candidate.preferredCountries.includes('India')
+    ? job.indiaEligibilityStatus === 'YES' ? 100 : job.indiaEligibilityStatus === 'UNKNOWN' ? 45 : 0
+    : 70;
+  const remoteCompatibility = candidate.remoteOnly
+    ? job.remoteStatus === 'FALSE' ? 0 : job.remoteStatus === 'TRUE' || job.remote ? 100 : 45
+    : 70;
+  const seniority = getSeniorityCompatibility(candidate, job);
+  const seniorityScore = seniority === 'STRONG' ? 100 : seniority === 'ACCEPTABLE' ? 75 : seniority === 'UNKNOWN' ? 55 : 20;
+  return {
+    score: Math.round(roleRelevanceScore * 0.55 + indiaEligibility * 0.25 + remoteCompatibility * 0.1 + seniorityScore * 0.1),
+    seniority,
+  };
+}
+
 const getSkillMatches = (candidateSkills: string[], jobSkills: string[]) => {
   const candidateSet = new Set(candidateSkills.map(normalizeSkill));
   return jobSkills.filter((skill) => candidateSet.has(normalizeSkill(skill)));
@@ -144,6 +166,7 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   const seniorityWeight = 5;
   const roleWeight = 40;
   const roleRelevance = calculateRoleRelevance(candidate, job);
+  const applicability = calculateApplicabilityScore(candidate, job, roleRelevance.score);
 
   const experienceScore = job.requiredExperience === null
     ? experienceWeight * 0.5
@@ -175,7 +198,7 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   const seniorityScore = seniorityMatch ? seniorityWeight : 0;
 
   const rawTotalScore = Math.min(100, Math.round(
-    (roleRelevance.score / 100 * roleWeight) +
+    (applicability.score / 100 * roleWeight) +
       skillScore +
       experienceScore +
       locationScore +
@@ -234,6 +257,9 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
     score: totalScore,
     opportunityScore,
     roleRelevanceScore: roleRelevance.score,
+    applicabilityScore: applicability.score,
+    roleClassification: roleRelevance.functionName,
+    seniorityCompatibility: applicability.seniority,
     matchTier: getMatchTier(totalScore),
     reasons: visibleReasons,
     missingRequirements: missingRequirements.slice(0, 5),

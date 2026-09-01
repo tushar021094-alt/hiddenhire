@@ -132,6 +132,32 @@ test('business operations sales descriptions stay low relevance', () => {
   assert.ok(result.roleRelevanceScore < 55);
 });
 
+test('applicability prioritizes India eligibility and remote compatibility', () => {
+  const indiaRemote = calculateJobMatch(candidate, roleJob('Finance Manager', 'Own financial reporting.', { remote: true, remoteStatus: 'TRUE', indiaEligibilityStatus: 'YES' }));
+  const usOnly = calculateJobMatch(candidate, roleJob('Finance Manager', 'Own financial reporting.', { remote: true, remoteStatus: 'TRUE', country: 'United States', indiaEligibilityStatus: 'NO' }));
+  const indiaOnsite = calculateJobMatch(candidate, roleJob('Finance Manager', 'Own financial reporting.', { remote: false, remoteStatus: 'FALSE', country: 'India', indiaEligibilityStatus: 'YES' }));
+  assert.ok(indiaRemote.applicabilityScore > usOnly.applicabilityScore);
+  assert.ok(indiaRemote.applicabilityScore > indiaOnsite.applicabilityScore);
+  assert.equal(usOnly.seniorityCompatibility, 'STRONG');
+});
+
+test('finance sub-functions expose applicability and seniority', () => {
+  const cases: Array<[string, string]> = [
+    ['Finance Manager', 'Finance'],
+    ['FP&A Manager', 'FP&A'],
+    ['Accounting Manager', 'Accounting'],
+    ['Senior Accountant', 'Accounting'],
+    ['IT Audit Manager', 'Audit'],
+    ['Software Engineer', 'Engineering'],
+  ];
+  for (const [title, classification] of cases) {
+    const result = calculateJobMatch(candidate, roleJob(title, `${title} responsibilities.`));
+    assert.equal(result.roleClassification, classification);
+    assert.ok(result.applicabilityScore >= 0 && result.applicabilityScore <= 100);
+    assert.ok(result.seniorityCompatibility.length > 0);
+  }
+});
+
 test('different companies with the same title are not deduplicated', () => {
   const jobs = [
     { ...baseJob, id: 'company-a-1', company: 'Company A', applicationUrl: 'https://example.com/a', title: 'Senior Accountant' },
