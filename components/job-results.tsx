@@ -13,9 +13,10 @@ const STORAGE_KEY = 'hiddenhire-tracking';
 type TrackingStatus = 'saved' | 'applied' | 'rejected';
 
 export function JobResults({ profile }: JobResultsProps) {
-  const [matches, setMatches] = useState<Array<{ job: Job; score: number; reasons: string[]; missingRequirements: string[] }>>([]);
+  const [matches, setMatches] = useState<Array<{ job: Job; score: number; opportunityScore: number; matchTier: string; reasons: string[]; missingRequirements: string[] }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState({ totalCollected: 0, totalEligible: 0, returned: 0 });
   const [filters, setFilters] = useState({
     remoteOnly: false,
     indiaEligible: false,
@@ -45,7 +46,7 @@ export function JobResults({ profile }: JobResultsProps) {
       setError(null);
 
       try {
-        const response = await fetch('/api/jobs', {
+        const response = await fetch('/api/jobs/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(profile),
@@ -57,7 +58,12 @@ export function JobResults({ profile }: JobResultsProps) {
 
         const data = await response.json();
         if (!isMounted) return;
-        setMatches(data.matches);
+        setMatches(data.matches || []);
+        setSummary({
+          totalCollected: data.totalCollected ?? data.matches?.length ?? 0,
+          totalEligible: data.totalEligible ?? data.matches?.length ?? 0,
+          returned: data.returned ?? data.matches?.length ?? 0,
+        });
       } catch {
         if (!isMounted) return;
         const fallbackJobs = sortMatches(profile, [
@@ -68,7 +74,9 @@ export function JobResults({ profile }: JobResultsProps) {
             location: 'Remote',
             country: 'India',
             remote: true,
+            remoteStatus: 'TRUE',
             indiaEligible: true,
+            indiaEligibilityStatus: 'YES',
             salaryMin: 45000,
             salaryMax: 60000,
             salaryCurrency: 'USD',
@@ -88,7 +96,9 @@ export function JobResults({ profile }: JobResultsProps) {
             location: 'Remote',
             country: 'India',
             remote: true,
+            remoteStatus: 'TRUE',
             indiaEligible: true,
+            indiaEligibilityStatus: 'YES',
             salaryMin: 50000,
             salaryMax: 70000,
             salaryCurrency: 'USD',
@@ -103,6 +113,7 @@ export function JobResults({ profile }: JobResultsProps) {
           }
         ]);
         setMatches(fallbackJobs);
+        setSummary({ totalCollected: fallbackJobs.length, totalEligible: fallbackJobs.length, returned: fallbackJobs.length });
         setError('The live match service is unavailable; fallback demo results are shown.');
       } finally {
         if (isMounted) setLoading(false);
@@ -124,7 +135,7 @@ export function JobResults({ profile }: JobResultsProps) {
       const { remoteOnly, indiaEligible, salary, jobType, industry } = filters;
       const passesRemote = !remoteOnly || match.job.remote;
       const passesIndia = !indiaEligible || match.job.indiaEligible;
-      const passesSalary = !salary || match.job.salaryMin >= salary;
+      const passesSalary = !salary || (match.job.salaryMin !== null && match.job.salaryMin >= salary);
       const passesType = jobType === 'All' || match.job.employmentType === jobType;
       const passesIndustry = industry === 'All' || match.job.industry.toLowerCase() === industry.toLowerCase();
       return passesRemote && passesIndia && passesSalary && passesType && passesIndustry;
@@ -170,9 +181,9 @@ export function JobResults({ profile }: JobResultsProps) {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-cyan-300">Matches</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Recommended opportunities</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-white">{summary.totalCollected || matches.length} opportunities discovered</h2>
           </div>
-          <div className="text-sm text-slate-300">{filteredMatches.length} of {matches.length} jobs</div>
+          <div className="text-sm text-slate-300">{summary.returned || filteredMatches.length} best matches for you</div>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-5">
@@ -243,15 +254,28 @@ export function JobResults({ profile }: JobResultsProps) {
               <article key={match.job.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-slate-950/30">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <div className="text-xs uppercase tracking-[0.2em] text-cyan-300">{match.score}% MATCH</div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs uppercase tracking-[0.2em] text-cyan-300">{match.score}% MATCH</span>
+                      <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-indigo-200">{match.matchTier}</span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Opportunity {match.opportunityScore}</span>
+                    </div>
                     <h3 className="mt-3 text-3xl font-semibold text-white">{match.job.title}</h3>
                     <p className="mt-2 text-lg text-slate-200">{match.job.company}</p>
                     <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-200">
                       <span className="rounded-full border border-white/10 bg-slate-950 px-3 py-1">{match.job.remote ? 'Remote' : match.job.location}</span>
-                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-200">
-                        {match.job.indiaEligible ? 'India eligible' : 'India not eligible'}
+                      <span className={`rounded-full border px-3 py-1 ${match.job.indiaEligibilityStatus === 'YES' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-rose-500/20 bg-rose-500/10 text-rose-100'}`}>
+                        {match.job.indiaEligibilityStatus === 'YES' ? 'Remote — India eligible' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'Remote — eligibility unknown' : 'Remote — India not eligible'}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-slate-950 px-3 py-1">{match.job.salaryCurrency} {match.job.salaryMin.toLocaleString()}–{match.job.salaryMax.toLocaleString()}</span>
+                      <span className="rounded-full border border-white/10 bg-slate-950 px-3 py-1">
+                        {match.job.salaryMin !== null && match.job.salaryMax !== null
+                          ? `${match.job.salaryCurrency} ${match.job.salaryMin.toLocaleString()}–${match.job.salaryMax.toLocaleString()}`
+                          : 'Salary not listed'}
+                      </span>
+                      {match.job.isDemo ? (
+                        <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-violet-100">Demo data</span>
+                      ) : (
+                        <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-100">{match.job.source}</span>
+                      )}
                     </div>
                   </div>
 

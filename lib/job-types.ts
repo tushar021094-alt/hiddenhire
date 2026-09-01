@@ -1,5 +1,8 @@
 export type SalaryCurrency = 'USD' | 'INR' | 'EUR' | 'GBP';
 export type EmploymentType = 'Full-time' | 'Contract' | 'Part-time';
+export type IndiaEligibilityStatus = 'YES' | 'NO' | 'UNKNOWN';
+export type RemoteStatus = 'TRUE' | 'FALSE' | 'UNKNOWN';
+export type MatchTier = 'Strong Match' | 'Good Match' | 'Potential Match' | 'Low Match';
 
 export interface Job {
   id: string;
@@ -8,18 +11,21 @@ export interface Job {
   location: string;
   country: string;
   remote: boolean;
+  remoteStatus: RemoteStatus;
   indiaEligible: boolean;
-  salaryMin: number;
-  salaryMax: number;
-  salaryCurrency: SalaryCurrency;
+  indiaEligibilityStatus: IndiaEligibilityStatus;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: SalaryCurrency | 'USD';
   employmentType: EmploymentType;
   industry: string;
   requiredSkills: string[];
-  requiredExperience: number;
+  requiredExperience: number | null;
   description: string;
   applicationUrl: string;
   source: string;
   postedDate: string;
+  isDemo?: boolean;
 }
 
 export interface CandidateProfile {
@@ -37,6 +43,8 @@ export interface CandidateProfile {
 export interface MatchResult {
   job: Job;
   score: number;
+  opportunityScore: number;
+  matchTier: MatchTier;
   reasons: string[];
   missingRequirements: string[];
 }
