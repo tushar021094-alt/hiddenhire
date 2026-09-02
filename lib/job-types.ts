@@ -3,6 +3,10 @@ export type EmploymentType = 'Full-time' | 'Contract' | 'Part-time';
 export type IndiaEligibilityStatus = 'YES' | 'NO' | 'UNKNOWN';
 export type RemoteStatus = 'TRUE' | 'FALSE' | 'UNKNOWN';
 export type MatchTier = 'Strong Match' | 'Good Match' | 'Potential Match' | 'Low Match';
+export type FinanceSubfunction =
+  | 'CORE_FINANCE' | 'FP&A' | 'ACCOUNTING' | 'CONTROLLERSHIP' | 'FINANCE_BUSINESS_PARTNER'
+  | 'STRATEGIC_FINANCE' | 'TREASURY' | 'AUDIT' | 'TAX' | 'RISK' | 'COMPLIANCE'
+  | 'SOX_IT_CONTROLS' | 'OTHER_FINANCE' | 'NOT_FINANCE';
 
 export interface Job {
   id: string;
@@ -52,6 +56,8 @@ export interface MatchResult {
   roleRelevanceScore: number;
   applicabilityScore: number;
   roleClassification: string;
+  financeSubfunction: FinanceSubfunction;
+  financeSubfunctionScore: number;
   seniorityCompatibility: 'STRONG' | 'ACCEPTABLE' | 'UNKNOWN' | 'LOW';
   matchTier: MatchTier;
   reasons: string[];

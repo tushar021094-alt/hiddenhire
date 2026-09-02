@@ -1,4 +1,4 @@
-import type { CandidateProfile, Job, MatchResult, MatchTier } from './job-types';
+import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
@@ -45,8 +45,9 @@ export function classifyJobFunction(title: string, description = ''): JobFunctio
   const titleText = cleanText(title);
   const descriptionText = cleanText(description);
   if (/software engineer|machine learning engineer|forward deployed engineer|automation engineer|data engineer|devops|site reliability engineer|\bsre\b|infrastructure engineer|customer engineer/i.test(titleText)) return 'Engineering';
-  if (/product manager|product management/i.test(titleText)) return 'Product';
+  if (/product manager|product management|product analyst/i.test(titleText)) return 'Product';
   if (/marketing|social media/i.test(titleText)) return 'Marketing';
+  if (/campaign|housekeeping|customer care|solutions consultant|community manager/i.test(titleText)) return 'Operations';
   if (/human resources|\bhr\b|recruiting|recruiter|people partner|talent partner/i.test(titleText)) return 'HR';
   if (/sales|account executive|business development|partner development/i.test(titleText)) return 'Sales';
   let bestFunction: JobFunction = 'Other';
@@ -92,14 +93,54 @@ function targetIsFinanceRole(title: string): boolean {
   return financeFunctions.has(classifyJobFunction(title));
 }
 
+export function classifyFinanceSubfunction(job: Job): FinanceSubfunction {
+  const text = cleanText(`${job.title} ${job.description}`);
+  const title = cleanText(job.title);
+  if (/product analyst|commercial solutions|campaigns manager/i.test(title)) return 'NOT_FINANCE';
+  if (/sox|it\s+audit|audit\s+it|technology audit|systems audit|information systems audit/i.test(title)) return 'SOX_IT_CONTROLS';
+  if (/audit|auditor/i.test(title)) return 'AUDIT';
+  if (/tax|vat|gst/i.test(title)) return 'TAX';
+  if (/compliance|aml|financial crime/i.test(title)) return 'COMPLIANCE';
+  if (/risk|underwriter|underwriting/i.test(title)) return 'RISK';
+  if (/treasury|cash management|banking operations/i.test(title)) return 'TREASURY';
+  if (/finance business partner|business partner/i.test(title) && /finance|financial|budget|forecast|planning|reporting/i.test(text)) return 'FINANCE_BUSINESS_PARTNER';
+  if (/strategic finance|finance (?:and|&) strategy|strategy and finance/i.test(title)) return 'STRATEGIC_FINANCE';
+  if (/fp&a|financial planning|financial analysis/i.test(title)) return 'FP&A';
+  if (/controller|controllership/i.test(title)) return 'CONTROLLERSHIP';
+  if (/accounting|accountant|accounts payable|accounts receivable|ap\/ar|general ledger/i.test(title)) return 'ACCOUNTING';
+  if (/finance|financial/i.test(title) || countSignals(text, financeSignals) >= 2) return 'CORE_FINANCE';
+  if (financeFunctions.has(classifyJobFunction(job.title, job.description))) return 'OTHER_FINANCE';
+  return 'NOT_FINANCE';
+}
+
+function calculateFinanceSubfunctionScore(candidate: CandidateProfile, job: Job, subfunction: FinanceSubfunction): number {
+  if (!financeFunctions.has(classifyJobFunction(candidate.targetJobTitle))) return subfunction === 'NOT_FINANCE' ? 20 : 45;
+  if (subfunction === 'NOT_FINANCE') return 10;
+  const title = cleanText(job.title);
+  if (subfunction === 'ACCOUNTING' && /senior accountant|financial analyst|finance analyst/i.test(title)) return 74;
+  if (subfunction === 'CONTROLLERSHIP' && /business controller|analyst, business controller/i.test(title)) return 74;
+  if (subfunction === 'FP&A' && /senior financial analyst|fp&a analyst|finance analyst/i.test(title)) return 74;
+  const tierOne = new Set<FinanceSubfunction>(['CORE_FINANCE', 'FP&A', 'STRATEGIC_FINANCE', 'CONTROLLERSHIP', 'ACCOUNTING', 'FINANCE_BUSINESS_PARTNER']);
+  const tierTwo = new Set<FinanceSubfunction>(['TREASURY']);
+  const base = tierOne.has(subfunction) ? 92 : tierTwo.has(subfunction) ? 74 : 48;
+  const targetText = cleanText(candidate.targetJobTitle);
+  const titleText = cleanText(job.title);
+  const directTitle = targetText === titleText || titleText.includes(targetText);
+  return Math.min(100, base + (directTitle ? 6 : 0));
+}
+
 function getSeniorityCompatibility(candidate: CandidateProfile, job: Job): MatchResult['seniorityCompatibility'] {
+  const title = cleanText(job.title);
+  if (/(chief|vice president|vp|director|head of)/i.test(title) && candidate.yearsOfExperience < 10) return 'LOW';
+  if (/(manager|lead)/i.test(title) && candidate.yearsOfExperience >= 5) return 'STRONG';
+  if (/(senior analyst|senior accountant|analyst|associate)/i.test(title)) return candidate.yearsOfExperience >= 4 ? 'ACCEPTABLE' : 'LOW';
   if (job.requiredExperience === null) return 'UNKNOWN';
   if (job.requiredExperience <= candidate.yearsOfExperience) return 'STRONG';
   if (job.requiredExperience <= candidate.yearsOfExperience + 2) return 'ACCEPTABLE';
   return 'LOW';
 }
 
-function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, roleRelevanceScore: number): { score: number; seniority: MatchResult['seniorityCompatibility'] } {
+function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, roleRelevanceScore: number, subfunctionScore: number): { score: number; seniority: MatchResult['seniorityCompatibility'] } {
   const indiaEligibility = candidate.preferredCountries.includes('India')
     ? job.indiaEligibilityStatus === 'YES' ? 100 : job.indiaEligibilityStatus === 'UNKNOWN' ? 45 : 0
     : 70;
@@ -109,7 +150,7 @@ function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, role
   const seniority = getSeniorityCompatibility(candidate, job);
   const seniorityScore = seniority === 'STRONG' ? 100 : seniority === 'ACCEPTABLE' ? 75 : seniority === 'UNKNOWN' ? 55 : 20;
   return {
-    score: Math.round(roleRelevanceScore * 0.55 + indiaEligibility * 0.25 + remoteCompatibility * 0.1 + seniorityScore * 0.1),
+    score: Math.round(roleRelevanceScore * 0.4 + subfunctionScore * 0.2 + indiaEligibility * 0.25 + remoteCompatibility * 0.1 + seniorityScore * 0.05),
     seniority,
   };
 }
@@ -166,7 +207,9 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   const seniorityWeight = 5;
   const roleWeight = 40;
   const roleRelevance = calculateRoleRelevance(candidate, job);
-  const applicability = calculateApplicabilityScore(candidate, job, roleRelevance.score);
+  const financeSubfunction = classifyFinanceSubfunction(job);
+  const subfunctionScore = calculateFinanceSubfunctionScore(candidate, job, financeSubfunction);
+  const applicability = calculateApplicabilityScore(candidate, job, roleRelevance.score, subfunctionScore);
 
   const experienceScore = job.requiredExperience === null
     ? experienceWeight * 0.5
@@ -259,6 +302,8 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
     roleRelevanceScore: roleRelevance.score,
     applicabilityScore: applicability.score,
     roleClassification: roleRelevance.functionName,
+    financeSubfunction,
+    financeSubfunctionScore: subfunctionScore,
     seniorityCompatibility: applicability.seniority,
     matchTier: getMatchTier(totalScore),
     reasons: visibleReasons,

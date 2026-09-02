@@ -95,6 +95,9 @@ function normalizeCountry(value?: string | null): string {
   const text = normalizeText(value);
   if (!text) return 'Remote';
   if (/india|indian/i.test(text)) return 'India';
+  if (/abu dhabi|united arab emirates|\buae\b/i.test(text)) return 'United Arab Emirates';
+  if (/canada/i.test(text)) return 'Canada';
+  if (/europe|emea/i.test(text)) return 'EMEA';
   if (/united states|usa|us/i.test(text)) return 'United States';
   if (/uk|united kingdom|england|britain/i.test(text)) return 'United Kingdom';
   return text;
@@ -117,6 +120,8 @@ function normalizeRemoteStatus(input?: string | boolean | null): Job['remoteStat
 
   const text = normalizeText(input).toLowerCase();
   if (!text) return 'UNKNOWN';
+  if (text === 'true') return 'TRUE';
+  if (text === 'false') return 'FALSE';
   if (/remote|distributed|work from anywhere|worldwide|virtual|anywhere/i.test(text)) return 'TRUE';
   if (/hybrid|onsite|in[- ]?office|office|on[- ]?site/i.test(text)) return 'FALSE';
   return 'UNKNOWN';
@@ -185,7 +190,16 @@ function parseCompensation(input: unknown): { salaryMin: number | null; salaryMa
 }
 
 function classifyIndiaEligibility(input?: boolean | string | null, location?: string | null, description?: string | null): { indiaEligible: boolean; indiaEligibilityStatus: Job['indiaEligibilityStatus'] } {
+  const locationText = normalizeText(location).toLowerCase();
   const text = `${normalizeText(typeof input === 'string' ? input : '')} ${normalizeText(location)} ${normalizeText(description)}`.toLowerCase();
+
+  if (input === 'YES' || /\bindia\b/i.test(locationText)) {
+    return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
+  }
+
+  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(locationText)) {
+    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
+  }
 
   if (typeof input === 'boolean') {
     return {
@@ -196,6 +210,10 @@ function classifyIndiaEligibility(input?: boolean | string | null, location?: st
 
   if (/india.*eligible|eligible.*india|hiring.*india|can.*apply.*india|india.*hire|remote.*india|open.*to.*india/i.test(text)) {
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
+  }
+
+  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(text)) {
+    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
   }
 
   if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted/i.test(text)) {
