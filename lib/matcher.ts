@@ -19,7 +19,7 @@ export function matchJob(job: Job, profile: SearchFilters): MatchResult {
   const roleScore = role.total ? Math.min(40, role.hits.length / role.total * 40) : 0;
   const skillScore = profile.skills.length ? Math.min(15, matchedSkills.length / profile.skills.length * 15) : 0;
   const locationScore = profile.market === "india" ? (job.indiaEligible ? 10 : 0) : 10;
-  const salaryScore = job.salaryUsdMin ? Math.min(10, Math.max(0, job.salaryUsdMin / Math.max(profile.minSalary, 1) * 10)) : 4;
+  const salaryScore = job.salaryUsdMin ? Math.min(10, Math.max(0, job.salaryUsdMin / Math.max(profile.minCtc, 1) * 10)) : 4;
   const seniorityScore = /director|head|vp|vice president/i.test(job.title) && profile.experience < 7 ? 2 : /manager|senior|lead|director|head/i.test(job.title) ? 5 : 3;
   const companyScore = job.country ? 5 : 2;
   const score = Math.round(Math.min(100, roleScore + skillScore + locationScore + salaryScore + seniorityScore + companyScore));
@@ -30,7 +30,7 @@ export function matchJob(job: Job, profile: SearchFilters): MatchResult {
     job.salaryMin ? "Published compensation detected" : "Salary not disclosed; verify compensation on the employer page",
   ];
   const gaps = [
-    ...(job.salaryUsdMin && job.salaryUsdMin < profile.minSalary ? ["Compensation below target"] : []),
+    ...(job.salaryUsdMin && job.salaryUsdMin < profile.minCtc ? ["Compensation below target"] : []),
     ...(profile.market === "india" && !job.indiaEligible ? ["India eligibility not confirmed"] : []),
     ...(matchedSkills.length < Math.min(2, profile.skills.length) ? ["Skill overlap is limited"] : []),
   ];
