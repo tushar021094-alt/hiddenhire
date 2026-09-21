@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const locationEligibleJobs = normalizedJobs.filter(job => locationMatches(job, body));
     const eligibleJobs = locationEligibleJobs.filter(job => {
       if (!locationMatches(job, body)) return false;
-      if (job.salaryUsdMin != null && job.salaryUsdMin < minUsd) return false;
+      if (job.salaryUsdMax != null && job.salaryUsdMax < minUsd) return false;
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
     });
