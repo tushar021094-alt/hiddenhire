@@ -1,6 +1,12 @@
 import type { Job } from "./types";
 
 type GreenhouseJob = { id: number; title: string; location?: { name?: string }; absolute_url: string; updated_at?: string; content?: string; };
+type LeverJob = {
+  id: string; text: string; hostedUrl: string; applyUrl?: string; createdAt?: number;
+  descriptionPlain?: string; description?: string; additionalPlain?: string;
+  categories?: { location?: string; allLocations?: string[]; team?: string; department?: string; commitment?: string; };
+  workplaceType?: string;
+};
 type AshbyJob = {
   id: string; title: string; location?: string; jobUrl: string; applyUrl?: string; publishedAt?: string; descriptionPlain?: string;
   isRemote?: boolean; workplaceType?: string;
@@ -10,8 +16,21 @@ type AshbyJob = {
 
 const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
 const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory","lumilens","pebl","certifyos","better-mortgage","cynlr"];
+const DEFAULT_LEVER_BOARDS = ["paytm","paytmpayments","Sprinto","saviynt","acceldata","fampay","dozee","hevodata"];
 
-function stripHtml(value = "") { return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
+function decodeHtmlEntities(value = "") {
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#x2F;|&#47;/gi, "/");
+}
+function stripHtml(value = "") {
+  return decodeHtmlEntities(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
 
 const COUNTRY_PATTERNS: Array<[string, RegExp]> = [
   ["India", /\bindia\b|\bindian\b/i],
@@ -39,38 +58,53 @@ function parsePlace(location: string, addressCountry?: string, addressCity?: str
   return { city, region: addressRegion, country };
 }
 
-function parseSalary(text: string) {
-  const normalized = text.replace(/,/g, "");
-  const tokenPattern = /C\$|A\$|₹|INR|USD|\$|£|GBP|€|EUR|CAD|AUD|AED|SGD/iu;
-  const token = normalized.match(tokenPattern)?.[0];
-  const currency = !token ? undefined
-    : /₹|INR/i.test(token) ? "INR"
-    : /£|GBP/i.test(token) ? "GBP"
-    : /€|EUR/i.test(token) ? "EUR"
-    : /C\$|CAD/i.test(token) ? "CAD"
-    : /A\$|AUD/i.test(token) ? "AUD"
-    : /AED/i.test(token) ? "AED"
-    : /SGD/i.test(token) ? "SGD"
-    : "USD";
-  if (!currency) return {};
+function preferredCurrency(country?: string) {
+  if (!country) return undefined;
+  return ({ India:"INR", "United States":"USD", Canada:"CAD", "United Kingdom":"GBP", Australia:"AUD", UAE:"AED", Singapore:"SGD", Germany:"EUR" } as Record<string,string>)[country];
+}
 
+function parseSalary(text: string, country?: string) {
+  const normalized = text.replace(/,/g, "");
   const moneyToken = "(?:C\\$|A\\$|₹|INR|USD|\\$|£|GBP|€|EUR|CAD|AUD|AED|SGD)";
   const matches = [...normalized.matchAll(new RegExp(
     `${moneyToken}\\s*(\\d+(?:\\.\\d+)?)\\s*(k|K|l|L|cr|Cr)?(?:\\s*(?:-|–|to)\\s*(?:${moneyToken})?\\s*(\\d+(?:\\.\\d+)?)\\s*(k|K|l|L|cr|Cr)?)?`,
     "g"
   ))];
-
-  for (const m of matches) {
-    const multiplier = (suffix?: string) => {
-      if (!suffix) return 1;
-      if (/^k$/i.test(suffix)) return 1000;
-      if (/^l$/i.test(suffix)) return 100000;
-      if (/^cr$/i.test(suffix)) return 10000000;
-      return 1;
-    };
-    const min = Number(m[1]) * multiplier(m[2]);
-    const max = m[3] ? Number(m[3]) * multiplier(m[4]) : undefined;
-    if (min >= 10000 && min <= 20000000) return { salaryMin: min, salaryMax: max, currency };
+  const wanted = preferredCurrency(country);
+  const multiplier = (suffix?: string) => {
+    if (!suffix) return 1;
+    if (/^k$/i.test(suffix)) return 1000;
+    if (/^l$/i.test(suffix)) return 100000;
+    if (/^cr$/i.test(suffix)) return 10000000;
+    return 1;
+  };
+  const toResult = (m: RegExpMatchArray) => {
+    const token = m[0].match(new RegExp(moneyToken, "i"))?.[0] ?? "";
+    const currency = /₹|INR/i.test(token) ? "INR"
+      : /£|GBP/i.test(token) ? "GBP"
+      : /€|EUR/i.test(token) ? "EUR"
+      : /C\\$|CAD/i.test(token) ? "CAD"
+      : /A\\$|AUD/i.test(token) ? "AUD"
+      : /AED/i.test(token) ? "AED"
+      : /SGD/i.test(token) ? "SGD"
+      : "USD";
+    return { salaryMin:Number(m[1]) * multiplier(m[2]), salaryMax:m[3] ? Number(m[3]) * multiplier(m[4]) : undefined, currency };
+  };
+  const candidates = matches.filter(m => {
+    const token = m[0].match(new RegExp(moneyToken, "i"))?.[0] ?? "";
+    const currency = /₹|INR/i.test(token) ? "INR"
+      : /£|GBP/i.test(token) ? "GBP"
+      : /€|EUR/i.test(token) ? "EUR"
+      : /C\\$|CAD/i.test(token) ? "CAD"
+      : /A\\$|AUD/i.test(token) ? "AUD"
+      : /AED/i.test(token) ? "AED"
+      : /SGD/i.test(token) ? "SGD"
+      : "USD";
+    return (!wanted || currency === wanted);
+  });
+  for (const m of candidates) {
+    const result = toResult(m);
+    if (result.salaryMin >= 10000 && result.salaryMin <= 20000000) return result;
   }
   return {};
 }
@@ -101,7 +135,7 @@ export async function fetchGreenhouseBoard(board: string): Promise<Job[]> {
       return makeJob({
         id: `greenhouse-${board}-${job.id}`, title: job.title, company: normalizeCompany(board), location, city, region, country, remote,
         workplaceType: remote ? "Remote" : /\bhybrid\b/i.test(`${location} ${text}`) ? "Hybrid" : "On-site", indiaEligible: indiaEligibility(location, text, country, remote),
-        source: "Greenhouse", url: job.absolute_url, posted: job.updated_at ?? "Recently updated", description: text.slice(0, 900), ...parseSalary(text),
+        source: "Greenhouse", url: job.absolute_url, posted: job.updated_at ?? "Recently updated", description: text.slice(0, 900), ...parseSalary(text, country),
       });
     });
   } catch { return []; }
@@ -128,12 +162,49 @@ export async function fetchAshbyBoard(board: string): Promise<Job[]> {
   } catch { return []; }
 }
 
+export async function fetchLeverBoard(board: string): Promise<Job[]> {
+  try {
+    const response = await fetch(`https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`, { next: { revalidate: 900 } });
+    if (!response.ok) return [];
+    const data = (await response.json()) as LeverJob[];
+    return (Array.isArray(data) ? data : []).filter(job => job.text && job.hostedUrl).map(job => {
+      const location = job.categories?.location || job.categories?.allLocations?.join(" / ") || "Location not disclosed";
+      const description = stripHtml(job.descriptionPlain || job.description || job.additionalPlain || "");
+      const remote = /\bremote\b/i.test(job.workplaceType || "") || /\bremote\b/i.test(location);
+      const { city, region, country } = parsePlace(location);
+      const posted = job.createdAt ? new Date(job.createdAt).toISOString() : "Recently listed";
+      return makeJob({
+        id: `lever-${board}-${job.id}`,
+        title: job.text,
+        company: normalizeCompany(board),
+        location,
+        city,
+        region,
+        country,
+        remote,
+        workplaceType: /\bhybrid\b/i.test(`${job.workplaceType || ""} ${location} ${description}`) ? "Hybrid" : remote ? "Remote" : "On-site",
+        indiaEligible: indiaEligibility(location, description, country, remote),
+        source: "Lever",
+        url: job.hostedUrl || job.applyUrl || "",
+        posted,
+        description: description.slice(0, 900),
+        ...parseSalary(description, country),
+      });
+    });
+  } catch { return []; }
+}
+
 export async function discoverJobs() {
   const greenhouse = (process.env.GREENHOUSE_BOARDS ?? DEFAULT_GREENHOUSE_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
   const ashby = (process.env.ASHBY_BOARDS ?? DEFAULT_ASHBY_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
-  const [g, a] = await Promise.all([Promise.all(greenhouse.map(fetchGreenhouseBoard)), Promise.all(ashby.map(fetchAshbyBoard))]);
+  const lever = (process.env.LEVER_BOARDS ?? DEFAULT_LEVER_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
+  const [g, a, l] = await Promise.all([
+    Promise.all(greenhouse.map(fetchGreenhouseBoard)),
+    Promise.all(ashby.map(fetchAshbyBoard)),
+    Promise.all(lever.map(fetchLeverBoard)),
+  ]);
   const unique = new Map<string, Job>();
-  for (const job of [...g.flat(), ...a.flat()]) {
+  for (const job of [...g.flat(), ...a.flat(), ...l.flat()]) {
     const key = `${job.company.toLowerCase()}|${job.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}|${job.location.toLowerCase()}`;
     if (!unique.has(key)) unique.set(key, job);
   }
