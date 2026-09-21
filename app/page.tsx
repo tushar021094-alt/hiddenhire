@@ -3,7 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { MatchResult } from "@/lib/types";
-import { CURRENCIES, formatMoney } from "@/lib/currency";\nimport { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
+import { CURRENCIES, formatMoney } from "@/lib/currency";
+import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -18,7 +19,9 @@ export default function Home() {
   const [remoteOnly,setRemoteOnly]=useState(false), [workplace,setWorkplace]=useState<"any"|"remote"|"hybrid"|"onsite">("any");
   const [jobCountry,setJobCountry]=useState("India"), [state,setState]=useState(""), [city1,setCity1]=useState(""), [city2,setCity2]=useState(""), [showFilters,setShowFilters]=useState(true);
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
-  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");\n  const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);\n  const cities=useMemo(()=>citiesFor(jobCountry,state),[jobCountry,state]);
+  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");
+  const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
+  const cities=useMemo(()=>citiesFor(jobCountry,state),[jobCountry,state]);
 
   useEffect(()=>{
     const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
@@ -26,7 +29,10 @@ export default function Home() {
     const defaults: Record<string,string>={India:"2500000","United States":"100000","United Kingdom":"80000",Canada:"120000",Australia:"140000",UAE:"350000",Singapore:"130000",Germany:"90000"};
     setSalary(defaults[candidateCountry] ?? "50000");
     setMaxSalary("");
-  },[candidateCountry]);\n  useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);\n  useEffect(()=>{ setState(""); setCity1(""); setCity2(""); },[jobCountry]);\n  useEffect(()=>{ if(!cities.includes(city1)) setCity1(""); if(!cities.includes(city2)) setCity2(""); },[state]);
+  },[candidateCountry]);
+  useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);
+  useEffect(()=>{ setState(""); setCity1(""); setCity2(""); },[jobCountry]);
+  useEffect(()=>{ if(!cities.includes(city1)) setCity1(""); if(!cities.includes(city2)) setCity2(""); },[state]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
   async function findJobs(event:FormEvent) {
@@ -66,7 +72,7 @@ export default function Home() {
           <Field label="Target role"><input value={role} onChange={e=>setRole(e.target.value)} placeholder="e.g. Finance Manager"/></Field>
           <Field label="Core skills"><input value={skills} onChange={e=>setSkills(e.target.value)} placeholder="FP&A, Excel, forecasting"/></Field>
           <Field label="Experience"><div className="input-suffix"><input type="number" min="0" value={experience} onChange={e=>setExperience(e.target.value)}/><span>years</span></div></Field>
-          <Field label="Your country"><select value={candidateCountry} onChange={e=>setCandidateCountry(e.target.value)}>{["India","United States","United Kingdom","Canada","Australia","UAE","Singapore","Germany"].map(c=><option key={c}>{c}</option>)}</select></Field>
+          <Field label="Candidate country"><select value={candidateCountry} onChange={e=>setCandidateCountry(e.target.value)}>{["India","United States","United Kingdom","Canada","Australia","UAE","Singapore","Germany"].map(c=><option key={c}>{c}</option>)}</select></Field>
         </div>
 
         {showFilters && <div className="filter-grid mt-5">
