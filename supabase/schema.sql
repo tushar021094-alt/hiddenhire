@@ -88,7 +88,7 @@ create index if not exists jobs_posted_idx on jobs(published_at desc);
 create table if not exists company_sources (
   id uuid primary key default gen_random_uuid(),
   company_id uuid references companies(id) on delete cascade,
-  provider text not null check (provider in ('greenhouse','ashby','lever','workable','structured-jobposting','unknown')),
+  provider text not null check (provider in ('greenhouse','ashby','lever','workable','workday','structured-jobposting','unknown')),
   identifier text,
   canonical_url text not null,
   careers_url text,
