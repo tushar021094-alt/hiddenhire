@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'HiddenHire — Find jobs you should apply to',
-  description: 'Discover highly matched remote and international jobs that hire from India.',
+  title: 'HiddenHire — AI Career Intelligence',
+  description: 'AI-powered career intelligence for discovering jobs that actually fit your profile.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
