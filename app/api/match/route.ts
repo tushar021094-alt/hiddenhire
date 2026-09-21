@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
     });
-    const roleEligibleJobs = salaryEligibleJobs.filter(job => !body.role.trim() || body.role.toLowerCase().split(/\\s+/).some(term => `${job.title} ${job.description}`.toLowerCase().includes(term)));\n    const eligibleJobs = roleEligibleJobs;\n    const results = eligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
+    const roleEligibleJobs = salaryEligibleJobs.filter(job => !body.role.trim() || body.role.toLowerCase().split(/\\s+/).some(term => `${job.title} ${job.description}`.toLowerCase().includes(term)));
+    const eligibleJobs = roleEligibleJobs;\n    const results = eligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
     return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: salaryEligibleJobs.length, roleEligibleCount: roleEligibleJobs.length, eligibleCount: eligibleJobs.length, results });
   } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
 }
