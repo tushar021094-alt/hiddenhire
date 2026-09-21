@@ -54,12 +54,14 @@ function locationMatches(job: Job, filters: SearchFilters) {
     if (job.workplaceType !== wanted) return false;
   }
 
-  // A remote job is not tied to a physical city/state. Its country/remote
-  // eligibility is authoritative, so physical location filters must not
-  // accidentally eliminate legitimate remote-from-country opportunities.
-  if (job.remote) return true;
-
   const cities = filters.cities.map(c => c.trim().toLowerCase()).filter(Boolean);
+  const states = (filters.states ?? []).map(s => s.trim().toLowerCase()).filter(Boolean);
+
+  // "Any" workplace allows remote roles, but explicit physical location
+  // filters mean the user is asking for jobs tied to those places.
+  // Remote-only is handled above and therefore intentionally bypasses this.
+  if (job.remote && (cities.length || states.length)) return false;
+  if (job.remote) return true;
   if (cities.length) {
     const haystack = `${job.location} ${job.city ?? ""}`.toLowerCase();
     const matchesCity = cities.some(city => {
@@ -69,7 +71,6 @@ function locationMatches(job: Job, filters: SearchFilters) {
     if (!matchesCity) return false;
   }
 
-  const states = (filters.states ?? []).map(s => s.trim().toLowerCase()).filter(Boolean);
   if (states.length) {
     const jobLocation = `${job.region ?? ""} ${job.location}`.toLowerCase();
     const matchesState = states.some(state => {
