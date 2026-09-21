@@ -20,7 +20,13 @@ export default function Home() {
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
   const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");
 
-  useEffect(()=>{ setSalaryCurrency(COUNTRY_CURRENCY[candidateCountry] ?? "USD"); },[candidateCountry]);
+  useEffect(()=>{
+    const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
+    setSalaryCurrency(nextCurrency);
+    const defaults: Record<string,string>={India:"2500000","United States":"100000","United Kingdom":"80000",Canada:"120000",Australia:"140000",UAE:"350000",Singapore:"130000",Germany:"90000"};
+    setSalary(defaults[candidateCountry] ?? "50000");
+    setMaxSalary("");
+  },[candidateCountry]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
   async function findJobs(event:FormEvent) {
