@@ -24,7 +24,7 @@ const roleAliases: Record<string, string[]> = {
 function containsTerm(haystack: string, term: string) {
   const n = normalize(term);
   if (!n) return false;
-  return new RegExp(`(^|\\s)${n.replace(/[.*+?^{}()|[\\]\\\\]/g, "\\$&")}(?=\\s|$)`, "i").test(haystack);
+  return ` ${haystack} `.includes(` ${n} `);
 }
 
 function aliasesFor(requested: string) {
