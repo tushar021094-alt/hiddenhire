@@ -43,7 +43,7 @@ export default function Home() {
         minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,states:selectedStates,cities:selectedCities
       })});
       const data=await response.json(); if(!response.ok) throw new Error(data.error ?? "Search failed");
-      setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0); setSourceCount(data.sourceCount ?? 0); setLocationEligibleCount(data.locationEligibleCount ?? 0); setSalaryEligibleCount(data.salaryEligibleCount ?? 0);
+      setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0); setSourceCount(data.sourceCount ?? 0); setLocationEligibleCount(data.locationEligibleCount ?? 0); setSalaryEligibleCount(data.salaryEligibleCount ?? 0); setRoleEligibleCount(data.roleEligibleCount ?? 0);
     } catch(err) { setResults([]);setMode(null);setEligibleCount(0);setError(err instanceof Error?err.message:"Search failed"); }
     finally { setLoading(false); }
   }
@@ -127,24 +127,21 @@ function JobCard({job}:{job:MatchResult}) {
 }
 function Field({label,children}:{label:string;children:ReactNode}) { return <label className="text-xs font-medium uppercase tracking-[0.12em] text-white/40">{label}<div className="mt-2">{children}</div></label>; }
 function MultiSelectField({label,items,selected,onChange,disabled=false,emptyText}:{label:string;items:string[];selected:string[];onChange:(values:string[])=>void;disabled?:boolean;emptyText:string}) {
-  const [open,setOpen]=useState(false);
-  const [query,setQuery]=useState("");
+  const [open,setOpen]=useState(false), [query,setQuery]=useState("");
   const filtered=items.filter(item=>item.toLowerCase().includes(query.toLowerCase()));
   const toggle=(item:string)=>onChange(selected.includes(item)?selected.filter(v=>v!==item):[...selected,item]);
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
   return <div className="multi-field">
     <div className="multi-label-row"><span>{label}</span>{selected.length>0&&<button type="button" className="multi-clear" onClick={()=>onChange([])}>Clear</button>}</div>
     <button type="button" className={`multi-trigger mt-2${disabled?" multi-disabled":""}`} disabled={disabled} onClick={()=>setOpen(v=>!v)}>
-      <span className="multi-trigger-value">{selected.length?selected.slice(0,2).join(", "):"Any"}{selected.length>2&&<em> +{selected.length-2}</em>}</span>
-      <span className="multi-trigger-meta">{selected.length||"All"} <b>⌄</b></span>
+      <span className="multi-trigger-content">{selected.length===0?<span className="multi-placeholder">Any {label.toLowerCase()}</span>:<>{selected.slice(0,2).map(item=><span key={item} className="multi-chip">{item}</span>)}{selected.length>2&&<span className="multi-chip-count">+{selected.length-2}</span>}</>}</span>
+      <span className={`multi-chevron${open?" is-open":""}`}>⌄</span>
     </button>
     {open&&<div className="multi-menu">
-      <div className="multi-menu-head"><span>Select {label.toLowerCase()}</span><span>{selected.length} selected</span></div>
-      {items.length>7&&<input className="multi-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()}...`} />}
-      <div className="multi-options">
-        {filtered.length===0?<div className="multi-empty">{emptyText}</div>:filtered.map(item=><label key={item} className="multi-option"><input type="checkbox" checked={selected.includes(item)} onChange={()=>toggle(item)}/><span>{item}</span></label>)}
-      </div>
-      <button type="button" className="multi-done" onClick={()=>setOpen(false)}>Done</button>
+      <div className="multi-menu-head"><strong>{label}</strong><span>{selected.length?`${selected.length} selected`:"All"}</span></div>
+      <input className="multi-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()}...`} autoFocus />
+      <div className="multi-options">{filtered.length===0?<div className="multi-empty">{emptyText}</div>:filtered.map(item=><button type="button" key={item} className={`multi-option${selected.includes(item)?" is-selected":""}`} onClick={()=>toggle(item)}><span className="multi-check">{selected.includes(item)?"✓":""}</span><span>{item}</span></button>)}</div>
+      <div className="multi-menu-footer"><button type="button" className="multi-done" onClick={()=>setOpen(false)}>Done</button></div>
     </div>}
   </div>;
 }
