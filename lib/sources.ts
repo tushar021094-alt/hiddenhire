@@ -8,8 +8,8 @@ type AshbyJob = {
   compensation?: { summaryComponents?: Array<{ compensationType?: string; currencyCode?: string; minValue?: number | null; maxValue?: number | null }> };
 };
 
-const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare"];
-const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear"];
+const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
+const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev"];
 
 function stripHtml(value = "") { return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
 
@@ -24,14 +24,14 @@ const COUNTRY_PATTERNS: Array<[string, RegExp]> = [
   ["Germany", /\bgermany\b|\bberlin\b|\bmunich\b/i],
 ];
 
-function detectCountry(location: string, description = "") {
+const COUNTRY_ALIASES: Record<string,string> = { IND:"India", IN:"India", INDIA:"India", USA:"United States", US:"United States", "UNITED STATES":"United States", CAN:"Canada", CA:"Canada", CANADA:"Canada", GB:"United Kingdom", UK:"United Kingdom", "UNITED KINGDOM":"United Kingdom", AU:"Australia", AUSTRALIA:"Australia", SG:"Singapore", SINGAPORE:"Singapore", AE:"UAE", UAE:"UAE", DE:"Germany", GERMANY:"Germany" };\nfunction normalizeCountry(value?: string) { if (!value) return undefined; const key=value.trim().toUpperCase(); return COUNTRY_ALIASES[key] ?? value.trim(); }\nfunction detectCountry(location: string, description = "") {
   const match = COUNTRY_PATTERNS.find(([, pattern]) => pattern.test(location));
   if (match) return match[0];
   return /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description) ? "India" : undefined;
 }
 
 function parsePlace(location: string, addressCountry?: string, addressCity?: string, addressRegion?: string) {
-  const country = addressCountry || detectCountry(location);
+  const country = normalizeCountry(addressCountry) || detectCountry(location);
   const parts = location.split(/\s*[-|,•]\s*/).map(v => v.trim()).filter(Boolean);
   const city = addressCity || (parts.length > 1 && !/^remote$/i.test(parts[0]) ? parts[0] : undefined);
   return { city, region: addressRegion, country };
@@ -53,7 +53,7 @@ function parseSalary(text: string) {
 
 function indiaEligibility(location: string, description: string, country?: string, remote = false) {
   const loc = location.toLowerCase();
-  if (country && country !== "India") return false;
+  const normalized = normalizeCountry(country);\n  if (normalized && normalized !== "India") return false;
   if (/usa|u\.s\.|united states|canada|uk|united kingdom|europe|australia|germany|singapore|uae|dubai/.test(loc)) return false;
   if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b/.test(loc)) return true;
   return remote && /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description);
