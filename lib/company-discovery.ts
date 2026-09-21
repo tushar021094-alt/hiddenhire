@@ -1,4 +1,4 @@
-export type DetectedProvider = "greenhouse" | "lever" | "ashby" | "workable" | "structured-jobposting" | "unknown";
+export type DetectedProvider = "greenhouse" | "lever" | "ashby" | "workable" | "workday" | "structured-jobposting" | "unknown";
 
 export type CompanyDiscovery = {
   inputUrl: string;
@@ -32,6 +32,12 @@ function providerFromUrl(url: URL): { provider: DetectedProvider; identifier?: s
   if (host === "jobs.lever.co" || host.endsWith(".lever.co")) return { provider: "lever", identifier: path.split("/").filter(Boolean)[0], signal: "Lever career URL" };
   if (host === "jobs.ashbyhq.com" || host.endsWith(".ashbyhq.com")) return { provider: "ashby", identifier: path.split("/").filter(Boolean)[0], signal: "Ashby career URL" };
   if (host === "jobs.workable.com" || host === "apply.workable.com" || host.endsWith(".workable.com")) return { provider: "workable", identifier: path.split("/").filter(Boolean)[0], signal: "Workable career URL" };
+  const workday = host.match(/^([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com$/i);
+  if (workday) {
+    const segments = path.split("/").filter(Boolean);
+    const site = segments[0]?.toLowerCase() === "en-us" ? segments[1] : segments[0];
+    if (site) return { provider: "workday", identifier: [workday[1], site, url.origin, "en-US"].join("|"), signal: "Workday career URL" };
+  }
   return { provider: "unknown" };
 }
 
@@ -60,6 +66,11 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   if (direct.signal) signals.push(direct.signal);
 
   const detected = direct.provider !== "unknown" ? direct : providerFromHtml(html, signals);
+  if (detected.provider === "unknown" && /(^|\.)accenture\.com$/i.test(finalUrl.hostname)) {
+    detected.provider = "workday";
+    detected.identifier = "accenture|AccentureCareers|https://accenture.wd103.myworkdayjobs.com|en-US";
+    signals.push("Accenture Workday career integration");
+  }
   const company = extractJsonLdCompany(html);
   if (company) signals.push("Organization/JobPosting structured data");
 
@@ -110,6 +121,11 @@ function providerFromHtml(html: string, signals: string[]) {
   if (ashby) { signals.push("Ashby job URL reference"); return { provider: "ashby" as const, identifier: ashby[1] }; }
 
   const workable = html.match(/(?:jobs|apply)\.workable\.com\/([a-z0-9_-]+)/i);
+  const workday = html.match(/([a-z0-9-]+)\.(wd[0-9]+)\.myworkdayjobs\.com\/(?:en-[A-Za-z]+\/)?([A-Za-z0-9_-]+)/i);
+  if (workday) {
+    signals.push("Workday career URL reference");
+    return { provider: "workday" as const, identifier: [workday[1], workday[3], `https://${workday[1]}.${workday[2]}.myworkdayjobs.com`, "en-US"].join("|") };
+  }
   if (workable) { signals.push("Workable job URL reference"); return { provider: "workable" as const, identifier: workable[1] }; }
 
   if (/<script[^>]+type=["']application\/ld\+json["']/i.test(html) && /"@type"\s*:\s*["']JobPosting["']/i.test(html)) {
