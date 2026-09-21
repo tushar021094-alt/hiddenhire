@@ -9,7 +9,7 @@ type AshbyJob = {
 };
 
 const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
-const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory"];
+const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory","lumilens","pebl","certifyos","better-mortgage","cynlr"];
 
 function stripHtml(value = "") { return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
 
@@ -58,7 +58,7 @@ function indiaEligibility(location: string, description: string, country?: strin
   const normalized = normalizeCountry(country);
   if (normalized && normalized !== "India") return false;
   if (/usa|u\.s\.|united states|canada|uk|united kingdom|europe|australia|germany|singapore|uae|dubai/.test(loc)) return false;
-  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b/.test(loc)) return true;
+  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgreater noida\b|\bghaziabad\b|\bgurgaon\b|\bgurugram\b|\blucknow\b|\bkanpur\b|\bagra\b|\bvaranasi\b|\bchandigarh\b|\bjaipur\b|\bahmedabad\b|\bsurat\b|\bvadodara\b|\bchennai\b|\bcoimbatore\b|\bkolkata\b|\bkochi\b|\btrivandrum\b|\bindore\b|\bbhopal\b|\bpatna\b|\bbhubaneswar\b|\branchi\b|\bjamshedpur\b|\bludhiana\b|\bamritsar\b|\bdehradun\b|\bharidwar\b/.test(loc)) return true;
   return remote && /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description);
 }
 

@@ -47,13 +47,14 @@ export async function POST(request: Request) {
     });
     const profileRate = await usdRate(body.ctcCurrency); const minUsd = body.minCtc * profileRate; const maxUsd = body.maxCtc && body.maxCtc > 0 ? body.maxCtc * profileRate : undefined;
     const locationEligibleJobs = normalizedJobs.filter(job => locationMatches(job, body));
-    const eligibleJobs = locationEligibleJobs.filter(job => {
+    const salaryEligibleJobs = locationEligibleJobs.filter(job => {
       if (!locationMatches(job, body)) return false;
-      if (job.salaryUsdMin != null && job.salaryUsdMin < minUsd) return false;
+      if (job.salaryUsdMax != null && job.salaryUsdMax < minUsd) return false;
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
     });
-    const results = eligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
-    return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: eligibleJobs.length, results });
+    const roleEligibleJobs = salaryEligibleJobs.filter(job => !body.role.trim() || body.role.toLowerCase().split(/\\s+/).some(term => `${job.title} ${job.description}`.toLowerCase().includes(term)));
+    const eligibleJobs = roleEligibleJobs;\n    const results = eligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
+    return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: salaryEligibleJobs.length, roleEligibleCount: roleEligibleJobs.length, eligibleCount: eligibleJobs.length, results });
   } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
 }
