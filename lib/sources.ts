@@ -80,9 +80,9 @@ function indiaEligibility(location: string, description: string, country?: strin
   const normalized = normalizeCountry(country);
   if (normalized) return normalized === "India";
   if (/usa|u\.s\.|united states|canada|uk|united kingdom|europe|australia|germany|singapore|uae|dubai/.test(loc)) return false;
-  if (/\\bindia\\b|\\bbengaluru\\b|\\bbangalore\\b|\\bdelhi\\b|\\bmumbai\\b|\\bhyderabad\\b|\\bpune\\b|\\bnoida\\b|\\bgurgaon\\b|\\bgurugram\\b|\\bghaziabad\\b|\\blucknow\\b/.test(loc)) return true;
+  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b|\bghaziabad\b|\blucknow\b/.test(loc)) return true;
   if (!remote) return false;
-  return /\\bremote\\b.{0,80}\\b(india|apac|asia)\\b|\\b(india|apac|asia)\\b.{0,80}\\bremote\\b/i.test(`${location} ${description}`);
+  return /\bremote\b.{0,80}\b(india|apac|asia)\b|\b(india|apac|asia)\b.{0,80}\bremote\b/i.test(`${location} ${description}`);
 }
 
 function normalizeCompany(board: string) { return board.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()); }
@@ -96,11 +96,11 @@ export async function fetchGreenhouseBoard(board: string): Promise<Job[]> {
     return (data.jobs ?? []).map(job => {
       const text = stripHtml(job.content);
       const location = job.location?.name ?? "Location not disclosed";
-      const remote = /^remote\b/i.test(location) || /\bremote\s*(?:-)?\s*(?:india|apac|asia|worldwide|global)/i.test(location);
+      const remote = /\bremote\b/i.test(location) && (/\bindia\b|\bapac\b|\basia\b|\bworldwide\b|\bglobal\b/i.test(location) || /\bremote\b.{0,80}\b(india|apac|asia)\b/i.test(text));
       const { city, region, country } = parsePlace(location);
       return makeJob({
         id: `greenhouse-${board}-${job.id}`, title: job.title, company: normalizeCompany(board), location, city, region, country, remote,
-        workplaceType: remote ? "Remote" : /\\bhybrid\\b/i.test(`${location} ${text}`) ? "Hybrid" : "On-site", indiaEligible: indiaEligibility(location, text, country, remote),
+        workplaceType: remote ? "Remote" : /\bhybrid\b/i.test(`${location} ${text}`) ? "Hybrid" : "On-site", indiaEligible: indiaEligibility(location, text, country, remote),
         source: "Greenhouse", url: job.absolute_url, posted: job.updated_at ?? "Recently updated", description: text.slice(0, 900), ...parseSalary(text),
       });
     });
