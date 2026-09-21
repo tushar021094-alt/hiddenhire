@@ -11,7 +11,7 @@ function validProfile(value: unknown): value is SearchFilters {
   return typeof p.role === "string" && Array.isArray(p.skills) && typeof p.experience === "number"
     && typeof p.candidateCountry === "string" && (p.market === "india" || p.market === "worldwide")
     && typeof p.remoteOnly === "boolean" && ["any","remote","hybrid","onsite"].includes(p.workplace ?? "")
-    && typeof p.minCtc === "number" && typeof p.ctcCurrency === "string" && Array.isArray(p.cities);
+    && typeof p.minCtc === "number" && typeof p.ctcCurrency === "string" && Array.isArray(p.states) && Array.isArray(p.cities);
 }
 const LOCATION_ALIASES: Record<string, string[]> = {
   "new delhi": ["new delhi", "delhi"],
@@ -87,8 +87,8 @@ export async function POST(request: Request) {
     if (!validProfile(body)) return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
     const liveJobs = await discoverJobs(); const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
     const currencies = [...new Set(sourceJobs.map(job => job.currency).filter(Boolean))] as string[];
-    const rates = new Map<string, number>();
-    for (const code of currencies) rates.set(code, await usdRate(code));
+    const rateEntries = await Promise.all(currencies.map(async code => [code, await usdRate(code)] as const));
+    const rates = new Map(rateEntries);
     const normalizedJobs = sourceJobs.map(job => {
       const code = job.currency || "USD"; const rate = rates.get(code) ?? 1;
       return { ...job, currency: code, salaryUsdMin: job.salaryMin != null ? job.salaryMin * rate : undefined, salaryUsdMax: job.salaryMax != null ? job.salaryMax * rate : undefined };
@@ -96,7 +96,6 @@ export async function POST(request: Request) {
     const profileRate = await usdRate(body.ctcCurrency); const minUsd = body.minCtc * profileRate; const maxUsd = body.maxCtc && body.maxCtc > 0 ? body.maxCtc * profileRate : undefined;
     const locationEligibleJobs = normalizedJobs.filter(job => locationMatches(job, body));
     const eligibleJobs = locationEligibleJobs.filter(job => {
-      if (!locationMatches(job, body)) return false;
       if (job.salaryUsdMax != null && job.salaryUsdMax < minUsd) return false;
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
