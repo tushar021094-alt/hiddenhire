@@ -1,4 +1,4 @@
-export type SourceProvider = "greenhouse" | "ashby" | "lever" | "workable";
+export type SourceProvider = "greenhouse" | "ashby" | "lever" | "workable" | "workday";
 
 export type SourceDefinition = {
   provider: SourceProvider;
