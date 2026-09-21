@@ -20,7 +20,7 @@ export const SOURCE_REGISTRY: SourceDefinition[] = [
 ];
 
 export function parseConfiguredSources<T extends SourceDefinition>(provider: T["provider"], envValue?: string) {
-  if (envValue == null) return SOURCE_REGISTRY.filter(source => source.provider === provider && source.enabled !== false);
+  if (!envValue?.trim()) return SOURCE_REGISTRY.filter(source => source.provider === provider && source.enabled !== false);
   return envValue.split(",").map(identifier => identifier.trim()).filter(Boolean).map(identifier => ({
     provider,
     identifier,
