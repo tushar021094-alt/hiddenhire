@@ -56,7 +56,7 @@ create table if not exists jobs (
   id uuid primary key default gen_random_uuid(),
   company_id uuid references companies(id) on delete set null,
   posted_by uuid references profiles(id) on delete set null,
-  source_type text not null default 'native' check (source_type in ('native','greenhouse','ashby','lever','other')),
+  source_type text not null default 'native' check (source_type in ('native','greenhouse','ashby','lever','workable','careerpage','other')),
   external_job_id text,
   title text not null,
   description text not null,
@@ -84,6 +84,28 @@ create index if not exists jobs_status_idx on jobs(status);
 create index if not exists jobs_company_idx on jobs(company_id);
 create index if not exists jobs_location_idx on jobs(country, region, city);
 create index if not exists jobs_posted_idx on jobs(published_at desc);
+
+create table if not exists company_sources (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references companies(id) on delete cascade,
+  provider text not null check (provider in ('greenhouse','ashby','lever','workable','structured-jobposting','unknown')),
+  identifier text,
+  canonical_url text not null,
+  careers_url text,
+  discovery_confidence text not null default 'low' check (discovery_confidence in ('high','medium','low')),
+  status text not null default 'active' check (status in ('active','failing','paused','retired')),
+  last_checked_at timestamptz,
+  last_success_at timestamptz,
+  last_job_count integer not null default 0 check (last_job_count >= 0),
+  last_error text,
+  metadata jsonb not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(provider, identifier, canonical_url)
+);
+
+create index if not exists company_sources_company_idx on company_sources(company_id);
+create index if not exists company_sources_status_idx on company_sources(status,last_checked_at);
 
 create table if not exists applications (
   id uuid primary key default gen_random_uuid(),
