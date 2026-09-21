@@ -1,4 +1,5 @@
 import type { Job } from "./types";
+import { parseConfiguredSources } from "./source-registry";
 
 type GreenhouseJob = { id: number; title: string; location?: { name?: string }; absolute_url: string; updated_at?: string; content?: string; };
 type LeverJob = {
@@ -14,9 +15,6 @@ type AshbyJob = {
   compensation?: { summaryComponents?: Array<{ compensationType?: string; currencyCode?: string; minValue?: number | null; maxValue?: number | null }> };
 };
 
-const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
-const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory","lumilens","pebl","certifyos","better-mortgage","cynlr"];
-const DEFAULT_LEVER_BOARDS = ["paytm","paytmpayments","Sprinto","saviynt","acceldata","fampay","dozee","hevodata","thinkahead"];
 
 function decodeHtmlEntities(value = "") {
   return value
@@ -194,17 +192,62 @@ export async function fetchLeverBoard(board: string): Promise<Job[]> {
   } catch { return []; }
 }
 
+type WorkableJob = {
+  title?: string; shortcode?: string; code?: string; country?: string; state?: string; city?: string;
+  department?: string; telecommuting?: boolean; published_on?: string; url?: string; application_url?: string;
+  shortlink?: string; description?: string; employment_type?: string; industry?: string; function?: string;
+  experience?: string; workplace_type?: "on_site" | "hybrid" | "remote";
+  salary?: { salary_from?: number; salary_to?: number; salary_currency?: string };
+};
+
+export async function fetchWorkableAccount(subdomain: string): Promise<Job[]> {
+  try {
+    const response = await fetch(`https://www.workable.com/api/accounts/${encodeURIComponent(subdomain)}?details=true`, { next: { revalidate: 900 } });
+    if (!response.ok) return [];
+    const data = (await response.json()) as { name?: string; jobs?: WorkableJob[] };
+    return (data.jobs ?? []).filter(job => job.title && (job.url || job.application_url)).map((job, index) => {
+      const locationParts = [job.city, job.state, job.country].filter(Boolean);
+      const location = locationParts.join(", ") || "Location not disclosed";
+      const description = stripHtml(job.description ?? "");
+      const remote = job.workplace_type === "remote" || Boolean(job.telecommuting);
+      const country = normalizeCountry(job.country);
+      const salary = job.salary;
+      return makeJob({
+        id: `workable-${subdomain}-${job.shortcode || job.code || index}`,
+        title: job.title!,
+        company: data.name || normalizeCompany(subdomain),
+        location,
+        city: job.city,
+        region: job.state,
+        country,
+        remote,
+        workplaceType: job.workplace_type === "hybrid" ? "Hybrid" : remote ? "Remote" : "On-site",
+        indiaEligible: indiaEligibility(location, description, country, remote),
+        source: "Workable",
+        url: job.application_url || job.url || job.shortlink || "",
+        posted: job.published_on ?? "Recently listed",
+        description: description.slice(0, 900),
+        salaryMin: salary?.salary_from,
+        salaryMax: salary?.salary_to,
+        currency: salary?.salary_currency,
+      });
+    });
+  } catch { return []; }
+}
+
 export async function discoverJobs() {
-  const greenhouse = (process.env.GREENHOUSE_BOARDS ?? DEFAULT_GREENHOUSE_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
-  const ashby = (process.env.ASHBY_BOARDS ?? DEFAULT_ASHBY_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
-  const lever = (process.env.LEVER_BOARDS ?? DEFAULT_LEVER_BOARDS.join(",")).split(",").map(s => s.trim()).filter(Boolean);
-  const [g, a, l] = await Promise.all([
-    Promise.all(greenhouse.map(fetchGreenhouseBoard)),
-    Promise.all(ashby.map(fetchAshbyBoard)),
-    Promise.all(lever.map(fetchLeverBoard)),
+  const greenhouse = parseConfiguredSources("greenhouse", process.env.GREENHOUSE_BOARDS);
+  const ashby = parseConfiguredSources("ashby", process.env.ASHBY_BOARDS);
+  const lever = parseConfiguredSources("lever", process.env.LEVER_BOARDS);
+  const workable = parseConfiguredSources("workable", process.env.WORKABLE_SUBDOMAINS);
+  const [g, a, l, w] = await Promise.all([
+    Promise.all(greenhouse.map(source => fetchGreenhouseBoard(source.identifier))),
+    Promise.all(ashby.map(source => fetchAshbyBoard(source.identifier))),
+    Promise.all(lever.map(source => fetchLeverBoard(source.identifier))),
+    Promise.all(workable.map(source => fetchWorkableAccount(source.identifier))),
   ]);
   const unique = new Map<string, Job>();
-  for (const job of [...g.flat(), ...a.flat(), ...l.flat()]) {
+  for (const job of [...g.flat(), ...a.flat(), ...l.flat(), ...w.flat()]) {
     const key = `${job.company.toLowerCase()}|${job.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}|${job.location.toLowerCase()}`;
     if (!unique.has(key)) unique.set(key, job);
   }
