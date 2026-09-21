@@ -112,6 +112,12 @@ async function postJobs(target: WorkdayTarget, offset: number) {
   return await response.json() as { total?: number; jobPostings?: WorkdayPosting[] };
 }
 
+export async function getWorkdayJobCount(identifier: string): Promise<number> {
+  const target = parseTarget(identifier);
+  const page = await postJobs(target, 0);
+  return page.total ?? page.jobPostings?.length ?? 0;
+}
+
 async function getDetail(target: WorkdayTarget, posting: WorkdayPosting) {
   if (!posting.externalPath) return undefined;
   const endpoint = target.origin + "/wday/cxs/" + encodeURIComponent(target.tenant) + "/" + encodeURIComponent(target.site) + posting.externalPath;
