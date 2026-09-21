@@ -79,8 +79,10 @@ export default function Home() {
           <Field label="Job market"><select value={market} onChange={e=>setMarket(e.target.value as "india"|"worldwide")}><option value="india">India only</option><option value="worldwide">Worldwide</option></select></Field>
           <Field label="Minimum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
           <Field label="Maximum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
-          <Field label="Preferred cities"><input value={cities} onChange={e=>setCities(e.target.value)} placeholder="Noida, Delhi, Gurugram"/></Field>
-          <Field label="State / region"><input value={region} onChange={e=>setRegion(e.target.value)} placeholder="Uttar Pradesh"/></Field>
+          <Field label="Job country"><select value={jobCountry} onChange={e=>setJobCountry(e.target.value)} disabled={market==="india"}><option value="">Select country</option>{COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+          <Field label="State / region"><select value={state} onChange={e=>setState(e.target.value)} disabled={!jobCountry}><option value="">Select state / region</option>{states.map(s=><option key={s} value={s}>{s}</option>)}</select></Field>
+          <Field label="City 1"><select value={city1} onChange={e=>setCity1(e.target.value)} disabled={!state}><option value="">Any city</option>{cities.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+          <Field label="City 2 (optional)"><select value={city2} onChange={e=>setCity2(e.target.value)} disabled={!state}><option value="">Optional second city</option>{cities.filter(c=>c!==city1).map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
           <Field label="Workplace"><select value={workplace} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
         </div>}
 
