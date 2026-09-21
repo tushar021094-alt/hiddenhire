@@ -101,7 +101,8 @@ export async function POST(request: Request) {
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
     });
-    const roleEligibleJobs = eligibleJobs.filter(job => isRoleRelevant(job, body));\n    const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
+    const roleEligibleJobs = eligibleJobs.filter(job => isRoleRelevant(job, body));
+    const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
     return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: roleEligibleJobs.length, results });
   } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
 }
