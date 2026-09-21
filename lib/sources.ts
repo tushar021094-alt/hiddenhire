@@ -41,14 +41,36 @@ function parsePlace(location: string, addressCountry?: string, addressCity?: str
 
 function parseSalary(text: string) {
   const normalized = text.replace(/,/g, "");
-  const token = normalized.match(/₹|INR|\$|USD|£|GBP|€|EUR|C\$|CAD|A\$|AUD|AED|SGD/iu)?.[0];
-  const currency = !token ? undefined : /₹|INR/i.test(token) ? "INR" : /£|GBP/i.test(token) ? "GBP" : /€|EUR/i.test(token) ? "EUR" : /C\$|CAD/i.test(token) ? "CAD" : /A\$|AUD/i.test(token) ? "AUD" : /AED/i.test(token) ? "AED" : /SGD/i.test(token) ? "SGD" : "USD";
+  const tokenPattern = /C\$|A\$|₹|INR|USD|\$|£|GBP|€|EUR|CAD|AUD|AED|SGD/iu;
+  const token = normalized.match(tokenPattern)?.[0];
+  const currency = !token ? undefined
+    : /₹|INR/i.test(token) ? "INR"
+    : /£|GBP/i.test(token) ? "GBP"
+    : /€|EUR/i.test(token) ? "EUR"
+    : /C\$|CAD/i.test(token) ? "CAD"
+    : /A\$|AUD/i.test(token) ? "AUD"
+    : /AED/i.test(token) ? "AED"
+    : /SGD/i.test(token) ? "SGD"
+    : "USD";
   if (!currency) return {};
-  const matches = [...normalized.matchAll(/(?:₹|INR|\$|USD|£|GBP|€|EUR|C\$|CAD|A\$|AUD|AED|SGD)\s*(\d+(?:\.\d+)?)\s*(k|K)?(?:\s*(?:-|–|to)\s*(?:₹|INR|\$|USD|£|GBP|€|EUR|C\$|CAD|A\$|AUD|AED|SGD)?\s*(\d+(?:\.\d+)?)\s*(k|K)?)?/g)];
+
+  const moneyToken = "(?:C\\$|A\\$|₹|INR|USD|\\$|£|GBP|€|EUR|CAD|AUD|AED|SGD)";
+  const matches = [...normalized.matchAll(new RegExp(
+    `${moneyToken}\\s*(\\d+(?:\\.\\d+)?)\\s*(k|K|l|L|cr|Cr)?(?:\\s*(?:-|–|to)\\s*(?:${moneyToken})?\\s*(\\d+(?:\\.\\d+)?)\\s*(k|K|l|L|cr|Cr)?)?`,
+    "g"
+  ))];
+
   for (const m of matches) {
-    const min = Number(m[1]) * (m[2] ? 1000 : 1);
-    const max = m[3] ? Number(m[3]) * (m[4] ? 1000 : 1) : undefined;
-    if (min >= 10000 && min <= 2000000) return { salaryMin: min, salaryMax: max, currency };
+    const multiplier = (suffix?: string) => {
+      if (!suffix) return 1;
+      if (/^k$/i.test(suffix)) return 1000;
+      if (/^l$/i.test(suffix)) return 100000;
+      if (/^cr$/i.test(suffix)) return 10000000;
+      return 1;
+    };
+    const min = Number(m[1]) * multiplier(m[2]);
+    const max = m[3] ? Number(m[3]) * multiplier(m[4]) : undefined;
+    if (min >= 10000 && min <= 20000000) return { salaryMin: min, salaryMax: max, currency };
   }
   return {};
 }
@@ -56,10 +78,11 @@ function parseSalary(text: string) {
 function indiaEligibility(location: string, description: string, country?: string, remote = false) {
   const loc = location.toLowerCase();
   const normalized = normalizeCountry(country);
-  if (normalized && normalized !== "India") return false;
+  if (normalized) return normalized === "India";
   if (/usa|u\.s\.|united states|canada|uk|united kingdom|europe|australia|germany|singapore|uae|dubai/.test(loc)) return false;
-  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b/.test(loc)) return true;
-  return remote && /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description);
+  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b|\bghaziabad\b|\blucknow\b/.test(loc)) return true;
+  if (!remote) return false;
+  return /\bremote\b.{0,80}\b(india|apac|asia)\b|\b(india|apac|asia)\b.{0,80}\bremote\b/i.test(`${location} ${description}`);
 }
 
 function normalizeCompany(board: string) { return board.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()); }
@@ -73,11 +96,11 @@ export async function fetchGreenhouseBoard(board: string): Promise<Job[]> {
     return (data.jobs ?? []).map(job => {
       const text = stripHtml(job.content);
       const location = job.location?.name ?? "Location not disclosed";
-      const remote = /^remote\b/i.test(location) || /\bremote\s*(?:-)?\s*(?:india|apac|asia|worldwide|global)/i.test(location);
+      const remote = /\bremote\b/i.test(location) && (/\bindia\b|\bapac\b|\basia\b|\bworldwide\b|\bglobal\b/i.test(location) || /\bremote\b.{0,80}\b(india|apac|asia)\b/i.test(text));
       const { city, region, country } = parsePlace(location);
       return makeJob({
         id: `greenhouse-${board}-${job.id}`, title: job.title, company: normalizeCompany(board), location, city, region, country, remote,
-        workplaceType: remote ? "Remote" : "On-site", indiaEligible: indiaEligibility(location, text, country, remote),
+        workplaceType: remote ? "Remote" : /\bhybrid\b/i.test(`${location} ${text}`) ? "Hybrid" : "On-site", indiaEligible: indiaEligibility(location, text, country, remote),
         source: "Greenhouse", url: job.absolute_url, posted: job.updated_at ?? "Recently updated", description: text.slice(0, 900), ...parseSalary(text),
       });
     });
