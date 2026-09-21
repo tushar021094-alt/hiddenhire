@@ -14,7 +14,8 @@ function validProfile(value: unknown): value is SearchFilters {
     && typeof p.minCtc === "number" && typeof p.ctcCurrency === "string" && Array.isArray(p.cities);
 }
 function locationMatches(job: Job, filters: SearchFilters) {
-  if (filters.market === "india" && !job.indiaEligible) return false;\n  if (filters.jobCountry && filters.jobCountry !== "Worldwide" && job.country && job.country.toLowerCase() !== filters.jobCountry.toLowerCase()) return false;
+  if (filters.market === "india" && !job.indiaEligible) return false;
+  if (filters.jobCountry && filters.jobCountry !== "Worldwide" && job.country && job.country.toLowerCase() !== filters.jobCountry.toLowerCase()) return false;
   if (filters.remoteOnly && !job.remote) return false;
   if (filters.workplace !== "any") {
     const wanted = filters.workplace === "onsite" ? "On-site" : filters.workplace[0].toUpperCase() + filters.workplace.slice(1);
