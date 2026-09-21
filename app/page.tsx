@@ -32,11 +32,25 @@ export default function Home() {
   },[candidateCountry]);
   useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);
   useEffect(()=>{ setSelectedStates([]); setSelectedCities([]); },[jobCountry]);
+  useEffect(()=>{
+    if(remoteOnly || workplace==="remote"){
+      setSelectedStates([]);
+      setSelectedCities([]);
+    }
+    if(remoteOnly && workplace!=="remote") setWorkplace("remote");
+  },[remoteOnly,workplace]);
   useEffect(()=>{ setSelectedCities(current=>current.filter(city=>cities.includes(city))); },[cities]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
   async function findJobs(event:FormEvent) {
-    event.preventDefault(); setLoading(true); setSearched(true); setError("");
+    event.preventDefault();
+    if(!role.trim()){
+      setSearched(true);
+      setResults([]);
+      setError("Enter a target role before searching.");
+      return;
+    }
+    setLoading(true); setSearched(true); setError("");
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
@@ -77,16 +91,16 @@ export default function Home() {
 
         {showFilters && <div className="filter-grid mt-5">
           <Field label="Job market"><select value={market} onChange={e=>setMarket(e.target.value as "india"|"worldwide")}><option value="india">India only</option><option value="worldwide">Worldwide</option></select></Field>
-          <Field label="Minimum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
-          <Field label="Maximum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
+          <Field label="Minimum CTC / year"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
+          <Field label="Maximum CTC / year"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
           <Field label="Job country"><select value={jobCountry} onChange={e=>setJobCountry(e.target.value)} disabled={market==="india"}><option value="">Select country</option>{COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
-          <MultiSelectField label="States / regions" items={states} selected={selectedStates} onChange={setSelectedStates} emptyText="No states available"/>
-          <MultiSelectField label="Cities" items={cities} selected={selectedCities} onChange={setSelectedCities} disabled={!selectedStates.length} emptyText={selectedStates.length ? "No cities available" : "Select one or more states first"}/>
-          <Field label="Workplace"><select value={workplace} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
+          <MultiSelectField label="States / regions" items={states} selected={selectedStates} onChange={setSelectedStates} disabled={remoteOnly || workplace==="remote"} emptyText="No states available"/>
+          <MultiSelectField label="Cities" items={cities} selected={selectedCities} onChange={setSelectedCities} disabled={!selectedStates.length || remoteOnly || workplace==="remote"} emptyText={selectedStates.length ? "No cities available" : "Select one or more states first"}/>
+          <Field label="Workplace"><select value={workplace} disabled={remoteOnly} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
         </div>}
 
         <div className="mt-6 flex flex-col gap-4 border-t border-white/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <label className="toggle-row"><input type="checkbox" checked={remoteOnly} onChange={e=>setRemoteOnly(e.target.checked)}/><span className="toggle"/><span><strong>Remote only</strong><small>{market==="india"?"Only roles explicitly workable from India":"Remote roles only"}</small></span></label>
+          <label className="toggle-row"><input type="checkbox" checked={remoteOnly} onChange={e=>setRemoteOnly(e.target.checked)}/><span className="toggle"/><span><strong>Remote only</strong><small>{market==="india"?"Remote roles explicitly workable from India":"Remote roles only"} · city/state filters are cleared</small></span></label>
           <button disabled={loading} className="primary-button">{loading?"Finding your matches…":"Find my matches"} <span>→</span></button>
         </div>
       </form>
@@ -96,11 +110,11 @@ export default function Home() {
     {searched && <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div><div className="section-kicker">YOUR MATCHES</div><h2 className="mt-1 text-2xl font-semibold tracking-tight">Roles ranked around your profile</h2></div>
-        {!loading&&!error&&<div className="flex items-center gap-3 text-xs text-white/40"><span className={mode==="live"?"live-badge":"demo-badge"}>{mode==="live"?"● LIVE SOURCES":"● DEMO FALLBACK"}</span><span>{eligibleCount} eligible</span></div>}
+        {!loading&&!error&&<div className="flex items-center gap-3 text-xs text-white/40"><span className={mode==="live"?"live-badge":"demo-badge"}>{mode==="live"?"● LIVE SOURCES":"● DEMO FALLBACK"}</span><span>{eligibleCount} match{eligibleCount===1?"":"es"}</span>{sourceCount>0&&<span className="hidden sm:inline">{sourceCount.toLocaleString()} scanned</span>}</div>}
       </div>
       {loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
        :error?<div className="empty-card"><div className="empty-icon">!</div><h3>Search unavailable</h3><p>{error}</p></div>
-       :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>No exact matches found</h3><p>We checked {sourceCount} live source roles. {locationEligibleCount} passed location filters and {salaryEligibleCount} also passed compensation filters.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Expand to all India</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
+       :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>{locationEligibleCount===0 ? "Your location filters are too narrow" : salaryEligibleCount===0 ? "No roles meet your CTC range" : "No exact matches found"}</h3><p>We checked {sourceCount.toLocaleString()} live source roles. {locationEligibleCount.toLocaleString()} passed location filters and {salaryEligibleCount.toLocaleString()} also passed compensation filters.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Clear locations</button>}{remoteOnly&&<button type="button" className="secondary-button" onClick={()=>setRemoteOnly(false)}>Allow non-remote roles</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
        :<div className="grid gap-5 lg:grid-cols-2">{results.map(job=><JobCard key={job.id} job={job}/>)}</div>}
     </section>}
 
