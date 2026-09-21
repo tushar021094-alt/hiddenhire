@@ -16,7 +16,7 @@ type AshbyJob = {
 
 const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
 const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory","lumilens","pebl","certifyos","better-mortgage","cynlr"];
-const DEFAULT_LEVER_BOARDS = ["paytm","paytmpayments","Sprinto","saviynt","acceldata","fampay","dozee","hevodata"];
+const DEFAULT_LEVER_BOARDS = ["paytm","paytmpayments","Sprinto","saviynt","acceldata","fampay","dozee","hevodata","thinkahead"];
 
 function decodeHtmlEntities(value = "") {
   return value
