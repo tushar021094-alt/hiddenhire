@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { demoJobs } from "@/lib/jobs";
-import { matchJob } from "@/lib/matcher";
+import { isRoleRelevant, matchJob } from "@/lib/matcher";
 import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
@@ -101,7 +101,8 @@ export async function POST(request: Request) {
       if (maxUsd && job.salaryUsdMin != null && job.salaryUsdMin > maxUsd) return false;
       return true;
     });
-    const results = eligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
-    return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: eligibleJobs.length, results });
+    const roleEligibleJobs = eligibleJobs.filter(job => isRoleRelevant(job, body));
+    const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
+    return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: roleEligibleJobs.length, results });
   } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
 }
