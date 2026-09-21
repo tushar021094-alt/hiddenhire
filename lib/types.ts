@@ -7,6 +7,6 @@ export type Job = {
 export type SearchFilters = {
   role:string; skills:string[]; experience:number; candidateCountry:string; market:"india"|"worldwide"; remoteOnly:boolean;
   workplace:"any"|"remote"|"hybrid"|"onsite"; minCtc:number; maxCtc?:number; ctcCurrency:string;
-  jobCountry?:string; state?:string; cities:string[];
+  jobCountry?:string; states:string[]; cities:string[];
 };
 export type MatchResult = Job & {score:number; reasons:string[]; gaps:string[];};

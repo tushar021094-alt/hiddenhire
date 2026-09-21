@@ -17,11 +17,11 @@ export default function Home() {
   const [market,setMarket]=useState<"india"|"worldwide">("india"), [salaryCurrency,setSalaryCurrency]=useState("INR");
   const [salary,setSalary]=useState("2500000"), [maxSalary,setMaxSalary]=useState("");
   const [remoteOnly,setRemoteOnly]=useState(false), [workplace,setWorkplace]=useState<"any"|"remote"|"hybrid"|"onsite">("any");
-  const [jobCountry,setJobCountry]=useState("India"), [state,setState]=useState(""), [city1,setCity1]=useState(""), [city2,setCity2]=useState(""), [showFilters,setShowFilters]=useState(true);
+  const [jobCountry,setJobCountry]=useState("India"), [selectedStates,setSelectedStates]=useState<string[]>([]), [selectedCities,setSelectedCities]=useState<string[]>([]), [showFilters,setShowFilters]=useState(true);
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
   const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");
   const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
-  const cities=useMemo(()=>citiesFor(jobCountry,state),[jobCountry,state]);
+  const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
   useEffect(()=>{
     const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
@@ -31,8 +31,8 @@ export default function Home() {
     setMaxSalary("");
   },[candidateCountry]);
   useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);
-  useEffect(()=>{ setState(""); setCity1(""); setCity2(""); },[jobCountry]);
-  useEffect(()=>{ if(!cities.includes(city1)) setCity1(""); if(!cities.includes(city2)) setCity2(""); },[state]);
+  useEffect(()=>{ setSelectedStates([]); setSelectedCities([]); },[jobCountry]);
+  useEffect(()=>{ setSelectedCities(current=>current.filter(city=>cities.includes(city))); },[cities]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
   async function findJobs(event:FormEvent) {
@@ -40,7 +40,7 @@ export default function Home() {
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
-        minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,state,cities:[city1,city2].filter(Boolean)
+        minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,states:selectedStates,cities:selectedCities
       })});
       const data=await response.json(); if(!response.ok) throw new Error(data.error ?? "Search failed");
       setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0);
@@ -80,9 +80,8 @@ export default function Home() {
           <Field label="Minimum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
           <Field label="Maximum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
           <Field label="Job country"><select value={jobCountry} onChange={e=>setJobCountry(e.target.value)} disabled={market==="india"}><option value="">Select country</option>{COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
-          <Field label="State / region"><select value={state} onChange={e=>setState(e.target.value)} disabled={!jobCountry}><option value="">Select state / region</option>{states.map(s=><option key={s} value={s}>{s}</option>)}</select></Field>
-          <Field label="City 1"><select value={city1} onChange={e=>setCity1(e.target.value)} disabled={!state}><option value="">Any city</option>{cities.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
-          <Field label="City 2 (optional)"><select value={city2} onChange={e=>setCity2(e.target.value)} disabled={!state}><option value="">Optional second city</option>{cities.filter(c=>c!==city1).map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+          <MultiSelectField label="States / regions" items={states} selected={selectedStates} onChange={setSelectedStates} emptyText="No states available"/>
+          <MultiSelectField label="Cities" items={cities} selected={selectedCities} onChange={setSelectedCities} disabled={!selectedStates.length} emptyText={selectedStates.length ? "No cities available" : "Select one or more states first"}/>
           <Field label="Workplace"><select value={workplace} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
         </div>}
 
@@ -127,4 +126,16 @@ function JobCard({job}:{job:MatchResult}) {
   </article>;
 }
 function Field({label,children}:{label:string;children:ReactNode}) { return <label className="text-xs font-medium uppercase tracking-[0.12em] text-white/40">{label}<div className="mt-2">{children}</div></label>; }
+function MultiSelectField({label,items,selected,onChange,disabled=false,emptyText}:{label:string;items:string[];selected:string[];onChange:(values:string[])=>void;disabled?:boolean;emptyText:string}) {
+  const toggle=(item:string)=>onChange(selected.includes(item)?selected.filter(v=>v!==item):[...selected,item]);
+  return <div className="text-xs font-medium uppercase tracking-[0.12em] text-white/40">
+    <div className="flex items-center justify-between"><span>{label}</span>{selected.length>0&&<button type="button" className="multi-clear" onClick={()=>onChange([])}>Clear</button>}</div>
+    <div className={`multi-select mt-2${disabled?" multi-disabled":""}`}>
+      {items.length===0?<div className="multi-empty">{emptyText}</div>:items.map(item=><label key={item} className="multi-option">
+        <input type="checkbox" checked={selected.includes(item)} disabled={disabled} onChange={()=>toggle(item)}/><span>{item}</span>
+      </label>)}
+    </div>
+    <div className="multi-summary">{selected.length?selected.join(", "):"Any"}</div>
+  </div>;
+}
 function Stat({label,value}:{label:string;value:string}) { return <div className="stat-box"><div>{label}</div><strong>{value}</strong></div>; }
