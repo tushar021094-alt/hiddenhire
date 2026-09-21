@@ -58,7 +58,7 @@ function indiaEligibility(location: string, description: string, country?: strin
   const normalized = normalizeCountry(country);
   if (normalized && normalized !== "India") return false;
   if (/usa|u\.s\.|united states|canada|uk|united kingdom|europe|australia|germany|singapore|uae|dubai/.test(loc)) return false;
-  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgurgaon\b|\bgurugram\b/.test(loc)) return true;
+  if (/\bindia\b|\bbengaluru\b|\bbangalore\b|\bdelhi\b|\bmumbai\b|\bhyderabad\b|\bpune\b|\bnoida\b|\bgreater noida\b|\bghaziabad\b|\bgurgaon\b|\bgurugram\b|\blucknow\b|\bkanpur\b|\bagra\b|\bvaranasi\b|\bchandigarh\b|\bjaipur\b|\bahmedabad\b|\bsurat\b|\bvadodara\b|\bchennai\b|\bcoimbatore\b|\bkolkata\b|\bkochi\b|\btrivandrum\b|\bindore\b|\bbhopal\b|\bpatna\b|\bbhubaneswar\b|\branchi\b|\bjamshedpur\b|\bludhiana\b|\bamritsar\b|\bdehradun\b|\bharidwar\b/.test(loc)) return true;
   return remote && /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description);
 }
 
