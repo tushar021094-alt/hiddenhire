@@ -3,6 +3,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "crons": [
-    { "path": "/api/company-index", "schedule": "0 * * * *" }
+    { "path": "/api/company-index", "schedule": "0 2 * * *" }
   ]
 }
