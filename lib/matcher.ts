@@ -5,9 +5,9 @@ const tokens = (value:string) => normalize(value).split(" ").filter(t=>t.length>
 
 const ROLE_ALIASES:Record<string,string[]> = {
   finance:["finance","financial"], accounting:["accounting","accountant","accounts"],
-  ap:["accounts payable","payables","accounts payable specialist","accounts payable manager"],
+  ap:["accounts payable","account payable","payables","accounts payable specialist","accounts payable manager"],
   ar:["accounts receivable","receivables","accounts receivable specialist","accounts receivable manager"],
-  "accounts payable":["accounts payable","payables"], "accounts receivable":["accounts receivable","receivables"],
+  "accounts payable":["accounts payable","account payable","payables"], "accounts receivable":["accounts receivable","receivables"],
   sales:["sales","business development","bd","account executive","account manager","territory sales","inside sales","field sales","key account"],
   "business development":["business development","bd","sales","account executive"],
   marketing:["marketing","growth marketing","digital marketing","brand marketing","product marketing"],
@@ -34,7 +34,7 @@ const SENIORITY:Record<string,string[]> = {
 };
 
 const DEPARTMENTS:Record<string,string[]> = {
-  finance:["finance","financial","accounting","accounts payable","payables","accounts receivable","receivables","fp&a","fpa","controller","controllership"],
+  finance:["finance","financial","accounting","accounts payable","account payable","payables","accounts receivable","account receivable","receivables","fp&a","fpa","controller","controllership"],
   sales:["sales","business development","account executive","account manager","territory sales","inside sales","field sales","key account"],
   marketing:["marketing","growth","brand","digital marketing","product marketing"],
   hr:["human resources","hr","people","talent acquisition","recruitment","recruiting"],
