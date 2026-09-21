@@ -65,3 +65,5 @@ input:focus { box-shadow: 0 0 0 3px rgba(103,232,249,.07); }
 .currency-select { flex:0 0 auto!important; width:78px!important; height:32px!important; border:0!important; background:transparent!important; padding:0 2px!important; color:#a5f3fc!important; font-size:11px!important; }
 @media (max-width:900px) { .filter-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:640px) { .filter-grid { grid-template-columns:1fr; } .filter-toggle { padding:7px 10px; } }
+
+.search-panel select{background:#080b10!important;color:#f4f7fb!important;border-color:rgba(255,255,255,.12)!important;color-scheme:dark}.search-panel select option{background:#080b10!important;color:#f4f7fb!important}.currency-select{background:#080b10!important;color:#67e8f9!important;border-left:1px solid rgba(255,255,255,.06)!important;padding-left:10px!important}.search-panel select:disabled{opacity:.55;cursor:not-allowed}.input-suffix:has(.currency-select){background:#080b10!important}
