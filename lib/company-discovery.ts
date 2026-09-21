@@ -53,13 +53,7 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   if (!isSafePublicUrl(inputUrl)) throw new Error("Only public HTTP(S) company or career URLs are allowed.");
   const canonicalUrl = new URL(inputUrl).toString();
   const direct = providerFromUrl(new URL(canonicalUrl));
-  const response = await fetch(canonicalUrl, {
-    redirect: "follow",
-    headers: { "user-agent": "HiddenHireCompanyDiscovery/1.0" },
-    signal: AbortSignal.timeout(8000),
-    next: { revalidate: 3600 },
-  });
-  if (!response.ok) throw new Error(`Career page returned HTTP ${response.status}.`);
+  const response = await fetchPublicPage(canonicalUrl);
   const finalUrl = new URL(response.url);
   const html = await response.text();
   const signals: string[] = [];
@@ -82,7 +76,30 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   };
 }
 
-function providerFromHtml(html: string, pageUrl: URL, signals: string[]) {
+async function fetchPublicPage(startUrl: string) {
+  let currentUrl = startUrl;
+  for (let redirectCount = 0; redirectCount <= 5; redirectCount++) {
+    if (!isSafePublicUrl(currentUrl)) {
+      throw new Error("Redirect target is not a public HTTP(S) URL.");
+    }
+    const response = await fetch(currentUrl, {
+      redirect: "manual",
+      headers: { "user-agent": "HiddenHireCompanyDiscovery/1.0" },
+      signal: AbortSignal.timeout(8000),
+      next: { revalidate: 3600 },
+    });
+    if (response.status < 300 || response.status >= 400) {
+      if (!response.ok) throw new Error(`Career page returned HTTP ${response.status}.`);
+      return response;
+    }
+    const location = response.headers.get("location");
+    if (!location) throw new Error("Career page returned a redirect without a target.");
+    currentUrl = new URL(location, currentUrl).toString();
+  }
+  throw new Error("Too many redirects while discovering company source.");
+}
+
+function providerFromHtml(html: string, signals: string[]) {
   const greenhouse = html.match(/(?:boards-api|boards|job-boards)\.greenhouse\.io[/"']/i);
   if (greenhouse) { signals.push("Greenhouse URL/API reference"); return { provider: "greenhouse" as const, identifier: extractFirst(html, /(?:boards|job-boards)\.greenhouse\.io\/(?:embed\/)?([a-z0-9_-]+)/i) }; }
 
