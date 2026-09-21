@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { MatchResult } from "@/lib/types";
-import { CURRENCIES, formatMoney } from "@/lib/currency";
+import { CURRENCIES, formatMoney } from "@/lib/currency";\nimport { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -16,9 +16,9 @@ export default function Home() {
   const [market,setMarket]=useState<"india"|"worldwide">("india"), [salaryCurrency,setSalaryCurrency]=useState("INR");
   const [salary,setSalary]=useState("2500000"), [maxSalary,setMaxSalary]=useState("");
   const [remoteOnly,setRemoteOnly]=useState(false), [workplace,setWorkplace]=useState<"any"|"remote"|"hybrid"|"onsite">("any");
-  const [cities,setCities]=useState(""), [region,setRegion]=useState(""), [showFilters,setShowFilters]=useState(true);
+  const [jobCountry,setJobCountry]=useState("India"), [state,setState]=useState(""), [city1,setCity1]=useState(""), [city2,setCity2]=useState(""), [showFilters,setShowFilters]=useState(true);
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
-  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");
+  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [error,setError]=useState("");\n  const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);\n  const cities=useMemo(()=>citiesFor(jobCountry,state),[jobCountry,state]);
 
   useEffect(()=>{
     const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
@@ -26,7 +26,7 @@ export default function Home() {
     const defaults: Record<string,string>={India:"2500000","United States":"100000","United Kingdom":"80000",Canada:"120000",Australia:"140000",UAE:"350000",Singapore:"130000",Germany:"90000"};
     setSalary(defaults[candidateCountry] ?? "50000");
     setMaxSalary("");
-  },[candidateCountry]);
+  },[candidateCountry]);\n  useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);\n  useEffect(()=>{ setState(""); setCity1(""); setCity2(""); },[jobCountry]);\n  useEffect(()=>{ if(!cities.includes(city1)) setCity1(""); if(!cities.includes(city2)) setCity2(""); },[state]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
   async function findJobs(event:FormEvent) {
@@ -34,7 +34,7 @@ export default function Home() {
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
         role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
-        minSalary:Number(salary),maxSalary:Number(maxSalary),salaryCurrency,cities:cities.split(",").map(s=>s.trim()).filter(Boolean),region
+        minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,state,cities:[city1,city2].filter(Boolean)
       })});
       const data=await response.json(); if(!response.ok) throw new Error(data.error ?? "Search failed");
       setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0);
@@ -71,8 +71,8 @@ export default function Home() {
 
         {showFilters && <div className="filter-grid mt-5">
           <Field label="Job market"><select value={market} onChange={e=>setMarket(e.target.value as "india"|"worldwide")}><option value="india">India only</option><option value="worldwide">Worldwide</option></select></Field>
-          <Field label="Minimum salary"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
-          <Field label="Maximum salary (optional)"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
+          <Field label="Minimum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
+          <Field label="Maximum CTC / PA"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
           <Field label="Preferred cities"><input value={cities} onChange={e=>setCities(e.target.value)} placeholder="Noida, Delhi, Gurugram"/></Field>
           <Field label="State / region"><input value={region} onChange={e=>setRegion(e.target.value)} placeholder="Uttar Pradesh"/></Field>
           <Field label="Workplace"><select value={workplace} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
@@ -83,7 +83,7 @@ export default function Home() {
           <button disabled={loading} className="primary-button">{loading?"Finding your matches…":"Find my matches"} <span>→</span></button>
         </div>
       </form>
-      <div className="mx-auto mt-5 flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-white/30"><span>✓ Employer sources</span><span>✓ Salary + currency filters</span><span>✓ City + state filters</span><span>✓ Direct application links</span></div>
+      <div className="mx-auto mt-5 flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-white/30"><span>✓ Employer sources</span><span>✓ CTC + currency filters</span><span>✓ Country → state → city filters</span><span>✓ Direct application links</span></div>
     </section>
 
     {searched && <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8">
