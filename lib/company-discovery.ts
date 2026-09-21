@@ -59,7 +59,7 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   const signals: string[] = [];
   if (direct.signal) signals.push(direct.signal);
 
-  const detected = direct.provider !== "unknown" ? direct : providerFromHtml(html, finalUrl, signals);
+  const detected = direct.provider !== "unknown" ? direct : providerFromHtml(html, signals);
   const company = extractJsonLdCompany(html);
   if (company) signals.push("Organization/JobPosting structured data");
 
