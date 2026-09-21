@@ -192,6 +192,69 @@ export async function fetchLeverBoard(board: string): Promise<Job[]> {
   } catch { return []; }
 }
 
+type JsonLdJob = {
+  "@type"?: string | string[];
+  title?: string;
+  description?: string;
+  datePosted?: string;
+  url?: string;
+  hiringOrganization?: { name?: string };
+  jobLocation?: { address?: { addressLocality?: string; addressRegion?: string; addressCountry?: string } } | Array<{ address?: { addressLocality?: string; addressRegion?: string; addressCountry?: string } }>;
+  jobLocationType?: string;
+  applicantLocationRequirements?: Array<{ name?: string }>;
+  baseSalary?: { currency?: string; value?: { minValue?: number; maxValue?: number; value?: number } };
+};
+
+function extractJsonLdJobs(html: string): JsonLdJob[] {
+  const jobs: JsonLdJob[] = [];
+  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\\s\\S]*?)<\/script>/gi)) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      const nodes = Array.isArray(parsed) ? parsed : parsed?.["@graph"] ?? [parsed];
+      for (const node of nodes) {
+        const types = Array.isArray(node?.["@type"]) ? node["@type"] : [node?.["@type"]];
+        if (types.includes("JobPosting")) jobs.push(node as JsonLdJob);
+      }
+    } catch { /* ignore malformed JSON-LD blocks */ }
+  }
+  return jobs;
+}
+
+export async function fetchCareerPage(url: string): Promise<Job[]> {
+  try {
+    const response = await fetch(url, { next: { revalidate: 900 }, headers: { "user-agent": "HiddenHireJobIndexer/1.0" } });
+    if (!response.ok) return [];
+    const html = await response.text();
+    return extractJsonLdJobs(html).map((job, index) => {
+      const locations = Array.isArray(job.jobLocation) ? job.jobLocation : job.jobLocation ? [job.jobLocation] : [];
+      const first = locations[0]?.address;
+      const location = first ? [first.addressLocality, first.addressRegion, first.addressCountry].filter(Boolean).join(", ") : job.jobLocationType === "TELECOMMUTE" ? "Remote" : "Location not disclosed";
+      const country = normalizeCountry(first?.addressCountry);
+      const remote = job.jobLocationType === "TELECOMMUTE" || /remote/i.test(location);
+      const salaryValue = job.baseSalary?.value;
+      return makeJob({
+        id: `career-page-${Buffer.from(url).toString("base64url").slice(0, 18)}-${index}`,
+        title: job.title || "Untitled role",
+        company: job.hiringOrganization?.name || new URL(url).hostname,
+        location,
+        city: first?.addressLocality,
+        region: first?.addressRegion,
+        country,
+        remote,
+        workplaceType: remote ? "Remote" : "On-site",
+        indiaEligible: indiaEligibility(location, stripHtml(job.description ?? ""), country, remote),
+        source: "CareerPage",
+        url: job.url || url,
+        posted: job.datePosted || "Recently listed",
+        description: stripHtml(job.description ?? "").slice(0, 900),
+        salaryMin: salaryValue?.minValue ?? salaryValue?.value,
+        salaryMax: salaryValue?.maxValue,
+        currency: job.baseSalary?.currency,
+      });
+    });
+  } catch { return []; }
+}
+
 type WorkableJob = {
   title?: string; shortcode?: string; code?: string; country?: string; state?: string; city?: string;
   department?: string; telecommuting?: boolean; published_on?: string; url?: string; application_url?: string;
@@ -240,14 +303,16 @@ export async function discoverJobs() {
   const ashby = parseConfiguredSources("ashby", process.env.ASHBY_BOARDS);
   const lever = parseConfiguredSources("lever", process.env.LEVER_BOARDS);
   const workable = parseConfiguredSources("workable", process.env.WORKABLE_SUBDOMAINS);
-  const [g, a, l, w] = await Promise.all([
+  const careerPages = (process.env.CAREER_PAGES ?? "").split(",").map(url => url.trim()).filter(Boolean);
+  const [g, a, l, w, c] = await Promise.all([
     Promise.all(greenhouse.map(source => fetchGreenhouseBoard(source.identifier))),
     Promise.all(ashby.map(source => fetchAshbyBoard(source.identifier))),
     Promise.all(lever.map(source => fetchLeverBoard(source.identifier))),
     Promise.all(workable.map(source => fetchWorkableAccount(source.identifier))),
+    Promise.all(careerPages.map(fetchCareerPage)),
   ]);
   const unique = new Map<string, Job>();
-  for (const job of [...g.flat(), ...a.flat(), ...l.flat(), ...w.flat()]) {
+  for (const job of [...g.flat(), ...a.flat(), ...l.flat(), ...w.flat(), ...c.flat()]) {
     const key = `${job.company.toLowerCase()}|${job.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}|${job.location.toLowerCase()}`;
     if (!unique.has(key)) unique.set(key, job);
   }
