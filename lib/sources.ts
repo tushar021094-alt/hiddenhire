@@ -9,7 +9,7 @@ type AshbyJob = {
 };
 
 const DEFAULT_GREENHOUSE_BOARDS = ["coinbase","okta","samsara","twilio","stripe","doordash","hubspot","brex","rippling","cloudflare","cialfo","mpowerfinancing","6sense","berkadiaindia","zocdoc","narvar","gravitonresearchcapital"];
-const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory"];
+const DEFAULT_ASHBY_BOARDS = ["notion","ramp","deel","remote","vercel","linear","certa","riveron","HackerOne","reo-dev","almabase","Netspend-Careers-Page","glomo","livekit","TaptapSend","inato","finmid.com","numeral","brigit","unity-advisory","lumilens","pebl","certifyos","better-mortgage","cynlr"];
 
 function stripHtml(value = "") { return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
 
