@@ -207,7 +207,7 @@ type JsonLdJob = {
 
 function extractJsonLdJobs(html: string): JsonLdJob[] {
   const jobs: JsonLdJob[] = [];
-  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\\s\\S]*?)<\/script>/gi)) {
+  for (const match of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
       const parsed = JSON.parse(match[1].trim());
       const nodes = Array.isArray(parsed) ? parsed : parsed?.["@graph"] ?? [parsed];
