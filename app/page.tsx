@@ -19,7 +19,7 @@ export default function Home() {
   const [remoteOnly,setRemoteOnly]=useState(false), [workplace,setWorkplace]=useState<"any"|"remote"|"hybrid"|"onsite">("any");
   const [jobCountry,setJobCountry]=useState("India"), [selectedStates,setSelectedStates]=useState<string[]>([]), [selectedCities,setSelectedCities]=useState<string[]>([]), [showFilters,setShowFilters]=useState(true);
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
-  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [sourceCount,setSourceCount]=useState(0), [locationEligibleCount,setLocationEligibleCount]=useState(0), [salaryEligibleCount,setSalaryEligibleCount]=useState(0), [error,setError]=useState("");
+  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [sourceCount,setSourceCount]=useState(0), [locationEligibleCount,setLocationEligibleCount]=useState(0), [salaryEligibleCount,setSalaryEligibleCount]=useState(0), [roleEligibleCount,setRoleEligibleCount]=useState(0), [error,setError]=useState("");
   const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
   const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
@@ -100,7 +100,7 @@ export default function Home() {
       </div>
       {loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
        :error?<div className="empty-card"><div className="empty-icon">!</div><h3>Search unavailable</h3><p>{error}</p></div>
-       :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>No exact matches found</h3><p>We checked {sourceCount} live source roles. {locationEligibleCount} passed location filters and {salaryEligibleCount} also passed compensation filters.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Expand to all India</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
+       :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>No exact matches found</h3><p>We checked {sourceCount} live source roles. {locationEligibleCount} passed location filters, {salaryEligibleCount} passed CTC, and {roleEligibleCount} matched your role.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Expand to all India</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
        :<div className="grid gap-5 lg:grid-cols-2">{results.map(job=><JobCard key={job.id} job={job}/>)}</div>}
     </section>}
 
