@@ -26,9 +26,10 @@ function locationMatches(job: Job, filters: SearchFilters) {
     const haystack = `${job.location} ${job.city ?? ""}`.toLowerCase();
     if (!cities.some(city => haystack.includes(city))) return false;
   }
-  if (filters.state?.trim()) {
-    const region = filters.state.trim().toLowerCase();
-    if (!`${job.region ?? ""} ${job.location}`.toLowerCase().includes(region)) return false;
+  const states = (filters.states ?? []).map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (states.length) {
+    const jobLocation = `${job.region ?? ""} ${job.location}`.toLowerCase();
+    if (!states.some(region => jobLocation.includes(region))) return false;
   }
   return true;
 }
