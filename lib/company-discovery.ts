@@ -1,4 +1,4 @@
-export type DetectedProvider = "greenhouse" | "lever" | "ashby" | "workable" | "structured-jobposting" | "unknown";
+export type DetectedProvider = "greenhouse" | "lever" | "ashby" | "workable" | "workday" | "structured-jobposting" | "unknown";
 
 export type CompanyDiscovery = {
   inputUrl: string;
@@ -32,6 +32,12 @@ function providerFromUrl(url: URL): { provider: DetectedProvider; identifier?: s
   if (host === "jobs.lever.co" || host.endsWith(".lever.co")) return { provider: "lever", identifier: path.split("/").filter(Boolean)[0], signal: "Lever career URL" };
   if (host === "jobs.ashbyhq.com" || host.endsWith(".ashbyhq.com")) return { provider: "ashby", identifier: path.split("/").filter(Boolean)[0], signal: "Ashby career URL" };
   if (host === "jobs.workable.com" || host === "apply.workable.com" || host.endsWith(".workable.com")) return { provider: "workable", identifier: path.split("/").filter(Boolean)[0], signal: "Workable career URL" };
+  const workday = host.match(/^([a-z0-9-]+)\\.(wd[0-9]+)\\.myworkdayjobs\\.com$/i);
+  if (workday) {
+    const segments = path.split("/").filter(Boolean);
+    const site = segments[0]?.toLowerCase() === "en-us" ? segments[1] : segments[0];
+    if (site) return { provider: "workday", identifier: [workday[1], site, url.origin, "en-US"].join("|"), signal: "Workday career URL" };
+  }
   return { provider: "unknown" };
 }
 
@@ -60,6 +66,11 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   if (direct.signal) signals.push(direct.signal);
 
   const detected = direct.provider !== "unknown" ? direct : providerFromHtml(html, signals);
+  if (detected.provider === "unknown" && /(^|\\.)accenture\\.com$/i.test(finalUrl.hostname)) {
+    detected.provider = "workday";
+    detected.identifier = "accenture|AccentureCareers|https://accenture.wd103.myworkdayjobs.com|en-US";
+    signals.push("Accenture Workday career integration");
+  }
   const company = extractJsonLdCompany(html);
   if (company) signals.push("Organization/JobPosting structured data");
 
