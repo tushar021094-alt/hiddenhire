@@ -24,7 +24,8 @@ const COUNTRY_PATTERNS: Array<[string, RegExp]> = [
   ["Germany", /\bgermany\b|\bberlin\b|\bmunich\b/i],
 ];
 
-const COUNTRY_ALIASES: Record<string,string> = { IND:"India", IN:"India", INDIA:"India", USA:"United States", US:"United States", "UNITED STATES":"United States", CAN:"Canada", CA:"Canada", CANADA:"Canada", GB:"United Kingdom", UK:"United Kingdom", "UNITED KINGDOM":"United Kingdom", AU:"Australia", AUSTRALIA:"Australia", SG:"Singapore", SINGAPORE:"Singapore", AE:"UAE", UAE:"UAE", DE:"Germany", GERMANY:"Germany" };\nfunction normalizeCountry(value?: string) { if (!value) return undefined; const key=value.trim().toUpperCase(); return COUNTRY_ALIASES[key] ?? value.trim(); }\nfunction detectCountry(location: string, description = "") {
+const COUNTRY_ALIASES: Record<string,string> = { IND:"India", IN:"India", INDIA:"India", USA:"United States", US:"United States", "UNITED STATES":"United States", CAN:"Canada", CA:"Canada", CANADA:"Canada", GB:"United Kingdom", UK:"United Kingdom", "UNITED KINGDOM":"United Kingdom", AU:"Australia", AUSTRALIA:"Australia", SG:"Singapore", SINGAPORE:"Singapore", AE:"UAE", UAE:"UAE", DE:"Germany", GERMANY:"Germany" };
+function normalizeCountry(value?: string) { if (!value) return undefined; const key=value.trim().toUpperCase(); return COUNTRY_ALIASES[key] ?? value.trim(); }\nfunction detectCountry(location: string, description = "") {
   const match = COUNTRY_PATTERNS.find(([, pattern]) => pattern.test(location));
   if (match) return match[0];
   return /remote.{0,30}(india|apac|asia)|(?:india|apac|asia).{0,30}remote/i.test(description) ? "India" : undefined;
