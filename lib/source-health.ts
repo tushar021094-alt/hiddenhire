@@ -1,5 +1,5 @@
 import { parseConfiguredSources, type SourceProvider } from "./source-registry";
-import { fetchWorkdayBoard } from "./workday";
+import { getWorkdayJobCount } from "./workday";
 
 export type SourceHealthStatus = "healthy" | "empty" | "failing";
 
