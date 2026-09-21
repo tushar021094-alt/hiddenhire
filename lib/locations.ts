@@ -7,7 +7,7 @@ export const LOCATION_DATA:Record<string,Record<string,string[]>>={
     "Karnataka":["Bengaluru","Mysuru"],"Kerala":["Kochi","Thiruvananthapuram"],"Madhya Pradesh":["Indore","Bhopal"],
     "Maharashtra":["Mumbai","Pune","Nagpur","Nashik"],"Manipur":["Imphal"],"Meghalaya":["Shillong"],
     "Odisha":["Bhubaneswar"],"Punjab":["Chandigarh","Ludhiana","Amritsar"],"Rajasthan":["Jaipur","Udaipur"],
-    "Tamil Nadu":["Chennai","Coimbatore"],"Telangana":["Hyderabad"],"Uttar Pradesh":["Noida","Greater Noida","Gurugram","Lucknow","Kanpur","Agra","Varanasi"],
+    "Tamil Nadu":["Chennai","Coimbatore"],"Telangana":["Hyderabad"],"Uttar Pradesh":["Noida","Greater Noida","Ghaziabad","Lucknow","Kanpur","Agra","Varanasi"],
     "Uttarakhand":["Dehradun","Haridwar"],"West Bengal":["Kolkata"]
   },
   "United States":{"California":["San Francisco","Los Angeles","San Diego"],"New York":["New York City"],"Texas":["Austin","Dallas","Houston"],"Washington":["Seattle"],"Illinois":["Chicago"],"Massachusetts":["Boston"],"Florida":["Miami"]},
