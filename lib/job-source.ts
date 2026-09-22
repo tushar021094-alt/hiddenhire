@@ -197,10 +197,6 @@ function classifyIndiaEligibility(input?: boolean | string | null, location?: st
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
   }
 
-  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(locationText)) {
-    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
-  }
-
   if (typeof input === 'boolean') {
     return {
       indiaEligible: input,
@@ -208,16 +204,18 @@ function classifyIndiaEligibility(input?: boolean | string | null, location?: st
     };
   }
 
+  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted|india.*excluded|excluding.*india|except.*india/i.test(text)) {
+    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
+  }
+
   if (/india.*eligible|eligible.*india|hiring.*india|can.*apply.*india|india.*hire|remote.*india|open.*to.*india/i.test(text)) {
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
   }
 
-  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(text)) {
-    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
-  }
-
-  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted/i.test(text)) {
-    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
+  // Mentioning another country in a remote-job description is not enough to
+  // conclude that India is excluded. Keep ambiguous geography searchable.
+  if (/remote|distributed|work from anywhere|worldwide|global|anywhere|virtual/i.test(text)) {
+    return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
   }
 
   return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
@@ -927,7 +925,7 @@ export interface SourceRegistryOptions {
 
 export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
   fetchJobs: (query: DiscoveryQuery) => Promise<Job[]>;
-  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number }> }>;
+  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }>;
   sources: JobSource[];
 } {
   const baseConfig = getSourceConfig();
@@ -960,35 +958,67 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
       const { jobs } = await this.fetchJobsWithMetrics(query);
       return jobs;
     },
-    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number }> }> {
+    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }> {
       const sourceResults = await Promise.allSettled(
         sources.map(async (source) => {
-          const result = 'fetchJobsWithMetrics' in source
-            ? await (source as JobSourceWithMetrics).fetchJobsWithMetrics(query)
-            : { jobs: await source.fetchJobs(query), metrics: undefined };
-          const fetched = result.jobs;
-          return {
-            source: source.name,
-            fetched: fetched.length,
-            normalized: fetched.length,
-            rejected: 0,
-            duplicate: 0,
-            filtered: 0,
-            ranked: 0,
-            jobs: fetched,
-            sourceMetrics: result.metrics,
-          };
+          try {
+            const result = 'fetchJobsWithMetrics' in source
+              ? await (source as JobSourceWithMetrics).fetchJobsWithMetrics(query)
+              : { jobs: await source.fetchJobs(query), metrics: undefined };
+            const fetched = result.jobs;
+            return {
+              source: source.name,
+              fetched: fetched.length,
+              normalized: fetched.length,
+              rejected: 0,
+              duplicate: 0,
+              filtered: 0,
+              ranked: 0,
+              jobs: fetched,
+              sourceMetrics: result.metrics,
+              error: undefined as string | undefined,
+            };
+          } catch (error) {
+            return {
+              source: source.name,
+              fetched: 0,
+              normalized: 0,
+              rejected: 0,
+              duplicate: 0,
+              filtered: 0,
+              ranked: 0,
+              jobs: [] as Job[],
+              sourceMetrics: undefined,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
         })
       );
 
-      const providerEntries = sourceResults.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+      const providerEntries = sourceResults
+        .filter((result): result is PromiseFulfilledResult<{
+          source: string;
+          fetched: number;
+          normalized: number;
+          rejected: number;
+          duplicate: number;
+          filtered: number;
+          ranked: number;
+          jobs: Job[];
+          sourceMetrics?: CompanyDiscoveryMetrics;
+          error?: string;
+        }> => result.status === 'fulfilled')
+        .map((result) => result.value);
       const flattened = providerEntries.flatMap((entry) => entry.jobs);
       const deduped = dedupeJobs(flattened);
       const filtered = applyJobFilters(deduped, query);
 
       const sourceCounts: Record<string, number> = {};
+      const sourceErrors: Record<string, string> = {};
       for (const source of sources) {
-        sourceCounts[source.name] = providerEntries.find((entry) => entry.source === source.name)?.fetched ?? 0;
+        const entry = providerEntries.find((item) => item.source === source.name);
+        sourceCounts[source.name] = entry?.fetched ?? 0;
+        if (entry?.error) sourceErrors[source.name] = entry.error;
       }
 
       const metrics = {
@@ -1004,6 +1034,7 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
         indiaUnknown: filtered.filter((job) => job.indiaEligibilityStatus === 'UNKNOWN').length,
         indiaExplicitNo: filtered.filter((job) => job.indiaEligibilityStatus === 'NO').length,
         sources: sourceCounts,
+        sourceErrors,
       };
 
       const companyEntry = providerEntries.find((entry) => entry.source === 'companyDiscovery');
@@ -1022,6 +1053,7 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
           duplicate: 0,
           filtered: 0,
           ranked: entry.jobs.length,
+          error: entry.error,
         })),
       };
     },
