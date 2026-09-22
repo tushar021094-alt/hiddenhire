@@ -1,4 +1,4 @@
-import type { CandidateProfile, Job, SalaryCurrency } from './job-types';
+﻿import type { CandidateProfile, Job, SalaryCurrency } from './job-types';
 import { seedJobs } from './job-data';
 import { verifiedCompanyRegistry } from './company-registry';
 
@@ -141,7 +141,7 @@ function normalizeCurrency(value?: string | null): SalaryCurrency {
   const text = normalizeText(value).toLowerCase();
   if (text.includes('inr')) return 'INR';
   if (text.includes('eur')) return 'EUR';
-  if (text.includes('gbp') || text.includes('£')) return 'GBP';
+  if (text.includes('gbp') || text.includes('Â£')) return 'GBP';
   return 'USD';
 }
 
@@ -932,7 +932,20 @@ export interface SourceRegistryOptions {
 
 export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
   fetchJobs: (query: DiscoveryQuery) => Promise<Job[]>;
-  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }>;
+  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{
+  jobs: Job[];
+  metrics: Record<string, number | string | Record<string, number | string>>;
+  diagnostics: Array<{
+    source: string;
+    fetched: number;
+    normalized: number;
+    rejected: number;
+    duplicate: number;
+    filtered: number;
+    ranked: number;
+    error?: string;
+  }>;
+}>
   sources: JobSource[];
 } {
   const baseConfig = getSourceConfig();
@@ -965,7 +978,7 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
       const { jobs } = await this.fetchJobsWithMetrics(query);
       return jobs;
     },
-    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }> {
+    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number | string>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }> {
       const sourceResults = await Promise.allSettled(
         sources.map(async (source) => {
           try {
@@ -1002,20 +1015,9 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
         })
       );
 
-      const providerEntries = sourceResults
-        .filter((result): result is PromiseFulfilledResult<{
-          source: string;
-          fetched: number;
-          normalized: number;
-          rejected: number;
-          duplicate: number;
-          filtered: number;
-          ranked: number;
-          jobs: Job[];
-          sourceMetrics?: CompanyDiscoveryMetrics;
-          error?: string;
-        }> => result.status === 'fulfilled')
-        .map((result) => result.value);
+const providerEntries = sourceResults
+  .filter((result) => result.status === 'fulfilled')
+  .map((result) => result.value);
       const flattened = providerEntries.flatMap((entry) => entry.jobs);
       const deduped = dedupeJobs(flattened);
       const filtered = applyJobFilters(deduped, query);
@@ -1119,3 +1121,4 @@ export function getDefaultJobSources(): JobSource[] {
     new CompanyDiscoverySource(),
   ];
 }
+
