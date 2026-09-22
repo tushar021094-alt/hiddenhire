@@ -67,7 +67,7 @@ export default function Home() {
     <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
       <div className="flex items-center gap-3"><div className="brand-mark">H</div><div className="text-lg font-bold tracking-tight">HiddenHire</div></div>
       <div className="hidden items-center gap-7 text-sm text-white/50 sm:flex"><a href="#how-it-works">How it works</a><a href="#sources">Sources</a><a href="#how-it-works">Matching</a></div>
-      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55">India + global job discovery</div>
+      <div className="flex items-center gap-3"><a href="/login" className="text-xs text-white/50 hover:text-white">Sign in</a><a href="/recruiter" className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/60 hover:text-white">For recruiters</a></div>
     </nav>
 
     <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">
