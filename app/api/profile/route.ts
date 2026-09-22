@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireRole,requireUser,ensureProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+export async function GET(){
+ try{
+  const user=await requireUser(); const profile=await ensureProfile(user.id,user.email,user.user_metadata);
+  const admin=createAdminClient();
+  const {data:career}=await admin.from("candidate_profiles").select("target_role,job_search_mode").eq("profile_id",user.id).maybeSingle();
+  return NextResponse.json({profile,career});
+ }catch(error){
+  const status=error instanceof Error&&error.message==="AUTH_REQUIRED"?401:500;
+  return NextResponse.json({error:error instanceof Error?error.message:"Profile lookup failed."},{status});
+ }
+}
 
 export async function POST(request:Request){
  try{
