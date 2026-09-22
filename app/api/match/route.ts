@@ -5,6 +5,7 @@ import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
 import { fetchPublishedJobs } from "@/lib/native-jobs";
+import { fetchIndexedJobs } from "@/lib/indexed-jobs";
 
 function validProfile(value: unknown): value is SearchFilters {
   if (!value || typeof value !== "object") return false;
@@ -87,9 +88,9 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     if (!validProfile(body)) return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
-    const [liveJobs,nativeJobs] = await Promise.all([discoverJobs(), fetchPublishedJobs()]);
+    const [liveJobs,nativeJobs,indexedJobs] = await Promise.all([discoverJobs(), fetchPublishedJobs(), fetchIndexedJobs()]);
     const combined = new Map<string, Job>();
-    for (const job of [...liveJobs, ...nativeJobs]) {
+    for (const job of [...liveJobs, ...indexedJobs, ...nativeJobs]) {
       const key = `${job.company.toLowerCase()}|${job.title.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}|${job.location.toLowerCase()}`;
       if (!combined.has(key)) combined.set(key, job);
     }
