@@ -1,5 +1,6 @@
 import {notFound} from "next/navigation";
 import {createAdminClient} from "@/lib/supabase/admin";
+import ApplyButton from "./ApplyButton";
 
 export default async function JobPage({params}:{params:Promise<{id:string}>}){
  const {id}=await params; const admin=createAdminClient();
@@ -15,7 +16,7 @@ export default async function JobPage({params}:{params:Promise<{id:string}>}){
    <div className="mt-3 text-white/50">{data.companies?.name??"Employer"} · {data.location??"Location not disclosed"} · {data.workplace_type}</div>
    <div className="mt-6 grid grid-cols-2 gap-3"><Stat label="Compensation" value={compensation}/><Stat label="Experience" value={experience}/></div>
    <div className="mt-8 whitespace-pre-wrap text-sm leading-7 text-white/65">{data.description}</div>
-   {(data.application_url||data.companies?.website)&&<a className="apply-button mt-8" href={data.application_url||data.companies?.website} target="_blank" rel="noreferrer">Apply on employer site <span>↗</span></a>}
+   <ApplyButton jobId={data.id}/>{(data.application_url||data.companies?.website)&&<a className="apply-button mt-4" href={data.application_url||data.companies?.website} target="_blank" rel="noreferrer">Open employer application <span>↗</span></a>}
   </article>
  </div></main>
 }
