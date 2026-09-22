@@ -1,194 +1,165 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { CandidateForm } from '@/components/candidate-form';
-import { JobResults } from '@/components/job-results';
-import type { CandidateProfile } from '@/lib/job-types';
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import type { MatchResult } from "@/lib/types";
+import { CURRENCIES, formatMoney } from "@/lib/currency";
+import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 
-const heroStats = [
-  { label: 'Remote jobs', value: '2.4k+' },
-  { label: 'India-eligible roles', value: '870+' },
-  { label: 'Average match confidence', value: '94%' },
-];
-
-const benefits = [
-  {
-    title: 'Explainable fit',
-    description: 'See the exact reasons a role is a strong match and what is still missing.',
-  },
-  {
-    title: 'India-first filtering',
-    description: 'Prioritize roles that explicitly hire candidates in India and remote-first teams.',
-  },
-  {
-    title: 'Direct apply flow',
-    description: 'Skip the noise and go straight to the role with salary and eligibility context.',
-  },
-];
-
-const steps = [
-  'Upload your resume or paste a profile summary.',
-  'Set your role, salary, and remote preferences.',
-  'Review job match scores and clear reasons to apply.',
-];
-
-const exampleJob = {
-  title: 'Finance Manager',
-  company: 'Northstar Capital',
-  location: 'Remote',
-  remoteLabel: 'Remote — India eligible',
-  salary: '$45,000–$60,000',
-  match: '96% MATCH',
-  reasons: ['6+ years finance experience', 'Financial reporting', 'Reconciliation', 'AP/AR'],
-  missing: ['US GAAP'],
+const COUNTRY_CURRENCY: Record<string, string> = {
+  India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
+  UAE: "AED", Singapore: "SGD", Germany: "EUR",
 };
 
-export default function HomePage() {
-  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+export default function Home() {
+  const [role,setRole]=useState("Finance Manager"), [skills,setSkills]=useState("FP&A, financial analysis, forecasting, Excel");
+  const [experience,setExperience]=useState("6"), [candidateCountry,setCandidateCountry]=useState("India");
+  const [market,setMarket]=useState<"india"|"worldwide">("india"), [salaryCurrency,setSalaryCurrency]=useState("INR");
+  const [salary,setSalary]=useState("2500000"), [maxSalary,setMaxSalary]=useState("");
+  const [remoteOnly,setRemoteOnly]=useState(false), [workplace,setWorkplace]=useState<"any"|"remote"|"hybrid"|"onsite">("any");
+  const [jobCountry,setJobCountry]=useState("India"), [selectedStates,setSelectedStates]=useState<string[]>([]), [selectedCities,setSelectedCities]=useState<string[]>([]), [showFilters,setShowFilters]=useState(true);
+  const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
+  const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [sourceCount,setSourceCount]=useState(0), [locationEligibleCount,setLocationEligibleCount]=useState(0), [salaryEligibleCount,setSalaryEligibleCount]=useState(0), [error,setError]=useState("");
+  const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
+  const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
-  const profileSummary = useMemo(() => {
-    if (!profile) return null;
-    return `${profile.targetJobTitle} · ${profile.yearsOfExperience}+ years · ${profile.minimumSalary.toLocaleString()} ${profile.preferredCurrency}`;
-  }, [profile]);
+  useEffect(()=>{
+    const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
+    setSalaryCurrency(nextCurrency);
+    const defaults: Record<string,string>={India:"2500000","United States":"100000","United Kingdom":"80000",Canada:"120000",Australia:"140000",UAE:"350000",Singapore:"130000",Germany:"90000"};
+    setSalary(defaults[candidateCountry] ?? "50000");
+    setMaxSalary("");
+  },[candidateCountry]);
+  useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);
+  useEffect(()=>{ setSelectedStates([]); setSelectedCities([]); },[jobCountry]);
+  useEffect(()=>{
+    if(remoteOnly || workplace==="remote"){
+      setSelectedStates([]);
+      setSelectedCities([]);
+    }
+    if(remoteOnly && workplace!=="remote") setWorkplace("remote");
+  },[remoteOnly,workplace]);
+  useEffect(()=>{ setSelectedCities(current=>current.filter(city=>cities.includes(city))); },[cities]);
+  const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-6 sm:px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-300 text-lg font-bold text-slate-950">H</div>
-          <div>
-            <div className="text-lg font-semibold tracking-tight text-white">HiddenHire</div>
-          </div>
+  async function findJobs(event:FormEvent) {
+    event.preventDefault();
+    if(!role.trim()){
+      setSearched(true);
+      setResults([]);
+      setError("Enter a target role before searching.");
+      return;
+    }
+    setLoading(true); setSearched(true); setError("");
+    try {
+      const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
+        minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,states:selectedStates,cities:selectedCities
+      })});
+      const data=await response.json(); if(!response.ok) throw new Error(data.error ?? "Search failed");
+      setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0); setSourceCount(data.sourceCount ?? 0); setLocationEligibleCount(data.locationEligibleCount ?? 0); setSalaryEligibleCount(data.salaryEligibleCount ?? 0);
+    } catch(err) { setResults([]);setMode(null);setEligibleCount(0);setError(err instanceof Error?err.message:"Search failed"); }
+    finally { setLoading(false); }
+  }
+
+  return <main className="min-h-screen overflow-hidden">
+    <div className="hero-glow"/>
+    <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
+      <div className="flex items-center gap-3"><div className="brand-mark">H</div><div className="text-lg font-bold tracking-tight">HiddenHire</div></div>
+      <div className="hidden items-center gap-7 text-sm text-white/50 sm:flex"><a href="#how-it-works">How it works</a><a href="#sources">Sources</a><a href="#how-it-works">Matching</a></div>
+      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55">India + global job discovery</div>
+    </nav>
+
+    <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">
+      <div className="mx-auto max-w-4xl text-center">
+        <div className="eyebrow"><span className="pulse-dot"/> AI Career Intelligence</div>
+        <h1 className="mt-7 text-5xl font-bold tracking-[-0.055em] sm:text-7xl">Your next role,<span className="gradient-text block">found with intelligence.</span></h1>
+        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">Tell HiddenHire what you want. We combine your role, skills, experience, location and compensation into a focused job search.</p>
+      </div>
+
+      <form onSubmit={findJobs} className="search-panel mx-auto mt-12 max-w-6xl">
+        <div className="panel-top">
+          <div><div className="text-sm font-semibold text-white">Your career search</div><div className="mt-1 text-xs text-white/40">HiddenHire turns your profile into a precise opportunity signal.</div></div>
+          <button type="button" className="filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?"Hide filters":"Show filters"} <span>⌄</span></button>
         </div>
-        <div className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-cyan-200">
-          V1 Beta
+        <div className="grid gap-5 md:grid-cols-2">
+          <Field label="Target role"><input value={role} onChange={e=>setRole(e.target.value)} placeholder="e.g. Finance Manager"/></Field>
+          <Field label="Core skills"><input value={skills} onChange={e=>setSkills(e.target.value)} placeholder="FP&A, Excel, forecasting"/></Field>
+          <Field label="Experience"><div className="input-suffix"><input type="number" min="0" value={experience} onChange={e=>setExperience(e.target.value)}/><span>years</span></div></Field>
+          <Field label="Candidate country"><select value={candidateCountry} onChange={e=>setCandidateCountry(e.target.value)}>{["India","United States","United Kingdom","Canada","Australia","UAE","Singapore","Germany"].map(c=><option key={c}>{c}</option>)}</select></Field>
         </div>
-      </header>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:pb-24">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <div className="mb-6 inline-flex rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-200">
-              Remote & international jobs hiring from India
-            </div>
-            <h1 className="max-w-xl text-5xl font-bold tracking-tight text-white sm:text-6xl">
-              Stop searching.<br />
-              <span className="text-cyan-300">Start finding.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-              HiddenHire finds high-match opportunities—including remote international jobs hiring from India—and tells you exactly why you should apply.
-            </p>
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <a href="#candidate-profile" className="rounded-2xl bg-cyan-300 px-6 py-3.5 text-base font-semibold text-slate-950 transition hover:bg-cyan-200">
-                Find My Jobs
-              </a>
-              <a href="#how-it-works" className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-3.5 text-base font-semibold text-white transition hover:border-cyan-400/40 hover:text-cyan-200">
-                See how it works
-              </a>
-            </div>
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {heroStats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                  <div className="text-2xl font-semibold text-white">{stat.value}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {showFilters && <div className="filter-grid mt-5">
+          <Field label="Job market"><select value={market} onChange={e=>setMarket(e.target.value as "india"|"worldwide")}><option value="india">India only</option><option value="worldwide">Worldwide</option></select></Field>
+          <Field label="Minimum CTC / year"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={salary} onChange={e=>setSalary(e.target.value)}/><select className="currency-select" value={salaryCurrency} onChange={e=>setSalaryCurrency(e.target.value)}>{CURRENCIES.map(c=><option key={c.code} value={c.code}>{c.code}</option>)}</select></div></Field>
+          <Field label="Maximum CTC / year"><div className="input-suffix"><span>{currency?.symbol}</span><input type="number" min="0" value={maxSalary} onChange={e=>setMaxSalary(e.target.value)}/><span>{salaryCurrency}</span></div></Field>
+          <Field label="Job country"><select value={jobCountry} onChange={e=>setJobCountry(e.target.value)} disabled={market==="india"}><option value="">Select country</option>{COUNTRIES.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+          <MultiSelectField label="States / regions" items={states} selected={selectedStates} onChange={setSelectedStates} disabled={remoteOnly || workplace==="remote"} emptyText="No states available"/>
+          <MultiSelectField label="Cities" items={cities} selected={selectedCities} onChange={setSelectedCities} disabled={!selectedStates.length || remoteOnly || workplace==="remote"} emptyText={selectedStates.length ? "No cities available" : "Select one or more states first"}/>
+          <Field label="Workplace"><select value={workplace} disabled={remoteOnly} onChange={e=>setWorkplace(e.target.value as typeof workplace)}><option value="any">Any</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option><option value="onsite">On-site</option></select></Field>
+        </div>}
 
-          <div className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-900/20">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Live example</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">{exampleJob.title}</h2>
-              </div>
-              <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-300">
-                {exampleJob.match}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
-              <div className="text-lg font-semibold text-white">{exampleJob.company}</div>
-              <div className="mt-2 text-sm text-slate-300">{exampleJob.location} • {exampleJob.remoteLabel}</div>
-              <div className="mt-4 text-base font-medium text-cyan-200">{exampleJob.salary}</div>
-
-              <div className="mt-6">
-                <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Why you match</div>
-                <ul className="space-y-2 text-sm text-slate-200">
-                  {exampleJob.reasons.map((reason) => (
-                    <li key={reason} className="flex items-start gap-2">
-                      <span className="text-emerald-300">✓</span>
-                      <span>{reason}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-6">
-                <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Missing</div>
-                <ul className="space-y-2 text-sm text-amber-100">
-                  {exampleJob.missing.map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <span className="text-amber-300">⚠</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+        <div className="mt-6 flex flex-col gap-4 border-t border-white/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <label className="toggle-row"><input type="checkbox" checked={remoteOnly} onChange={e=>setRemoteOnly(e.target.checked)}/><span className="toggle"/><span><strong>Remote only</strong><small>{market==="india"?"Remote roles explicitly workable from India":"Remote roles only"} · city/state filters are cleared</small></span></label>
+          <button disabled={loading} className="primary-button">{loading?"Finding your matches…":"Find my matches"} <span>→</span></button>
         </div>
-      </section>
+      </form>
+      <div className="mx-auto mt-5 grid max-w-6xl grid-cols-2 gap-3 text-xs text-white/35 sm:grid-cols-4"><div className="trust-item"><strong>Live employer sources</strong><span>Career pages & job feeds</span></div><div className="trust-item"><strong>Explainable matching</strong><span>See why a role fits</span></div><div className="trust-item"><strong>Compensation aware</strong><span>CTC + currency filters</span></div><div className="trust-item"><strong>Direct applications</strong><span>Always preserve the source</span></div></div>
+    </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        <div className="mb-8 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Benefits</p>
-          <h2 className="mt-2 text-3xl font-semibold text-white">Built to reduce wasted applications</h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {benefits.map((benefit) => (
-            <div key={benefit.title} className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">✓</div>
-              <h3 className="text-xl font-semibold text-white">{benefit.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">{benefit.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+    {searched && <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><div className="section-kicker">AI-MATCHED OPPORTUNITIES</div><h2 className="mt-1 text-2xl font-semibold tracking-tight">Roles ranked around your profile</h2><p className="mt-2 max-w-xl text-sm text-white/35">Every result is filtered for role relevance first, then ranked against your experience, skills, location and compensation.</p></div>
+        {!loading&&!error&&<div className="flex items-center gap-3 text-xs text-white/40"><span className={mode==="live"?"live-badge":"demo-badge"}>{mode==="live"?"● LIVE SOURCES":"● DEMO FALLBACK"}</span><span>{eligibleCount} match{eligibleCount===1?"":"es"}</span>{sourceCount>0&&<span className="hidden sm:inline">{sourceCount.toLocaleString()} scanned</span>}</div>}
+      </div>
+      {loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
+       :error?<div className="empty-card"><div className="empty-icon">!</div><h3>Search unavailable</h3><p>{error}</p></div>
+       :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>{locationEligibleCount===0 ? "Your location filters are too narrow" : salaryEligibleCount===0 ? "No roles meet your CTC range" : "No exact matches found"}</h3><p>We checked {sourceCount.toLocaleString()} live source roles. {locationEligibleCount.toLocaleString()} passed location filters and {salaryEligibleCount.toLocaleString()} also passed compensation filters.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Clear locations</button>}{remoteOnly&&<button type="button" className="secondary-button" onClick={()=>setRemoteOnly(false)}>Allow non-remote roles</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
+       :<div className="grid gap-5 lg:grid-cols-2">{results.map(job=><JobCard key={job.id} job={job}/>)}</div>}
+    </section>}
 
-      <section id="candidate-profile" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
-        <CandidateForm onSubmit={setProfile} />
-      </section>
-
-      {profile && (
-        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-          <div className="mb-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
-            Active profile: {profileSummary}
-          </div>
-          <JobResults profile={profile} />
-        </section>
-      )}
-
-      <section id="how-it-works" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <div className="mb-8 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">How it works</p>
-          <h2 className="mt-2 text-3xl font-semibold text-white">Simple flow, better outcomes</h2>
-        </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <div key={step} className="rounded-3xl border border-white/10 bg-slate-900/70 p-6">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-cyan-300 text-sm font-bold text-slate-950">0{index + 1}</div>
-              <p className="text-base leading-7 text-slate-200">{step}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <footer className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-slate-400 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div className="font-semibold text-white">HiddenHire</div>
-          <div>Remote-first opportunities. Better matches. Faster applications.</div>
-        </div>
-      </footer>
-    </main>
-  );
+    <section id="how-it-works" className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8">
+      <div className="mb-7 max-w-xl"><div className="section-kicker">HOW HIDDENHIRE WORKS</div><h2 className="mt-2 text-3xl font-semibold tracking-tight">Search less. Control more.</h2></div>
+      <div className="grid gap-4 sm:grid-cols-3">{[["01","Discover","Find opportunities through employer career sources and public feeds."],["02","Filter","Narrow results by salary, city, state and workplace type."],["03","Apply","Go straight to the original application page."]].map(([n,t,d])=><div className="feature-card" key={n}><div className="feature-number">{n}</div><h3>{t}</h3><p>{d}</p></div>)}</div>
+    </section>
+    <section id="sources" className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8"><div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-6 text-sm text-white/45">HiddenHire preserves the source location and compensation when the provider publishes them. Results link to the original employer/application page.</div></section>
+    <footer className="relative z-10 border-t border-white/[0.07] px-5 py-8 text-center text-xs text-white/30">HiddenHire · India + global job discovery · Direct applications</footer>
+  </main>;
 }
+
+function JobCard({job}:{job:MatchResult}) {
+  const score=Math.max(0,Math.min(100,job.score));
+  const salary=job.salaryMin?formatMoney(job.salaryMin,job.currency)+"–"+formatMoney(job.salaryMax??job.salaryMin,job.currency):"Not disclosed";
+  return <article className="job-card">
+    <div className="flex items-start justify-between gap-5"><div className="min-w-0"><div className="company-line"><span className="company-logo">{job.company.slice(0,1).toUpperCase()}</span><span>{job.company}</span></div><h3 className="mt-4 text-xl font-semibold tracking-tight">{job.title}</h3><div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/40"><span>{job.location}</span><span>•</span><span>{job.remote?"Remote":job.workplaceType??"Location"}</span></div></div><div className="score-ring" style={{"--score":`${score*3.6}deg`} as CSSProperties}><strong>{score}</strong><span>MATCH</span></div></div>
+    <div className="mt-6 grid grid-cols-2 gap-3"><Stat label="Salary" value={salary}/><Stat label="Source / country" value={`${job.source} · ${job.country??"Not disclosed"}`}/></div>
+    <p className="mt-5 text-sm leading-6 text-white/50">{job.description}</p>
+    <div className="mt-5 rounded-xl border border-white/[0.07] bg-black/15 p-4"><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Why this matches</div><ul className="mt-2 space-y-2 text-sm text-white/65">{job.reasons.slice(0,4).map(r=><li key={r}><span className="mr-2 text-cyan-300">✓</span>{r}</li>)}</ul></div>
+    {job.gaps.length>0&&<div className="mt-3 text-xs text-amber-300/70">Potential gap · {job.gaps.join(" · ")}</div>}
+    <a href={job.url} target="_blank" rel="noreferrer" className="apply-button mt-5">View original application <span>↗</span></a>
+  </article>;
+}
+function Field({label,children}:{label:string;children:ReactNode}) { return <label className="text-xs font-medium uppercase tracking-[0.12em] text-white/40">{label}<div className="mt-2">{children}</div></label>; }
+function MultiSelectField({label,items,selected,onChange,disabled=false,emptyText}:{label:string;items:string[];selected:string[];onChange:(values:string[])=>void;disabled?:boolean;emptyText:string}) {
+  const [open,setOpen]=useState(false);
+  const [query,setQuery]=useState("");
+  const filtered=items.filter(item=>item.toLowerCase().includes(query.toLowerCase()));
+  const toggle=(item:string)=>onChange(selected.includes(item)?selected.filter(v=>v!==item):[...selected,item]);
+  useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
+  return <div className="multi-field">
+    <div className="multi-label-row"><span>{label}</span>{selected.length>0&&<button type="button" className="multi-clear" onClick={()=>onChange([])}>Clear</button>}</div>
+    <button type="button" className={`multi-trigger mt-2${disabled?" multi-disabled":""}`} disabled={disabled} onClick={()=>setOpen(v=>!v)}>
+      <span className="multi-trigger-value">{selected.length?selected.slice(0,2).join(", "):"Any"}{selected.length>2&&<em> +{selected.length-2}</em>}</span>
+      <span className="multi-trigger-meta">{selected.length||"All"} <b>⌄</b></span>
+    </button>
+    {open&&<div className="multi-menu">
+      <div className="multi-menu-head"><span>Select {label.toLowerCase()}</span><span>{selected.length} selected</span></div>
+      {items.length>7&&<input className="multi-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()}...`} />}
+      <div className="multi-options">
+        {filtered.length===0?<div className="multi-empty">{emptyText}</div>:filtered.map(item=><label key={item} className="multi-option"><input type="checkbox" checked={selected.includes(item)} onChange={()=>toggle(item)}/><span>{item}</span></label>)}
+      </div>
+      <button type="button" className="multi-done" onClick={()=>setOpen(false)}>Done</button>
+    </div>}
+  </div>;
+}
+function Stat({label,value}:{label:string;value:string}) { return <div className="stat-box"><div>{label}</div><strong>{value}</strong></div>; }

@@ -1,1 +1,29 @@
-{"name":"hiddenhire","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start","lint":"eslint . --ext .js,.jsx,.ts,.tsx","test":"node --import tsx --test tests/**/*.test.ts"},"dependencies":{"lucide-react":"^0.453.0","next":"14.2.15","openai":"^4.56.0","react":"18.3.1","react-dom":"18.3.1"},"devDependencies":{"@types/node":"20.16.11","@types/react":"18.3.3","@types/react-dom":"18.3.0","autoprefixer":"10.4.20","eslint":"8.57.1","eslint-config-next":"14.2.15","postcss":"8.4.47","tailwindcss":"3.4.13","tsx":"^4.23.13","typescript":"5.6.3"}}
+{
+  "name": "hiddenhire",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "openai": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "latest",
+    "@tailwindcss/postcss": "latest",
+    "postcss": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}
