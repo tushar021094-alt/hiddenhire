@@ -197,14 +197,21 @@ function classifyIndiaEligibility(input?: boolean | string | null, location?: st
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
   }
 
-  if (typeof input === 'boolean') {
-    return {
-      indiaEligible: input,
-      indiaEligibilityStatus: input ? 'YES' : 'NO',
-    };
+  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted|india.*excluded|excluding.*india|except.*india/i.test(text)) {
+    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
   }
 
-  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted|india.*excluded|excluding.*india|except.*india/i.test(text)) {
+  if (typeof input === 'boolean') {
+    if (input) {
+      return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
+    }
+
+    // Providers often use false when India is not explicitly listed.
+    // For genuinely remote geography, that is ambiguous rather than a hard exclusion.
+    if (/remote|distributed|worldwide|global|anywhere|virtual|work from anywhere/i.test(locationText)) {
+      return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
+    }
+
     return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
   }
 
