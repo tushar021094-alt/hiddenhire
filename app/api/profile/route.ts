@@ -10,7 +10,7 @@ export async function POST(request:Request){
   const admin=createAdminClient();
   const {error}=await admin.from("profiles").update({skills:Array.isArray(body.skills)?body.skills.slice(0,30):[],experience_years:Math.max(0,Number(body.experience)||0),country:body.country?.trim()||null}).eq("id",user.id);
   if(error) throw error;
-  const {error:cpError}=await admin.from("candidate_profiles").upsert({profile_id:user.id,job_search_mode:"active"});
+  const {error:cpError}=await admin.from("candidate_profiles").upsert({profile_id:user.id,job_search_mode:"active",target_role:body.role.trim()});
   if(cpError) throw cpError;
   return NextResponse.json({ok:true});
  }catch(error){
