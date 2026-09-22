@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -129,8 +130,8 @@ export default async function DashboardPage() {
               Your next dashboard modules will appear here as we connect real profiles, jobs, applications and matching data to Supabase.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <button className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">{copy.primary}</button>
-              <button className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white">{copy.secondary}</button>
+              <Link href={role === "candidate" ? "/onboarding" : "/recruiter"} className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">{copy.primary}</Link>
+              <Link href={role === "candidate" ? "/jobs" : "/recruiter"} className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white">{copy.secondary}</Link>
             </div>
           </div>
 
