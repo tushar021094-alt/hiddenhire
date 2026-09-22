@@ -23,6 +23,7 @@ export default function Home() {
   const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
   const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional dependent filter defaults */
   useEffect(()=>{
     const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
     setSalaryCurrency(nextCurrency);
@@ -30,8 +31,12 @@ export default function Home() {
     setSalary(defaults[candidateCountry] ?? "50000");
     setMaxSalary("");
   },[candidateCountry]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ if(market==="india") setJobCountry("India"); },[market]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ setSelectedStates([]); setSelectedCities([]); },[jobCountry]);
+  /* eslint-disable react-hooks/set-state-in-effect -- intentional remote filter synchronization */
   useEffect(()=>{
     if(remoteOnly || workplace==="remote"){
       setSelectedStates([]);
@@ -39,6 +44,8 @@ export default function Home() {
     }
     if(remoteOnly && workplace!=="remote") setWorkplace("remote");
   },[remoteOnly,workplace]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{ setSelectedCities(current=>current.filter(city=>cities.includes(city))); },[cities]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
@@ -145,7 +152,9 @@ function MultiSelectField({label,items,selected,onChange,disabled=false,emptyTex
   const [query,setQuery]=useState("");
   const filtered=items.filter(item=>item.toLowerCase().includes(query.toLowerCase()));
   const toggle=(item:string)=>onChange(selected.includes(item)?selected.filter(v=>v!==item):[...selected,item]);
+  /* eslint-disable react-hooks/set-state-in-effect -- close control when disabled */
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return <div className="multi-field">
     <div className="multi-label-row"><span>{label}</span>{selected.length>0&&<button type="button" className="multi-clear" onClick={()=>onChange([])}>Clear</button>}</div>
     <button type="button" className={`multi-trigger mt-2${disabled?" multi-disabled":""}`} disabled={disabled} onClick={()=>setOpen(v=>!v)}>

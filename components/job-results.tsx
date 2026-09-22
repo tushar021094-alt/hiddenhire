@@ -24,18 +24,18 @@ export function JobResults({ profile }: JobResultsProps) {
     jobType: 'All',
     industry: 'All',
   });
-  const [tracking, setTracking] = useState<Record<string, TrackingStatus>>({});
+  const [tracking, setTracking] = useState<Record<string, TrackingStatus>>(() => {
+    if (typeof window === "undefined") return {};
 
-  useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setTracking(JSON.parse(stored));
-      } catch {
-        setTracking({});
-      }
+    if (!stored) return {};
+
+    try {
+      return JSON.parse(stored) as Record<string, TrackingStatus>;
+    } catch {
+      return {};
     }
-  }, []);
+  });
 
   useEffect(() => {
     if (!profile.targetJobTitle) return;
