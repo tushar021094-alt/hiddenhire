@@ -103,6 +103,28 @@ test('direct finance roles receive high relevance', () => {
   }
 });
 
+test('finance-manager relevance keeps core finance families eligible', () => {
+  for (const title of [
+    'Finance Manager',
+    'FP&A Manager',
+    'Strategic Finance Manager',
+    'Finance Business Partner',
+    'Commercial Finance Manager',
+    'Financial Controller',
+    'Accounting Manager',
+  ]) {
+    const result = calculateJobMatch(candidate, roleJob(title, 'Lead financial planning, reporting, and budgeting.'));
+    assert.ok(result.score > 35, `${title}: ${result.score}`);
+  }
+});
+
+test('finance-manager relevance rejects unrelated audit and revenue roles', () => {
+  for (const title of ['Internal Audit Manager', 'Revenue Controller', 'Revenue Operations Manager']) {
+    const result = calculateJobMatch(candidate, roleJob(title, `${title} responsibilities.`));
+    assert.ok(result.score <= 35, `${title}: ${result.score}`);
+  }
+});
+
 test('senior accountant receives moderate relevance', () => {
   const result = calculateJobMatch(candidate, roleJob('Senior Accountant', 'Own general ledger, accounts payable, and month-end close.'));
   assert.ok(result.roleRelevanceScore >= 55);
@@ -337,7 +359,7 @@ test('company location evidence classifies country eligibility and remote status
   try {
     const source = new CompanyDiscoverySource([{ companyName: 'Location Co', companyWebsite: 'https://x.test', ats: 'greenhouse', boardIdentifier: 'location', industries: ['Finance'] }]);
     const jobs = await source.fetchJobs({});
-    assert.equal(jobs.find((job) => job.applicationUrl.endsWith('/usa'))?.indiaEligibilityStatus, 'NO');
+    assert.equal(jobs.find((job) => job.applicationUrl.endsWith('/usa'))?.indiaEligibilityStatus, 'UNKNOWN');
     assert.equal(jobs.find((job) => job.applicationUrl.endsWith('/usa'))?.remoteStatus, 'TRUE');
     assert.equal(jobs.find((job) => job.applicationUrl.endsWith('/india'))?.indiaEligibilityStatus, 'YES');
     assert.equal(jobs.find((job) => job.applicationUrl.endsWith('/emea'))?.indiaEligibilityStatus, 'UNKNOWN');

@@ -1,8 +1,87 @@
 import { NextResponse } from 'next/server';
-import { applyJobFilters, buildExpandedRoleQueries, createJobSourceRegistry, type DiscoveryQuery } from '@/lib/job-source';
+import type { CandidateProfile } from '@/lib/job-types';
+import {
+  applyJobFilters,
+  buildExpandedRoleQueries,
+  createJobSourceRegistry,
+  type DiscoveryQuery,
+} from '@/lib/job-source';
 import { sortMatches } from '@/lib/match-engine';
 
 const registry = createJobSourceRegistry();
+
+export function normalizeCandidateProfile(
+  profile: Record<string, unknown>,
+  expandedRoles: string[]
+): CandidateProfile {
+  const preferredCountries = Array.isArray(profile.preferredCountries)
+    ? profile.preferredCountries.filter(
+        (value): value is string => typeof value === 'string'
+      )
+    : [];
+
+  return {
+    resumeText: typeof profile.resumeText === 'string' ? profile.resumeText : '',
+    targetJobTitle:
+      typeof profile.targetJobTitle === 'string'
+        ? profile.targetJobTitle
+        : typeof profile.targetRole === 'string'
+          ? profile.targetRole
+          : expandedRoles[0] || '',
+    yearsOfExperience:
+      typeof profile.yearsOfExperience === 'number'
+        ? profile.yearsOfExperience
+        : 0,
+    minimumSalary:
+      typeof profile.minimumSalary === 'number'
+        ? profile.minimumSalary
+        : 0,
+    preferredCurrency:
+      profile.preferredCurrency === 'USD' ||
+      profile.preferredCurrency === 'INR' ||
+      profile.preferredCurrency === 'EUR' ||
+      profile.preferredCurrency === 'GBP'
+        ? profile.preferredCurrency
+        : 'INR',
+    preferredCountries: preferredCountries.length > 0 ? preferredCountries : ['India'],
+    remoteOnly: Boolean(profile.remoteOnly),
+    preferredIndustries: Array.isArray(profile.preferredIndustries)
+      ? profile.preferredIndustries.filter(
+          (value): value is string => typeof value === 'string'
+        )
+      : [],
+    keySkills: Array.isArray(profile.skills)
+      ? profile.skills.filter(
+          (value): value is string => typeof value === 'string'
+        )
+      : Array.isArray(profile.keySkills)
+        ? profile.keySkills.filter(
+            (value): value is string => typeof value === 'string'
+          )
+        : [],
+  };
+}
+
+export function buildDiscoveryQueries(
+  profile: Record<string, unknown>,
+  candidateProfile: CandidateProfile,
+  expandedRoles: string[]
+): DiscoveryQuery[] {
+  return expandedRoles.map((role) => ({
+    ...profile,
+    targetRole: role,
+    targetJobTitle: role,
+    yearsOfExperience: candidateProfile.yearsOfExperience,
+    minimumSalary: candidateProfile.minimumSalary,
+    remoteOnly: candidateProfile.remoteOnly,
+    country: candidateProfile.preferredCountries[0] || 'India',
+    industry: candidateProfile.preferredIndustries[0] || '',
+    experience: candidateProfile.yearsOfExperience,
+    indiaOnly: candidateProfile.preferredCountries.some(
+      (country) => country.toLowerCase() === 'india'
+    ),
+  }));
+}
 
 export async function GET() {
   return NextResponse.json({
@@ -18,22 +97,12 @@ export async function POST(request: Request) {
     const profile = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
     const demoMode = Boolean(profile.demo || profile.demoMode === 'demo');
     const expandedRoles = buildExpandedRoleQueries(profile as Parameters<typeof buildExpandedRoleQueries>[0]);
-    const queries: DiscoveryQuery[] = expandedRoles.map((role) => ({
-      targetRole: role,
-      targetJobTitle: role,
-      yearsOfExperience: typeof profile.yearsOfExperience === 'number' ? profile.yearsOfExperience : 0,
-      minimumSalary: typeof profile.minimumSalary === 'number' ? profile.minimumSalary : 0,
-      remoteOnly: Boolean(profile.remoteOnly),
-      country: Array.isArray(profile.preferredCountries) && typeof profile.preferredCountries[0] === 'string' ? profile.preferredCountries[0] : 'India',
-      industry: Array.isArray(profile.preferredIndustries) && typeof profile.preferredIndustries[0] === 'string' ? profile.preferredIndustries[0] : '',
-      experience: typeof profile.yearsOfExperience === 'number' ? profile.yearsOfExperience : 0,
-      indiaOnly: Array.isArray(profile.preferredCountries) ? profile.preferredCountries.includes('India') : false,
-      ...profile,
-    }));
+    const candidateProfile = normalizeCandidateProfile(profile, expandedRoles);
+    const queries = buildDiscoveryQueries(profile, candidateProfile, expandedRoles);
 
     if (demoMode) {
       const demoJobs = await new (await import('@/lib/job-source')).SeedJobSource().fetchJobs();
-      const demoMatches = sortMatches(profile as unknown as Parameters<typeof sortMatches>[0], demoJobs);
+      const demoMatches = sortMatches(candidateProfile, demoJobs);
       return NextResponse.json({
         dataMode: 'demo',
         results: demoMatches,
@@ -48,7 +117,7 @@ export async function POST(request: Request) {
     const collectedJobs = collected.jobs;
     const deduped = Array.from(new Map(collectedJobs.map((job) => [`${job.company}:${job.title}:${job.applicationUrl}`, job])).values());
     const roleMatched = deduped.filter((job) => queries.some((query) => applyJobFilters([job], query).length > 0));
-    const ranked = sortMatches(profile as unknown as Parameters<typeof sortMatches>[0], roleMatched);
+    const ranked = sortMatches(candidateProfile, roleMatched);
     const returned = ranked.slice(0, 20);
     const sourceMetrics = collected.metrics;
 
