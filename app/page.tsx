@@ -72,14 +72,14 @@ export default function Home() {
 
     <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">
       <div className="mx-auto max-w-4xl text-center">
-        <div className="eyebrow"><span className="pulse-dot"/> Intelligent job discovery</div>
-        <h1 className="mt-7 text-5xl font-bold tracking-[-0.045em] sm:text-7xl">Find the jobs that<span className="gradient-text block">actually fit you.</span></h1>
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">Search India or worldwide opportunities, filter by salary and location, and open the original application source.</p>
+        <div className="eyebrow"><span className="pulse-dot"/> AI Career Intelligence</div>
+        <h1 className="mt-7 text-5xl font-bold tracking-[-0.055em] sm:text-7xl">Your next role,<span className="gradient-text block">found with intelligence.</span></h1>
+        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">Tell HiddenHire what you want. We combine your role, skills, experience, location and compensation into a focused job search.</p>
       </div>
 
       <form onSubmit={findJobs} className="search-panel mx-auto mt-12 max-w-6xl">
         <div className="panel-top">
-          <div><div className="text-sm font-semibold text-white">Build your job profile</div><div className="mt-1 text-xs text-white/40">Choose where you want to work and exactly what results you want.</div></div>
+          <div><div className="text-sm font-semibold text-white">Your career search</div><div className="mt-1 text-xs text-white/40">HiddenHire turns your profile into a precise opportunity signal.</div></div>
           <button type="button" className="filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?"Hide filters":"Show filters"} <span>⌄</span></button>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
@@ -104,12 +104,12 @@ export default function Home() {
           <button disabled={loading} className="primary-button">{loading?"Finding your matches…":"Find my matches"} <span>→</span></button>
         </div>
       </form>
-      <div className="mx-auto mt-5 flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-white/30"><span>✓ Employer sources</span><span>✓ CTC + currency filters</span><span>✓ Country → state → city filters</span><span>✓ Direct application links</span></div>
+      <div className="mx-auto mt-5 grid max-w-6xl grid-cols-2 gap-3 text-xs text-white/35 sm:grid-cols-4"><div className="trust-item"><strong>Live employer sources</strong><span>Career pages & job feeds</span></div><div className="trust-item"><strong>Explainable matching</strong><span>See why a role fits</span></div><div className="trust-item"><strong>Compensation aware</strong><span>CTC + currency filters</span></div><div className="trust-item"><strong>Direct applications</strong><span>Always preserve the source</span></div></div>
     </section>
 
     {searched && <section className="relative z-10 mx-auto max-w-7xl px-5 pb-24 sm:px-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div><div className="section-kicker">YOUR MATCHES</div><h2 className="mt-1 text-2xl font-semibold tracking-tight">Roles ranked around your profile</h2></div>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><div className="section-kicker">AI-MATCHED OPPORTUNITIES</div><h2 className="mt-1 text-2xl font-semibold tracking-tight">Roles ranked around your profile</h2><p className="mt-2 max-w-xl text-sm text-white/35">Every result is filtered for role relevance first, then ranked against your experience, skills, location and compensation.</p></div>
         {!loading&&!error&&<div className="flex items-center gap-3 text-xs text-white/40"><span className={mode==="live"?"live-badge":"demo-badge"}>{mode==="live"?"● LIVE SOURCES":"● DEMO FALLBACK"}</span><span>{eligibleCount} match{eligibleCount===1?"":"es"}</span>{sourceCount>0&&<span className="hidden sm:inline">{sourceCount.toLocaleString()} scanned</span>}</div>}
       </div>
       {loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
