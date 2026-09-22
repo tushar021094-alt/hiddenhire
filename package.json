@@ -13,7 +13,9 @@
     "react": "latest",
     "react-dom": "latest",
     "openai": "latest",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "typescript": "latest",

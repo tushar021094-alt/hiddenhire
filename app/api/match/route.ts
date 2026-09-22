@@ -4,6 +4,7 @@ import { isRoleRelevant, matchJob } from "@/lib/matcher";
 import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
+import { fetchPublishedJobs } from "@/lib/native-jobs";
 
 function validProfile(value: unknown): value is SearchFilters {
   if (!value || typeof value !== "object") return false;
@@ -86,7 +87,13 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     if (!validProfile(body)) return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
-    const liveJobs = await discoverJobs(); const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
+    const [liveJobs,nativeJobs] = await Promise.all([discoverJobs(), fetchPublishedJobs()]);
+    const combined = new Map<string, Job>();
+    for (const job of [...liveJobs, ...nativeJobs]) {
+      const key = `${job.company.toLowerCase()}|${job.title.toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}|${job.location.toLowerCase()}`;
+      if (!combined.has(key)) combined.set(key, job);
+    }
+    const sourceJobs = combined.size ? [...combined.values()] : demoJobs;
     const currencies = [...new Set(sourceJobs.map(job => job.currency).filter(Boolean))] as string[];
     const rateEntries = await Promise.all(currencies.map(async code => [code, await usdRate(code)] as const));
     const rates = new Map(rateEntries);
@@ -103,6 +110,6 @@ export async function POST(request: Request) {
     });
     const roleEligibleJobs = eligibleJobs.filter(job => isRoleRelevant(job, body));
     const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
-    return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: roleEligibleJobs.length, results });
+    return NextResponse.json({ mode: combined.size ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: roleEligibleJobs.length, results });
   } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
 }
