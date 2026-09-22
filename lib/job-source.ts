@@ -1069,7 +1069,10 @@ export function buildExpandedRoleQueries(profile: Partial<CandidateProfile> & { 
   const normalized = baseTitle.toLowerCase();
   const titleMap: Record<string, string[]> = {
     'finance manager': ['Finance Manager', 'Senior Finance Manager', 'Finance & Accounting Manager', 'Accounting Manager', 'Finance Lead', 'Accounting Lead', 'Financial Controller', 'Assistant Financial Controller', 'FP&A Manager', 'Finance Business Partner', 'Senior Finance Business Partner', 'Commercial Finance Manager', 'Management Accountant', 'Senior Accountant', 'Financial Reporting Manager', 'Regional Finance Manager'],
+    'finance analyst': ['Finance Analyst', 'Financial Analyst', 'Senior Finance Analyst', 'FP&A Analyst', 'Financial Planning Analyst', 'Management Accountant', 'Commercial Finance Analyst'],
     'accounting manager': ['Accounting Manager', 'Finance Manager', 'Senior Accountant', 'Financial Controller', 'Accounting Lead', 'Management Accountant', 'Finance & Accounting Manager'],
+    'accounts payable manager': ['Accounts Payable Manager', 'Account Payable Manager', 'AP Manager', 'Accounts Payable Lead', 'AP Lead', 'P2P Manager', 'Procure to Pay Manager', 'Finance Operations Manager'],
+    'account payable manager': ['Accounts Payable Manager', 'Account Payable Manager', 'AP Manager', 'Accounts Payable Lead', 'AP Lead', 'P2P Manager', 'Procure to Pay Manager', 'Finance Operations Manager'],
     'financial controller': ['Financial Controller', 'Assistant Financial Controller', 'Finance Manager', 'Accounting Manager', 'Senior Finance Manager', 'Finance Lead'],
     'business analyst': ['Business Analyst', 'Senior Business Analyst', 'Product Analyst', 'Data Analyst', 'Operations Analyst', 'Business Systems Analyst'],
     'product manager': ['Product Manager', 'Senior Product Manager', 'Associate Product Manager', 'Product Lead', 'Growth Product Manager'],
