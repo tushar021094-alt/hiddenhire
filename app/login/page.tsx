@@ -18,7 +18,7 @@ export default function LoginPage(){
     const supabase=createClient();
     if(mode==="signin"){
       const {error}=await supabase.auth.signInWithPassword({email,password});
-      if(error) setMessage(error.message); else router.push(role==="employer"?"/recruiter":"/dashboard");
+      if(error) setMessage(error.message); else { const r=await fetch("/api/profile"); const p=await r.json(); router.push(p.profile?.role==="employer"||p.profile?.role==="agency"?"/recruiter":"/dashboard"); }
     }else{
       const {data,error}=await supabase.auth.signUp({email,password,options:{data:{role,full_name:name}}});
       if(error) setMessage(error.message);
