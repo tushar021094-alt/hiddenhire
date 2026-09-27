@@ -1,17 +1,38 @@
 export type SalaryCurrency = 'USD' | 'INR' | 'EUR' | 'GBP';
+
 export type EmploymentType = 'Full-time' | 'Contract' | 'Part-time';
+
 export type IndiaEligibilityStatus = 'YES' | 'NO' | 'UNKNOWN';
+
 export type RemoteStatus = 'TRUE' | 'FALSE' | 'UNKNOWN';
-export type MatchTier = 'Strong Match' | 'Good Match' | 'Potential Match' | 'Low Match';
+
+export type MatchTier =
+  | 'Strong Match'
+  | 'Good Match'
+  | 'Potential Match'
+  | 'Low Match';
+
 export type FinanceSubfunction =
-  | 'CORE_FINANCE' | 'FP&A' | 'ACCOUNTING' | 'CONTROLLERSHIP' | 'FINANCE_BUSINESS_PARTNER'
-  | 'STRATEGIC_FINANCE' | 'TREASURY' | 'AUDIT' | 'TAX' | 'RISK' | 'COMPLIANCE'
-  | 'SOX_IT_CONTROLS' | 'OTHER_FINANCE' | 'NOT_FINANCE';
+  | 'CORE_FINANCE'
+  | 'FP&A'
+  | 'ACCOUNTING'
+  | 'CONTROLLERSHIP'
+  | 'FINANCE_BUSINESS_PARTNER'
+  | 'STRATEGIC_FINANCE'
+  | 'TREASURY'
+  | 'AUDIT'
+  | 'TAX'
+  | 'RISK'
+  | 'COMPLIANCE'
+  | 'SOX_IT_CONTROLS'
+  | 'OTHER_FINANCE'
+  | 'NOT_FINANCE';
 
 export interface Job {
   id: string;
   title: string;
   company: string;
+    jobFunction?: string;
   location: string;
   country: string;
   remote: boolean;

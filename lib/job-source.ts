@@ -1,6 +1,7 @@
 ﻿import type { CandidateProfile, Job, SalaryCurrency } from './job-types';
 import { seedJobs } from './job-data';
 import { verifiedCompanyRegistry } from './company-registry';
+import { createClient } from './supabase/server';
 
 export type DiscoveryQuery = Partial<CandidateProfile> & {
   targetRole?: string;
@@ -32,6 +33,7 @@ interface JobSourceWithMetrics extends JobSource {
 }
 
 export interface SourceConfig {
+  hiddenhire: boolean;
   greenhouse: boolean;
   lever: boolean;
   ashby: boolean;
@@ -406,19 +408,129 @@ export function getSourceConfig(envSource: NodeJS.ProcessEnv = process.env): Sou
     .filter(Boolean);
 
   return {
-    greenhouse: envSource.GREENHOUSE_ENABLED !== 'false',
-    lever: envSource.LEVER_ENABLED !== 'false',
-    ashby: envSource.ASHBY_ENABLED !== 'false',
-    remoteok: envSource.REMOTEOK_ENABLED !== 'false',
-    remotive: envSource.REMOTIVE_ENABLED !== 'false',
-    companyDiscovery: envSource.COMPANY_DISCOVERY_ENABLED !== 'false',
-    seed: envSource.SEED_ENABLED !== 'false',
-    ashbyBoards,
-  };
+  hiddenhire: envSource.HIDDENHIRE_ENABLED !== 'false',
+  greenhouse: envSource.GREENHOUSE_ENABLED !== 'false',
+  lever: envSource.LEVER_ENABLED !== 'false',
+  ashby: envSource.ASHBY_ENABLED !== 'false',
+  remoteok: envSource.REMOTEOK_ENABLED !== 'false',
+  remotive: envSource.REMOTIVE_ENABLED !== 'false',
+  companyDiscovery: envSource.COMPANY_DISCOVERY_ENABLED !== 'false',
+  seed: envSource.SEED_ENABLED !== 'false',
+  ashbyBoards,
+};
 }
 
 export const defaultCompanyRegistry: CompanySourceProfile[] = verifiedCompanyRegistry;
 
+export class HiddenHireJobSource implements JobSource {
+  name = 'hiddenhire';
+
+  async fetchJobs(query: DiscoveryQuery): Promise<Job[]> {
+    const supabase = await createClient();
+
+    let builder = supabase
+      .from('jobs')
+      .select(`
+        id,
+        title,
+        description,
+        city,
+        region,
+        country,
+        remote,
+        workplace_type,
+        salary_min,
+        salary_max,
+        currency,
+        experience_min,
+        experience_max,
+        created_at,
+        job_function,
+        companies:companies(name)
+      `)
+      .eq('source_type', 'native')
+      .eq('status', 'published')
+      .eq('country', 'India')
+      .order('published_at', { ascending: false });
+
+    if (query.remoteOnly) {
+      builder = builder.eq('remote', true);
+    }
+
+    const { data, error } = await builder;
+
+    if (error) {
+      throw new Error(`HiddenHire jobs query failed: ${error.message}`);
+    }
+
+    type NativeJobRow = {
+      id: string;
+      title: string;
+      job_function: string | null;
+      description: string;
+      city: string | null;
+      region: string | null;
+      country: string | null;
+      remote: boolean;
+      workplace_type: string | null;
+      salary_min: number | null;
+      salary_max: number | null;
+      currency: string | null;
+      experience_min: number | null;
+      experience_max: number | null;
+      created_at: string;
+      companies:
+        | { name: string | null }
+        | { name: string | null }[]
+        | null;
+    };
+
+    const rows = (data ?? []) as NativeJobRow[];
+
+    return rows.map((row) => {
+      const company = Array.isArray(row.companies)
+        ? row.companies[0]?.name
+        : row.companies?.name;
+
+      const country = row.country?.trim() || 'India';
+
+      return {
+        id: row.id,
+        title: row.title,
+        jobFunction: row.job_function || undefined,
+        company: company || 'HiddenHire Employer',
+        location:
+          row.city ||
+          row.region ||
+          country,
+        country,
+        remote: Boolean(row.remote),
+        remoteStatus: row.remote ? 'TRUE' : 'FALSE',
+        indiaEligible: country.toLowerCase() === 'india',
+        indiaEligibilityStatus:
+          country.toLowerCase() === 'india' ? 'YES' : 'UNKNOWN',
+        salaryMin: row.salary_min,
+        salaryMax: row.salary_max,
+        salaryCurrency:
+          row.currency === 'USD' ||
+          row.currency === 'INR' ||
+          row.currency === 'EUR' ||
+          row.currency === 'GBP'
+            ? row.currency
+            : 'INR',
+        employmentType: 'Full-time',
+        industry: '',
+        requiredSkills: [],
+        requiredExperience: row.experience_min,
+        description: row.description,
+        applicationUrl: '',
+        source: 'HiddenHire',
+        postedDate: row.created_at,
+        isDemo: false,
+      };
+    });
+  }
+}
 export class SeedJobSource implements JobSource {
   name = 'seed';
 
@@ -955,7 +1067,15 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
     ashbyBoards: options.config?.ashbyBoards ?? baseConfig.ashbyBoards,
   };
 
-  const liveAllowedSources = ['greenhouse', 'lever', 'ashby', 'remoteok', 'remotive', 'companyDiscovery'];
+  const liveAllowedSources = [
+  'hiddenhire',
+  'greenhouse',
+  'lever',
+  'ashby',
+  'remoteok',
+  'remotive',
+  'companyDiscovery',
+];
   const defaultEnabled = options.enabledSources?.length
     ? options.enabledSources
     : Object.entries(config)
@@ -963,14 +1083,15 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
         .map(([key]) => key);
 
   const sources: JobSource[] = [
-    new GreenhouseJobSource(),
-    new LeverJobSource(),
-    new AshbyPublicJobBoardSource(config.ashbyBoards),
-    new RemoteOKJobSource(),
-    new RemotiveJobSource(),
-    new CompanyDiscoverySource(),
-    new SeedJobSource(),
-  ].filter((source) => defaultEnabled.includes(source.name));
+  new HiddenHireJobSource(),
+  new GreenhouseJobSource(),
+  new LeverJobSource(),
+  new AshbyPublicJobBoardSource(config.ashbyBoards),
+  new RemoteOKJobSource(),
+  new RemotiveJobSource(),
+  new CompanyDiscoverySource(),
+  new SeedJobSource(),
+].filter((source) => defaultEnabled.includes(source.name));
 
   return {
     sources,

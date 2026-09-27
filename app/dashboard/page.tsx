@@ -72,6 +72,26 @@ export default async function DashboardPage() {
     .select("full_name, role, location, skills, experience_years")
     .eq("id", user.id)
     .maybeSingle();
+      const isRecruiter = profile?.role === "employer" || profile?.role === "agency";
+
+  const { data: recruiterJobs } = isRecruiter
+    ? await supabase
+        .from("jobs")
+        .select(
+          "id, title, city, region, remote, status, created_at"
+        )
+        .eq("posted_by", user.id)
+        .order("created_at", { ascending: false })
+    : { data: [] };
+      const recruiterJobList = Array.isArray(recruiterJobs) ? recruiterJobs : [];
+
+  const recruiterJobCount = recruiterJobList.length;
+  const recruiterPendingCount = recruiterJobList.filter(
+    (job) => job.status === "pending_review"
+  ).length;
+  const recruiterPublishedCount = recruiterJobList.filter(
+    (job) => job.status === "published"
+  ).length;
 
   const role = (profile?.role ?? "candidate") as keyof typeof roleCopy;
   const copy = roleCopy[role] ?? roleCopy.candidate;
@@ -117,33 +137,153 @@ export default async function DashboardPage() {
           ))}
         </section>
 
-        <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">AI workspace</p>
-                <h2 className="mt-2 text-2xl font-semibold">{copy.primary}</h2>
-              </div>
-              <span className="rounded-full border border-cyan-300/20 px-3 py-1 text-xs text-cyan-200">Ready</span>
-            </div>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">
-              Your next dashboard modules will appear here as we connect real profiles, jobs, applications and matching data to Supabase.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href={role === "candidate" ? "/onboarding" : "/recruiter"} className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">{copy.primary}</Link>
-              <Link href={role === "candidate" ? "/jobs" : "/recruiter"} className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white">{copy.secondary}</Link>
-            </div>
-          </div>
+        {isRecruiter ? (
+          <section className="mt-6 space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Total jobs</p>
+                <p className="mt-3 text-3xl font-semibold">{recruiterJobCount}</p>
+                <p className="mt-2 text-sm text-white/45">Jobs created by your account</p>
+              </article>
 
-          <aside className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/40">Profile signal</p>
-            <div className="mt-5 space-y-4 text-sm">
-              <div className="flex justify-between gap-4"><span className="text-white/45">Experience</span><span>{profile?.experience_years ?? 0} yrs</span></div>
-              <div className="flex justify-between gap-4"><span className="text-white/45">Location</span><span>{profile?.location || "Not set"}</span></div>
-              <div><span className="text-white/45">Skills</span><div className="mt-2 flex flex-wrap gap-2">{(skills.length ? skills.slice(0, 8) : ["Add skills"]).map((skill) => <span key={skill} className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/70">{skill}</span>)}</div></div>
+              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Pending review</p>
+                <p className="mt-3 text-3xl font-semibold">{recruiterPendingCount}</p>
+                <p className="mt-2 text-sm text-white/45">Jobs awaiting approval</p>
+              </article>
+
+              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Published</p>
+                <p className="mt-3 text-3xl font-semibold">{recruiterPublishedCount}</p>
+                <p className="mt-2 text-sm text-white/45">Live jobs on HiddenHire</p>
+              </article>
             </div>
-          </aside>
-        </section>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                    Recruiter workspace
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold">
+                    Your jobs
+                  </h2>
+                  <p className="mt-2 text-sm text-white/55">
+                    Create jobs, review matching candidates, and manage your hiring workflow.
+                  </p>
+                </div>
+
+                <Link
+                  href="/recruiter"
+                  className="rounded-xl bg-cyan-300 px-5 py-3 text-center text-sm font-semibold text-slate-950"
+                >
+                  Post a job
+                </Link>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
+                {recruiterJobList.length === 0 ? (
+                  <div className="p-6 text-sm text-white/50">
+                    You have not created any jobs yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/10">
+                    {recruiterJobList.map((job) => (
+                      <div
+                        key={job.id}
+                        className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <h3 className="font-medium">{job.title}</h3>
+                          <p className="mt-1 text-sm text-white/45">
+                            {job.city || job.region || "India"}
+                            {job.remote ? " · Remote" : ""}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
+                            {job.status.replace("_", " ")}
+                          </span>
+
+                          <Link
+                            href={`/recruiter/jobs/${job.id}`}
+                            className="text-sm font-medium text-cyan-300 hover:text-cyan-200"
+                          >
+                            Manage
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">AI workspace</p>
+                  <h2 className="mt-2 text-2xl font-semibold">{copy.primary}</h2>
+                </div>
+                <span className="rounded-full border border-cyan-300/20 px-3 py-1 text-xs text-cyan-200">Ready</span>
+              </div>
+
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">
+                Your next dashboard modules will appear here as we connect real profiles, jobs, applications and matching data to Supabase.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href={role === "candidate" ? "/onboarding" : "/recruiter"}
+                  className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
+                >
+                  {copy.primary}
+                </Link>
+
+                <Link
+                  href={role === "candidate" ? "/jobs" : "/recruiter"}
+                  className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+                >
+                  {copy.secondary}
+                </Link>
+              </div>
+            </div>
+
+            <aside className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/40">Profile signal</p>
+
+              <div className="mt-5 space-y-4 text-sm">
+                <div className="flex justify-between gap-4">
+                  <span className="text-white/45">Experience</span>
+                  <span>{profile?.experience_years ?? 0} yrs</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-white/45">Location</span>
+                  <span>{profile?.location || "Not set"}</span>
+                </div>
+
+                <div>
+                  <span className="text-white/45">Skills</span>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(skills.length ? skills.slice(0, 8) : ["Add skills"]).map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/70"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </section>
+        )}
       </div>
     </main>
   );

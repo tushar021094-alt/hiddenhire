@@ -1,46 +1,448 @@
-import {NextResponse} from "next/server";
+import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import type {CandidateProfile,RecruiterJob} from "@/lib/recruiter-types";
-import {matchCandidate} from "@/lib/recruiter-matcher";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { calculateJobMatch } from "@/lib/match-engine";
+import {
+  toCandidateProfile,
+  toRecruiterJob,
+  type RecruiterCandidateRow,
+} from "@/lib/recruiter-matching";
 
-const demoCandidates:CandidateProfile[]=[
-{id:"demo-c1",fullName:"Aarav Sharma",currentTitle:"Finance Manager",headline:"Finance & FP&A professional",summary:"Management reporting, forecasting, budgeting and financial analysis.",skills:["FP&A","financial analysis","forecasting","Excel","management reporting"],experienceYears:8,location:"Noida, Uttar Pradesh",country:"India",remoteOnly:true,minSalary:1800000,salaryCurrency:"INR",preferredLocations:["Noida","Delhi NCR","Remote"],visibility:"match_only"},
-{id:"demo-c2",fullName:"Priya Mehta",currentTitle:"Senior Financial Analyst",headline:"FP&A and business finance",summary:"Financial planning, variance analysis, budgeting and business partnering.",skills:["FP&A","budgeting","forecasting","financial reporting","Excel"],experienceYears:6,location:"Gurugram, Haryana",country:"India",remoteOnly:false,minSalary:1500000,salaryCurrency:"INR",preferredLocations:["Gurugram","Delhi NCR"],visibility:"match_only"},
-{id:"demo-c3",fullName:"Rohan Verma",currentTitle:"Accounting Manager",headline:"Accounting and controllership",summary:"Close, reconciliations, AP, controls and financial reporting.",skills:["Accounting","reconciliation","AP","controls","Excel"],experienceYears:9,location:"Greater Noida, Uttar Pradesh",country:"India",remoteOnly:true,minSalary:1600000,salaryCurrency:"INR",preferredLocations:["Greater Noida","Noida","Remote"],visibility:"match_only"},
-{id:"demo-c4",fullName:"Neha Kapoor",currentTitle:"Finance Operations Lead",headline:"Finance operations and analytics",summary:"Finance operations, process improvement, controls and reporting.",skills:["Finance operations","process improvement","controls","reporting","Excel"],experienceYears:7,location:"Bengaluru, Karnataka",country:"India",remoteOnly:true,minSalary:2000000,salaryCurrency:"INR",preferredLocations:["Bengaluru","Remote"],visibility:"match_only"}
-];
+type RecruiterJobInput = {
+  title?: string;
+  description?: string;
+  jobFunction?: string;
+  company?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  remote?: boolean;
+  salaryMin?: number;
+  salaryMax?: number;
+  currency?: string;
+  experienceMin?: number;
+  experienceMax?: number;
+  skills?: string[];
+};
 
-async function normalizeJob(job:RecruiterJob){
- const apiKey=process.env.OPENAI_API_KEY;
- if(!apiKey)return {role:job.title,skills:job.skills};
- try{
-  const client=new OpenAI({apiKey});
-  const r=await client.chat.completions.create({
-   model:process.env.OPENAI_MODEL||"gpt-4o-mini",temperature:0,response_format:{type:"json_object"},
-   messages:[
-    {role:"system",content:"Normalize a job for candidate matching. Return JSON only: {role:string,skills:string[]}. Preserve the actual job function and do not invent requirements."},
-    {role:"user",content:JSON.stringify({title:job.title,description:job.description,skills:job.skills})}
-   ]
-  });
-  const parsed=JSON.parse(r.choices[0]?.message?.content||"{}");
-  return {role:typeof parsed.role==="string"?parsed.role:job.title,skills:Array.isArray(parsed.skills)?parsed.skills.filter((x:any)=>typeof x==="string").slice(0,20):job.skills};
- }catch{return {role:job.title,skills:job.skills};}
+async function normalizeJob(input: RecruiterJobInput) {
+  const fallback = {
+    role: input.title?.trim() || "",
+    skills: Array.isArray(input.skills)
+      ? input.skills.filter((value): value is string => typeof value === "string").slice(0, 30)
+      : [],
+  };
+
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return fallback;
+  }
+
+  try {
+    const client = new OpenAI({ apiKey });
+
+    const response = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content:
+            "Normalize a job for candidate matching. Return JSON only: {role:string,skills:string[]}. Preserve the actual job function and do not invent requirements.",
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            title: input.title,
+            description: input.description,
+            skills: input.skills,
+          }),
+        },
+      ],
+    });
+
+    const parsed = JSON.parse(
+      response.choices[0]?.message?.content || "{}"
+    );
+
+    return {
+      role:
+        typeof parsed.role === "string" && parsed.role.trim()
+          ? parsed.role.trim()
+          : fallback.role,
+      skills: Array.isArray(parsed.skills)
+        ? parsed.skills
+            .filter((value: unknown): value is string => typeof value === "string")
+            .map((value: string) => value.trim())
+            .filter(Boolean)
+            .slice(0, 30)
+        : fallback.skills,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
-export async function POST(request:Request){
- try{
-  const body=await request.json() as Partial<RecruiterJob>;
-  if(!body.title?.trim()||!body.description?.trim())return NextResponse.json({error:"Job title and description are required."},{status:400});
-  const job:RecruiterJob={
-   title:body.title.trim(),description:body.description.trim(),company:body.company?.trim()||"HiddenHire Demo Company",
-   city:body.city,region:body.region,country:body.country||"India",remote:Boolean(body.remote),
-   salaryMin:body.salaryMin,salaryMax:body.salaryMax,currency:body.currency||"INR",
-   experienceMin:body.experienceMin,experienceMax:body.experienceMax,
-   skills:Array.isArray(body.skills)?body.skills.filter(Boolean).slice(0,30):[],normalizedSkills:[]
-  };
-  const ai=await normalizeJob(job);
-  job.normalizedRole=ai.role; job.normalizedSkills=ai.skills;
-  const matches=demoCandidates.filter(c=>c.visibility!=="private").map(c=>matchCandidate(job,c)).sort((a,b)=>b.score-a.score).slice(0,10);
-  return NextResponse.json({mode:"demo",aiNormalized:{role:job.normalizedRole,skills:job.normalizedSkills},candidateCount:demoCandidates.length,matches});
- }catch{return NextResponse.json({error:"Recruiter matching failed. Please try again."},{status:500});}
+export async function POST(request: Request) {
+  try {
+    const { supabase, user, error: authError } = await getAuthenticatedUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: authError || "Authentication is required." },
+        { status: 401 }
+      );
+    }
+
+    const body = (await request.json()) as RecruiterJobInput;
+
+    const title = body.title?.trim() || "";
+    const description = body.description?.trim() || "";
+    const allowedJobFunctions = [
+  "Finance",
+  "Accounting",
+  "FP&A",
+  "Audit",
+  "Tax",
+  "Treasury",
+  "Risk",
+  "Operations",
+  "Engineering",
+  "Software",
+  "Data",
+  "Product",
+  "Marketing",
+  "Sales",
+  "HR",
+  "Legal",
+  "Customer Success",
+  "Design",
+  "Other",
+] as const;
+
+const jobFunction = body.jobFunction?.trim() || "";
+
+if (
+  !allowedJobFunctions.includes(
+    jobFunction as (typeof allowedJobFunctions)[number],
+  )
+) {
+  return NextResponse.json(
+    { error: "A valid job function is required." },
+    { status: 400 },
+  );
+}
+
+    if (!title || !description) {
+      return NextResponse.json(
+        { error: "Job title and description are required." },
+        { status: 400 }
+      );
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { error: "Your HiddenHire profile could not be found." },
+        { status: 403 }
+      );
+    }
+
+    if (profile.role !== "employer" && profile.role !== "agency") {
+      return NextResponse.json(
+        { error: "Only employers and agencies can post jobs." },
+        { status: 403 }
+      );
+    }
+
+    const country = (body.country || "India").trim();
+
+    if (country.toLowerCase() !== "india") {
+      return NextResponse.json(
+        {
+          error:
+            "HiddenHire V1 currently supports native jobs hiring candidates in India.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const currency = (body.currency || "INR").trim().toUpperCase();
+
+    if (currency !== "INR") {
+      return NextResponse.json(
+        {
+          error:
+            "Native HiddenHire V1 jobs currently use INR salary ranges.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      body.salaryMin !== undefined &&
+      body.salaryMax !== undefined &&
+      Number(body.salaryMin) > Number(body.salaryMax)
+    ) {
+      return NextResponse.json(
+        { error: "Minimum salary cannot exceed maximum salary." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      body.experienceMin !== undefined &&
+      body.experienceMax !== undefined &&
+      Number(body.experienceMin) > Number(body.experienceMax)
+    ) {
+      return NextResponse.json(
+        { error: "Minimum experience cannot exceed maximum experience." },
+        { status: 400 }
+      );
+    }
+
+    const { data: employerProfile, error: employerProfileError } =
+      await supabase
+        .from("employer_profiles")
+        .select("company_id")
+        .eq("profile_id", user.id)
+        .maybeSingle();
+
+    if (profile.role === "employer" && employerProfileError) {
+      return NextResponse.json(
+        { error: "Unable to load your employer profile." },
+        { status: 500 }
+      );
+    }
+
+    let companyId = employerProfile?.company_id ?? null;
+
+    if (!companyId) {
+      const companyName = body.company?.trim() || "";
+
+      if (!companyName) {
+        return NextResponse.json(
+          {
+            error:
+              "Company name is required before an employer can post a job.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const { data: company, error: companyError } = await supabase
+        .from("companies")
+        .insert({
+          name: companyName,
+          country: "India",
+          created_by: user.id,
+        })
+        .select("id")
+        .single();
+
+      if (companyError || !company) {
+        return NextResponse.json(
+          {
+            error:
+              companyError?.message ||
+              "Unable to create the company profile.",
+          },
+          { status: 500 }
+        );
+      }
+
+      companyId = company.id;
+
+      if (profile.role === "employer") {
+        const { error: linkError } = await supabase
+          .from("employer_profiles")
+          .upsert(
+            {
+              profile_id: user.id,
+              company_id: companyId,
+            },
+            { onConflict: "profile_id" }
+          );
+
+        if (linkError) {
+          return NextResponse.json(
+            {
+              error:
+                "Company was created, but your employer profile could not be linked.",
+            },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    const normalized = await normalizeJob({
+      ...body,
+      title,
+      description,
+      country,
+      currency,
+    });
+
+    const { data: job, error: jobError } = await supabase
+      .from("jobs")
+      .insert({
+        company_id: companyId,
+        posted_by: user.id,
+        source_type: "native",
+        title,
+        description,
+        job_function: jobFunction,
+        location: body.city?.trim() || null,
+        city: body.city?.trim() || null,
+        region: body.region?.trim() || null,
+        country: "India",
+        remote: Boolean(body.remote),
+        workplace_type: body.remote ? "Remote" : "On-site",
+        salary_min:
+          body.salaryMin !== undefined ? Number(body.salaryMin) : null,
+        salary_max:
+          body.salaryMax !== undefined ? Number(body.salaryMax) : null,
+        currency,
+        experience_min:
+          body.experienceMin !== undefined
+            ? Number(body.experienceMin)
+            : null,
+        experience_max:
+          body.experienceMax !== undefined
+            ? Number(body.experienceMax)
+            : null,
+        status: "pending_review",
+        visibility: "standard",
+      })
+      .select(
+  "id, company_id, posted_by, source_type, title, description, job_function, city, region, country, remote, workplace_type, salary_min, salary_max, currency, experience_min, experience_max, status, visibility, created_at"
+)
+      .single();
+
+    if (jobError || !job) {
+      return NextResponse.json(
+        {
+          error:
+            jobError?.message ||
+            "Unable to create the job. Please try again.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const { data: candidates, error: candidateDiscoveryError } =
+  await supabase.rpc(
+    "recruiter_candidate_discovery_for_job",
+    {
+      p_job_id: job.id,
+    }
+  );
+
+if (candidateDiscoveryError) {
+  return NextResponse.json(
+    {
+      error:
+        candidateDiscoveryError.message ||
+        "Job was created, but candidate discovery failed.",
+      job,
+      aiNormalized: normalized,
+    },
+    { status: 500 }
+  );
+}
+
+const { data: company, error: companyLookupError } = await supabase
+  .from("companies")
+  .select("name")
+  .eq("id", job.company_id)
+  .maybeSingle();
+
+if (companyLookupError) {
+  return NextResponse.json(
+    {
+      error:
+        companyLookupError.message ||
+        "Job was created, but company information could not be loaded.",
+      job,
+      aiNormalized: normalized,
+    },
+    { status: 500 }
+  );
+}
+
+const recruiterJob = toRecruiterJob(
+  job,
+  company?.name || "HiddenHire",
+  normalized.skills
+);
+
+const candidateMatches = (
+  await Promise.all(
+    (Array.isArray(candidates) ? candidates : []).map(
+      async (candidate: RecruiterCandidateRow) => {
+        const profile = toCandidateProfile(candidate);
+        const match = calculateJobMatch(profile, recruiterJob);
+
+        const { error: matchSaveError } = await supabase.rpc(
+          "save_recruiter_match",
+          {
+            p_job_id: job.id,
+            p_candidate_id: candidate.candidate_id,
+            p_score: match.score,
+            p_reasons: match.reasons,
+            p_gaps: match.missingRequirements,
+          }
+        );
+
+        if (matchSaveError) {
+          throw new Error(
+            matchSaveError.message ||
+              "Unable to save candidate match."
+          );
+        }
+
+        return {
+          candidateId: candidate.candidate_id,
+          name: candidate.full_name,
+          headline: candidate.headline,
+          score: match.score,
+          opportunityScore: match.opportunityScore,
+          matchTier: match.matchTier,
+          roleClassification: match.roleClassification,
+          reasons: match.reasons,
+          missingRequirements: match.missingRequirements,
+        };
+      }
+    )
+  )
+).sort(
+  (a, b) =>
+    b.score - a.score ||
+    b.opportunityScore - a.opportunityScore
+);
+
+return NextResponse.json(
+  {
+    mode: "native",
+    job,
+    aiNormalized: normalized,
+    candidateCount: candidateMatches.length,
+    matches: candidateMatches,
+  },
+  { status: 201 }
+);
+} catch {
+  return NextResponse.json(
+    { error: "Job creation failed. Please try again." },
+    { status: 500 }
+  );
+}
 }

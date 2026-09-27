@@ -26,3 +26,18 @@ export async function createClient() {
     }
   );
 }
+
+export async function getAuthenticatedUser() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    return {
+      supabase,
+      user: null,
+      error: error?.message ?? 'Authentication is required.',
+    };
+  }
+
+  return { supabase, user: data.user, error: null };
+}

@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { CandidateProfile } from '@/lib/job-types';
 import {
-  applyJobFilters,
   buildExpandedRoleQueries,
   createJobSourceRegistry,
   type DiscoveryQuery,
 } from '@/lib/job-source';
 import { sortMatches } from '@/lib/match-engine';
+import {
+  buildCandidateSearchIntent,
+  isJobEligible,
+} from '@/lib/search-policy';
 
 const registry = createJobSourceRegistry();
 
@@ -116,7 +119,27 @@ export async function POST(request: Request) {
     const collected = await registry.fetchJobsWithMetrics(inventoryQuery);
     const collectedJobs = collected.jobs;
     const deduped = Array.from(new Map(collectedJobs.map((job) => [`${job.company}:${job.title}:${job.applicationUrl}`, job])).values());
-    const roleMatched = deduped.filter((job) => queries.some((query) => applyJobFilters([job], query).length > 0));
+    const searchIntent = buildCandidateSearchIntent({
+  ...candidateProfile,
+  targetRoles: Array.isArray(profile.targetRoles)
+    ? profile.targetRoles.filter(
+        (value): value is string => typeof value === "string",
+      )
+    : [],
+  preferredLocations: Array.isArray(profile.preferredLocations)
+    ? profile.preferredLocations.filter(
+        (value): value is string => typeof value === "string",
+      )
+    : [],
+  country:
+    typeof profile.country === "string"
+      ? profile.country
+      : "India",
+});
+
+const roleMatched = deduped.filter((job) =>
+  isJobEligible(searchIntent, job),
+);
     const ranked = sortMatches(candidateProfile, roleMatched);
     const returned = ranked.slice(0, 20);
     const sourceMetrics = collected.metrics;

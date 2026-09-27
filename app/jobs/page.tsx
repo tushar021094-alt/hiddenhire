@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type Job = {
+  id: string;
   title?: string;
   company?: string;
   location?: string;
@@ -15,6 +16,8 @@ type Job = {
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
+  requiredSkills?: string[];
+  source?: string;
   applicationUrl?: string;
   description?: string;
   score?: number;
@@ -47,8 +50,38 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
+const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 
-  useEffect(() => {
+  async function applyToJob(jobId: string) {
+  setApplyingJobId(jobId);
+  setError("");
+
+  try {
+    const response = await fetch("/api/applications", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ jobId }),
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload?.error || "Unable to apply to this job.");
+    }
+
+    setAppliedJobIds((current) =>
+      current.includes(jobId) ? current : [...current, jobId],
+    );
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Unable to apply to this job.");
+  } finally {
+    setApplyingJobId(null);
+  }
+}
+useEffect(() => {
     let active = true;
 
     async function load() {
@@ -61,18 +94,30 @@ export default function JobsPage() {
         return;
       }
 
-      const [{ data: profileData, error: profileError }, { data: candidateData }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("full_name, skills, experience_years, location, country, remote_only, min_salary, salary_currency")
-          .eq("id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("candidate_profiles")
-          .select("target_roles, preferred_locations, job_search_mode")
-          .eq("profile_id", user.id)
-          .maybeSingle(),
-      ]);
+      const [
+  { data: profileData, error: profileError },
+  { data: candidateData },
+  { data: applicationData, error: applicationError },
+] = await Promise.all([
+  supabase
+    .from("profiles")
+    .select(
+      "full_name, skills, experience_years, location, country, remote_only, min_salary, salary_currency",
+    )
+    .eq("id", user.id)
+    .maybeSingle(),
+
+  supabase
+    .from("candidate_profiles")
+    .select("target_roles, preferred_locations, job_search_mode")
+    .eq("profile_id", user.id)
+    .maybeSingle(),
+
+  supabase
+    .from("applications")
+    .select("job_id, status")
+    .eq("candidate_id", user.id),
+]);
 
       if (profileError) {
         if (active) setError(profileError.message);
@@ -84,6 +129,15 @@ export default function JobsPage() {
 
       setProfile(profileData);
       setCandidate(candidateData);
+      if (applicationError) {
+  console.error("Unable to load applications:", applicationError.message);
+} else {
+  setAppliedJobIds(
+    (applicationData ?? [])
+      .filter((application) => application.status !== "withdrawn")
+      .map((application) => application.job_id),
+  );
+}
 
       const targetRoles = candidateData?.target_roles ?? [];
       const preferredLocations = candidateData?.preferred_locations ?? [];
@@ -119,7 +173,21 @@ export default function JobsPage() {
       if (!response.ok) {
         setError(payload?.message || "Unable to load matched jobs.");
       } else {
-        setJobs(Array.isArray(payload?.results) ? payload.results : []);
+        setJobs(
+  Array.isArray(payload?.results)
+    ? payload.results.map(
+  (result: {
+    job?: Job;
+    score?: number;
+    reasons?: string[];
+  }) => ({
+        ...(result.job ?? {}),
+        score: result.score,
+        reasons: result.reasons ?? [],
+        matchedSkills: result.job?.requiredSkills ?? [],
+      }))
+    : []
+);
         setMessage(payload?.message || "");
       }
 
@@ -232,12 +300,31 @@ export default function JobsPage() {
                   </ul>
                 )}
 
-                {job.applicationUrl && (
-                  <a href={job.applicationUrl} target="_blank" rel="noreferrer" className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">
-                    View opportunity →
-                  </a>
-                )}
-              </article>
+                {job.source === "HiddenHire" ? (
+  <button
+    type="button"
+    onClick={() => applyToJob(job.id)}
+    disabled={applyingJobId === job.id || appliedJobIds.includes(job.id)}
+    className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+  >
+    {appliedJobIds.includes(job.id)
+      ? "Applied ✓"
+      : applyingJobId === job.id
+        ? "Applying…"
+        : "Apply on HiddenHire →"}
+  </button>
+) : (
+  job.applicationUrl && (
+    <a
+      href={job.applicationUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
+    >
+      View opportunity →
+    </a>
+  )
+)}             </article>
             ))}
           </section>
         )}

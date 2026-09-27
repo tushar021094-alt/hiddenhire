@@ -9,7 +9,7 @@ export type JobFunction =
 
 const functionSignals: Array<{ functionName: JobFunction; terms: string[] }> = [
   { functionName: 'FP&A', terms: ['fp&a', 'financial planning', 'financial planning and analysis', 'forecasting', 'budgeting', 'variance analysis'] },
-  { functionName: 'Accounting', terms: ['accounting', 'accountant', 'accounts payable', 'accounts receivable', 'ap/ar', 'general ledger', 'month-end close', 'month end close', 'controllership', 'management accounts'] },
+  { functionName: 'Accounting', terms: ['accounting', 'accountant', 'accounts payable', 'account payable', 'accounts receivable', 'account receivable', 'ap/ar', 'general ledger', 'month-end close', 'month end close', 'controllership', 'management accounts'] },
   { functionName: 'Finance', terms: ['finance', 'financial reporting', 'financial analysis', 'p&l', 'balance sheet', 'management reporting', 'financial controls', 'accounting operations'] },
   { functionName: 'Audit', terms: ['audit', 'auditing'] },
   { functionName: 'Tax', terms: ['tax', 'vat', 'gst'] },
@@ -89,7 +89,7 @@ function calculateRoleRelevance(candidate: CandidateProfile, job: Job): { score:
   return { score: Math.max(0, Math.min(100, score)), functionName: jobFunction };
 }
 
-function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): boolean {
+export function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): boolean {
   const target = cleanText(candidate.targetJobTitle);
   const title = cleanText(job.title);
   const jobFunction = classifyJobFunction(job.title, job.description);
@@ -119,7 +119,9 @@ function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): boolean {
   if (/fp&a/i.test(target)) {
     return /fp&a|financial planning|strategic finance|finance manager|finance business partner|commercial finance|financial analyst/i.test(title);
   }
-
+if (/accounts payable manager|account payable manager|ap manager|p2p manager|procure to pay manager/i.test(target)) {
+  return /accounts payable|account payable|ap manager|p2p|procure to pay|finance operations|accounting manager/i.test(title);
+}
   if (/accounting manager|accounts manager/i.test(target)) {
     return /accounting manager|accounts manager|controller|controllership|financial controller|accounting lead|finance manager/i.test(title);
   }
@@ -322,9 +324,9 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   if (salaryThreshold !== null && salaryCandidate < salaryThreshold && job.salaryMin !== null) {
     missingRequirements.push(`Salary minimum of ${job.salaryMin.toLocaleString()} ${job.salaryCurrency}`);
   }
-  if (!industryMatch) {
-    missingRequirements.push(`Industry: ${job.industry}`);
-  }
+  if (!industryMatch && job.industry.trim()) {
+  missingRequirements.push(`Industry: ${job.industry}`);
+}
 
   const visibleReasons = reasons.slice(0, 6);
   if ((salaryThreshold === null || salaryThreshold === undefined) && !visibleReasons.some((reason) => reason === 'Salary not disclosed')) {
