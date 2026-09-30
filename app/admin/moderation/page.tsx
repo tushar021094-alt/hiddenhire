@@ -26,10 +26,11 @@ type Job = {
 
 export default function AdminModerationPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     async function checkAuth() {
+      const supabase = createClient();
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -40,7 +41,7 @@ export default function AdminModerationPage() {
     }
 
     void checkAuth();
-  }, [router, supabase]);
+  }, [router]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionJobId, setActionJobId] = useState<string | null>(null);
