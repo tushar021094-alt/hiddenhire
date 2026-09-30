@@ -1,5 +1,8 @@
 "use client";
-import {useState} from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import VerificationPanel from "./verification-panel";
 type CreatedJob = {
   id: string;
   company_id: string | null;
@@ -38,6 +41,22 @@ type CandidateMatch = {
 };
 
 export default function RecruiterPage(){
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function checkAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+      }
+    }
+
+    void checkAuth();
+  }, [router, supabase]);
  const [form,setForm]=useState({
   title:"Finance Manager",
   company:"",
@@ -80,6 +99,8 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
    <h1 className="mt-3 text-4xl font-bold">Post a job. Let HiddenHire find the candidates.</h1>
    <p className="mt-3 max-w-2xl text-white/50">The same relevance-first engine works in reverse: job function, skills, experience, location, compensation and seniority.</p>
   </div>
+<VerificationPanel />
+
   <form onSubmit={submit} className="grid gap-5 rounded-2xl border border-white/10 bg-white/[.03] p-6 md:grid-cols-2">
    {([["title","Job title"],["company","Company"],["city","City"],["region","State / region"],["country","Country"],["salaryMin","Minimum salary"],["salaryMax","Maximum salary"],["experienceMin","Minimum experience"],["experienceMax","Maximum experience"]] as const).map(([k,l])=>
     <label key={k} className="text-xs uppercase tracking-wider text-white/40">{l}<input className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none" value={String(form[k])} onChange={e=>set(k,e.target.value)}/></label>)}
@@ -223,7 +244,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
         {matches.length} candidate{matches.length === 1 ? "" : "s"} found
       </div>
       <p className="mt-1 text-sm text-white/50">
-        Ranked using HiddenHire's relevance-first matching engine.
+        Ranked using HiddenHire&apos;s relevance-first matching engine.
       </p>
     </div>
   </div>

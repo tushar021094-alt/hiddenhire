@@ -161,6 +161,57 @@ if (
         { status: 403 }
       );
     }
+if (profile.role === "employer") {
+  const { data: employerVerification, error: verificationError } =
+    await supabase
+      .from("employer_profiles")
+      .select("recruiter_verified")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+  if (verificationError) {
+    return NextResponse.json(
+      { error: "Unable to verify your employer status." },
+      { status: 500 }
+    );
+  }
+
+  if (!employerVerification?.recruiter_verified) {
+    return NextResponse.json(
+      {
+        error:
+          "Employer verification is required before you can post a job.",
+      },
+      { status: 403 }
+    );
+  }
+}
+
+if (profile.role === "agency") {
+  const { data: agencyVerification, error: verificationError } =
+    await supabase
+      .from("agency_profiles")
+      .select("verified")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+
+  if (verificationError) {
+    return NextResponse.json(
+      { error: "Unable to verify your agency status." },
+      { status: 500 }
+    );
+  }
+
+  if (!agencyVerification?.verified) {
+    return NextResponse.json(
+      {
+        error:
+          "Agency verification is required before you can post a job.",
+      },
+      { status: 403 }
+    );
+  }
+}
 
     const country = (body.country || "India").trim();
 

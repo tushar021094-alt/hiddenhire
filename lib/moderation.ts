@@ -1,6 +1,28 @@
 import type { JobStatus } from "./marketplace";
 
-/**
+/**import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+const router = useRouter();
+const supabase = createClient();
+useEffect(() => {
+  let active = true;
+
+  async function checkAuth() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (active && !user) {
+      router.replace("/login");
+    }
+  }
+
+  void checkAuth();
+
+  return () => {
+    active = false;
+  };
+}, [router, supabase]);
  * HiddenHire V1 job publishing/moderation types.
  *
  * The checks in this module are server-side helpers that give the API route a

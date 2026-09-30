@@ -13,7 +13,7 @@ import {
 
 const registry = createJobSourceRegistry();
 
-export function normalizeCandidateProfile(
+function normalizeCandidateProfile(
   profile: Record<string, unknown>,
   expandedRoles: string[]
 ): CandidateProfile {
@@ -65,7 +65,7 @@ export function normalizeCandidateProfile(
   };
 }
 
-export function buildDiscoveryQueries(
+function buildDiscoveryQueries(
   profile: Record<string, unknown>,
   candidateProfile: CandidateProfile,
   expandedRoles: string[]

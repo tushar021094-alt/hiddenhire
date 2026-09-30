@@ -1,6 +1,6 @@
 "use client";
-
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -18,6 +18,20 @@ const roleSuggestions = [
 export default function CandidateOnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    async function checkAuth() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+      }
+    }
+
+    void checkAuth();
+  }, [router, supabase]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -109,9 +123,9 @@ export default function CandidateOnboardingPage() {
     <main className="min-h-screen bg-[#05080c] px-6 py-10 text-white lg:px-10">
       <div className="mx-auto max-w-5xl">
         <header className="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
-          <a href="/" className="text-xl font-semibold tracking-tight">
+          <Link href="/" className="text-xl font-semibold tracking-tight">
             Hidden<span className="text-cyan-300">Hire</span>
-          </a>
+          </Link>
           <span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-xs text-cyan-200">
             Candidate onboarding
           </span>

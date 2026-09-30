@@ -244,11 +244,17 @@ export default async function DashboardPage() {
                 </Link>
 
                 <Link
-                  href={role === "candidate" ? "/jobs" : "/recruiter"}
-                  className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
-                >
-                  {copy.secondary}
-                </Link>
+  href={
+    role === "admin"
+      ? "/admin/moderation"
+      : role === "candidate"
+        ? "/jobs"
+        : "/recruiter"
+  }
+  className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
+>
+  {copy.secondary}
+</Link>
               </div>
             </div>
 

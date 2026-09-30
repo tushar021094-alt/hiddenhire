@@ -6,13 +6,44 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
 export default function LoginPage() {
- const router = useRouter();
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function handleLogin(event: FormEvent) {
+  async function handleSendOtp(event: FormEvent) {
+    event.preventDefault();
+
+    setError("");
+    setMessage("");
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+  email: email.trim(),
+  options: {
+    shouldCreateUser: false,
+  },
+});
+      if (otpError) {
+        throw otpError;
+      }
+
+      setOtpSent(true);
+      setMessage("We sent an 8-digit code to your email address.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send a sign-in code.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(event: FormEvent) {
     event.preventDefault();
 
     setError("");
@@ -20,19 +51,19 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-
-      const { error: loginError } = await supabase.auth.signInWithPassword({
+      const { error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim(),
-        password,
+        token: otp.trim(),
+        type: "email",
       });
 
-      if (loginError) {
-        throw loginError;
+      if (verifyError) {
+        throw verifyError;
       }
 
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      setError(err instanceof Error ? err.message : "That code could not be verified.");
     } finally {
       setLoading(false);
     }
@@ -73,7 +104,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="search-panel mt-10">
+        <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="search-panel mt-10">
           <div className="grid gap-5">
             <Field label="Email">
               <input
@@ -83,19 +114,23 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 required
+                disabled={otpSent}
               />
             </Field>
 
-            <Field label="Password">
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                autoComplete="current-password"
-                required
-              />
-            </Field>
+            {otpSent && <Field label="8-digit code">
+  <input
+    inputMode="numeric"
+    pattern="[0-9]{8}"
+    value={otp}
+    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+    placeholder="12345678"
+    autoComplete="one-time-code"
+    required
+    minLength={8}
+    maxLength={8}
+  />
+</Field>}
           </div>
 
           {error && (
@@ -104,13 +139,20 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end border-t border-white/[0.07] pt-5">
+          {message && (
+            <div className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100">
+              {message}
+            </div>
+          )}
+
+          <div className="mt-6 flex items-center justify-between gap-4 border-t border-white/[0.07] pt-5">
+            {otpSent ? <button type="button" onClick={() => { setOtpSent(false); setOtp(""); setMessage(""); setError(""); }} className="text-sm text-white/45 transition hover:text-white">Use a different email</button> : <span className="text-xs text-white/35">We&apos;ll send a one-time code.</span>}
             <button
               type="submit"
               disabled={loading}
               className="primary-button"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? (otpSent ? "Verifying…" : "Sending code…") : (otpSent ? "Verify & sign in" : "Send sign-in code")}
               <span>→</span>
             </button>
           </div>
