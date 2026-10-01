@@ -42,10 +42,10 @@ type CandidateMatch = {
 
 export default function RecruiterPage(){
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     async function checkAuth() {
+      const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -56,7 +56,7 @@ export default function RecruiterPage(){
     }
 
     void checkAuth();
-  }, [router, supabase]);
+  }, [router]);
  const [form,setForm]=useState({
   title:"Finance Manager",
   company:"",
@@ -146,7 +146,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
 <label className="text-xs uppercase tracking-wider text-white/40 md:col-span-2">Skills<input className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none" value={form.skills} onChange={e=>set("skills",e.target.value)}/></label>
    <label className="text-xs uppercase tracking-wider text-white/40 md:col-span-2">Job description<textarea rows={7} className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none" value={form.description} onChange={e=>set("description",e.target.value)}/></label>
    <label className="flex items-center gap-3 text-sm text-white/70 md:col-span-2"><input type="checkbox" checked={form.remote} onChange={e=>setForm(x=>({...x,remote:e.target.checked}))}/> Remote role</label>
-   <button disabled={loading} className="rounded-xl bg-white px-5 py-3 font-semibold text-black md:col-span-2">{loading?"AI is understanding the job and finding candidates…":"Post job & find candidates →"}</button>
+   <button disabled={loading} className="rounded-xl bg-white px-5 py-3 font-semibold text-black md:col-span-2">{loading?"AI is understanding the job and finding candidatesÃ¢â‚¬Â¦":"Post job & find candidates Ã¢â€ â€™"}</button>
   </form>
   {error&&<div className="mt-5 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm text-red-200">{error}</div>}
 
@@ -162,7 +162,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
           <h2 className="text-2xl font-semibold">{job.title}</h2>
 
           <p className="mt-2 text-sm text-white/50">
-            {job.city || "India"} · {job.region || "India"} ·{" "}
+            {job.city || "India"} Ã‚Â· {job.region || "India"} Ã‚Â·{" "}
             {job.remote ? "Remote" : "On-site"}
           </p>
 
@@ -183,7 +183,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
           </div>
           <div className="mt-2 text-sm text-white/80">
             {job.salary_min != null || job.salary_max != null
-              ? `${job.currency || "INR"} ${job.salary_min?.toLocaleString() || "—"} – ${job.salary_max?.toLocaleString() || "—"}`
+              ? `${job.currency || "INR"} ${job.salary_min?.toLocaleString() || "Ã¢â‚¬â€"} Ã¢â‚¬â€œ ${job.salary_max?.toLocaleString() || "Ã¢â‚¬â€"}`
               : "Not specified"}
           </div>
         </div>
@@ -194,7 +194,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
           </div>
           <div className="mt-2 text-sm text-white/80">
             {job.experience_min != null || job.experience_max != null
-              ? `${job.experience_min ?? "—"} – ${job.experience_max ?? "—"} years`
+              ? `${job.experience_min ?? "Ã¢â‚¬â€"} Ã¢â‚¬â€œ ${job.experience_max ?? "Ã¢â‚¬â€"} years`
               : "Not specified"}
           </div>
         </div>
@@ -306,7 +306,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
                     key={reason}
                     className="text-sm text-white/65"
                   >
-                    • {reason}
+                    Ã¢â‚¬Â¢ {reason}
                   </li>
                 ))}
               </ul>
@@ -325,7 +325,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
                     key={requirement}
                     className="text-sm text-amber-200/70"
                   >
-                    • {requirement}
+                    Ã¢â‚¬Â¢ {requirement}
                   </li>
                 ))}
               </ul>

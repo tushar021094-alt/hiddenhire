@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -43,7 +43,6 @@ type CandidateProfile = {
 };
 
 export default function JobsPage() {
-  const supabase = useMemo(() => createClient(), []);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
@@ -85,6 +84,7 @@ useEffect(() => {
     let active = true;
 
     async function load() {
+      const supabase = createClient();
       setLoading(true);
       setError("");
 
@@ -198,7 +198,7 @@ useEffect(() => {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#05080c] text-white">
@@ -236,7 +236,7 @@ useEffect(() => {
 
         {loading && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-white/60">
-            AI is searching and ranking live opportunities…
+            AI is searching and ranking live opportunitiesâ€¦
           </div>
         )}
 
@@ -278,7 +278,7 @@ useEffect(() => {
                   ))}
                   {(job.salaryMin || job.salaryMax) && (
                     <span className="rounded-full bg-white/5 px-2.5 py-1">
-                      {job.currency || "INR"} {job.salaryMin?.toLocaleString() || "—"}–{job.salaryMax?.toLocaleString() || "—"}
+                      {job.currency || "INR"} {job.salaryMin?.toLocaleString() || "â€”"}â€“{job.salaryMax?.toLocaleString() || "â€”"}
                     </span>
                   )}
                 </div>
@@ -296,7 +296,7 @@ useEffect(() => {
 
                 {job.reasons && job.reasons.length > 0 && (
                   <ul className="mt-5 space-y-2 text-sm text-white/55">
-                    {job.reasons.slice(0, 3).map((reason) => <li key={reason}>• {reason}</li>)}
+                    {job.reasons.slice(0, 3).map((reason) => <li key={reason}>â€¢ {reason}</li>)}
                   </ul>
                 )}
 
@@ -308,10 +308,10 @@ useEffect(() => {
     className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
   >
     {appliedJobIds.includes(job.id)
-      ? "Applied ✓"
+      ? "Applied âœ“"
       : applyingJobId === job.id
-        ? "Applying…"
-        : "Apply on HiddenHire →"}
+        ? "Applyingâ€¦"
+        : "Apply on HiddenHire â†’"}
   </button>
 ) : (
   job.applicationUrl && (
@@ -321,7 +321,7 @@ useEffect(() => {
       rel="noreferrer"
       className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
     >
-      View opportunity →
+      View opportunity â†’
     </a>
   )
 )}             </article>

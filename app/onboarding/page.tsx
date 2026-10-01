@@ -17,10 +17,10 @@ const roleSuggestions = [
 
 export default function CandidateOnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
-
   useEffect(() => {
     async function checkAuth() {
+      const supabase = createClient();
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -31,7 +31,7 @@ export default function CandidateOnboardingPage() {
     }
 
     void checkAuth();
-  }, [router, supabase]);
+  }, [router]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -54,12 +54,14 @@ export default function CandidateOnboardingPage() {
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSaving(true);
-    setError("");
-    setMessage("");
+  event.preventDefault();
+  setSaving(true);
+  setError("");
+  setMessage("");
 
-    const { data: { user } } = await supabase.auth.getUser();
+  const supabase = createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       router.replace("/login");
@@ -236,7 +238,7 @@ export default function CandidateOnboardingPage() {
 
           <div className="lg:col-span-2 flex justify-end">
             <button disabled={saving} type="submit" className="rounded-xl bg-cyan-300 px-7 py-3 font-semibold text-slate-950 disabled:opacity-50">
-              {saving ? "Saving profile..." : "Save profile →"}
+              {saving ? "Saving profile..." : "Save profile â†’"}
             </button>
           </div>
         </form>

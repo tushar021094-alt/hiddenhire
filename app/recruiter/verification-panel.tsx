@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+import { useEffect, useState } from "react";
 
 type VerificationState = {
   verified: boolean;
@@ -101,9 +102,8 @@ export default function VerificationPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const supabase = createClient();
-
   async function loadStatus() {
+    const supabase = createClient();
     setLoading(true);
     setError("");
 
@@ -150,6 +150,7 @@ export default function VerificationPanel() {
   async function handleDocumentUpload(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
+    const supabase = createClient();
     const file = event.target.files?.[0];
 
     event.target.value = "";
@@ -231,6 +232,7 @@ export default function VerificationPanel() {
   }
 
   async function removeDocument(document: DocumentItem) {
+    const supabase = createClient();
     setError("");
     setSuccess("");
 
