@@ -236,7 +236,7 @@ useEffect(() => {
 
         {loading && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-white/60">
-            AI is searching and ranking live opportunitiesâ€¦
+            AI is searching and ranking live opportunities…
           </div>
         )}
 
@@ -278,7 +278,7 @@ useEffect(() => {
                   ))}
                   {(job.salaryMin || job.salaryMax) && (
                     <span className="rounded-full bg-white/5 px-2.5 py-1">
-                      {job.currency || "INR"} {job.salaryMin?.toLocaleString() || "â€”"}â€“{job.salaryMax?.toLocaleString() || "â€”"}
+                      {job.currency || "INR"} {job.salaryMin?.toLocaleString() || "—"}–{job.salaryMax?.toLocaleString() || "—"}
                     </span>
                   )}
                 </div>
@@ -296,7 +296,7 @@ useEffect(() => {
 
                 {job.reasons && job.reasons.length > 0 && (
                   <ul className="mt-5 space-y-2 text-sm text-white/55">
-                    {job.reasons.slice(0, 3).map((reason) => <li key={reason}>â€¢ {reason}</li>)}
+                    {job.reasons.slice(0, 3).map((reason) => <li key={reason}>• {reason}</li>)}
                   </ul>
                 )}
 
@@ -308,10 +308,10 @@ useEffect(() => {
     className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
   >
     {appliedJobIds.includes(job.id)
-      ? "Applied âœ“"
+      ? "Applied ✓"
       : applyingJobId === job.id
-        ? "Applyingâ€¦"
-        : "Apply on HiddenHire â†’"}
+        ? "Applying…"
+        : "Apply on HiddenHire →"}
   </button>
 ) : (
   job.applicationUrl && (
@@ -321,7 +321,7 @@ useEffect(() => {
       rel="noreferrer"
       className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
     >
-      View opportunity â†’
+      View opportunity →
     </a>
   )
 )}             </article>

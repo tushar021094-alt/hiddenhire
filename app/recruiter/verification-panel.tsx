@@ -1,8 +1,7 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type VerificationState = {
   verified: boolean;
