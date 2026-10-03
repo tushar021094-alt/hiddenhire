@@ -5,13 +5,55 @@ import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
 
+const MAX_ROLE_LENGTH = 200;
+const MAX_SKILLS = 30;
+const MAX_SKILL_LENGTH = 100;
+const MAX_LOCATION_FILTERS = 50;
+const MAX_LOCATION_LENGTH = 100;
+const MAX_CTC = 1_000_000_000;
+
 function validProfile(value: unknown): value is SearchFilters {
   if (!value || typeof value !== "object") return false;
   const p = value as Partial<SearchFilters>;
-  return typeof p.role === "string" && Array.isArray(p.skills) && typeof p.experience === "number"
-    && typeof p.candidateCountry === "string" && (p.market === "india" || p.market === "worldwide")
-    && typeof p.remoteOnly === "boolean" && ["any","remote","hybrid","onsite"].includes(p.workplace ?? "")
-    && typeof p.minCtc === "number" && typeof p.ctcCurrency === "string" && Array.isArray(p.states) && Array.isArray(p.cities);
+  if (
+    typeof p.role !== "string" ||
+    p.role.trim().length === 0 ||
+    p.role.length > MAX_ROLE_LENGTH ||
+    !Array.isArray(p.skills) ||
+    p.skills.length > MAX_SKILLS ||
+    typeof p.experience !== "number" ||
+    !Number.isFinite(p.experience) ||
+    !Number.isInteger(p.experience) ||
+    p.experience < 0 ||
+    p.experience > 60 ||
+    typeof p.candidateCountry !== "string" ||
+    p.candidateCountry.length > MAX_LOCATION_LENGTH ||
+    (p.market !== "india" && p.market !== "worldwide") ||
+    typeof p.remoteOnly !== "boolean" ||
+    !["any","remote","hybrid","onsite"].includes(p.workplace ?? "") ||
+    typeof p.minCtc !== "number" ||
+    !Number.isFinite(p.minCtc) ||
+    p.minCtc < 0 ||
+    p.minCtc > MAX_CTC ||
+    typeof p.ctcCurrency !== "string" ||
+    p.ctcCurrency.length > 10 ||
+    !Array.isArray(p.states) ||
+    p.states.length > MAX_LOCATION_FILTERS ||
+    !Array.isArray(p.cities) ||
+    p.cities.length > MAX_LOCATION_FILTERS
+  ) return false;
+
+  if (typeof p.maxCtc === "number" && (!Number.isFinite(p.maxCtc) || p.maxCtc < 0 || p.maxCtc > MAX_CTC)) {
+    return false;
+  }
+
+  if (!p.skills.every(skill => typeof skill === "string" && skill.trim().length > 0 && skill.length <= MAX_SKILL_LENGTH)) {
+    return false;
+  }
+
+  return [...p.states, ...p.cities].every(
+    value => typeof value === "string" && value.trim().length > 0 && value.length <= MAX_LOCATION_LENGTH,
+  );
 }
 const LOCATION_ALIASES: Record<string, string[]> = {
   "new delhi": ["new delhi", "delhi"],
