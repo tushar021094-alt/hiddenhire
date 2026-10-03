@@ -65,7 +65,7 @@ export function normalizeCandidateProfile(
   };
 }
 
-function buildDiscoveryQueries(
+export function buildDiscoveryQueries(
   profile: Record<string, unknown>,
   candidateProfile: CandidateProfile,
   expandedRoles: string[]
