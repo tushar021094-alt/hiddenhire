@@ -100,6 +100,59 @@ export async function POST(request: Request) {
 
     const title = body.title?.trim() || "";
     const description = body.description?.trim() || "";
+
+    if (title.length > 200 || description.length > 20_000) {
+      return NextResponse.json(
+        { error: "Job title or description is too long." },
+        { status: 413 }
+      );
+    }
+
+    const salaryMin =
+      body.salaryMin === undefined ? null : Number(body.salaryMin);
+    const salaryMax =
+      body.salaryMax === undefined ? null : Number(body.salaryMax);
+    const experienceMin =
+      body.experienceMin === undefined ? null : Number(body.experienceMin);
+    const experienceMax =
+      body.experienceMax === undefined ? null : Number(body.experienceMax);
+
+    const invalidNumber =
+      [salaryMin, salaryMax, experienceMin, experienceMax].some(
+        (value) => value !== null && !Number.isFinite(value)
+      );
+
+    if (invalidNumber) {
+      return NextResponse.json(
+        { error: "Salary and experience values must be valid numbers." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      [salaryMin, salaryMax].some(
+        (value) => value !== null && (value < 0 || value > 1_000_000_000)
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Salary values are outside the supported range." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      [experienceMin, experienceMax].some(
+        (value) => value !== null && (value < 0 || value > 60)
+      ) ||
+      [experienceMin, experienceMax].some(
+        (value) => value !== null && !Number.isInteger(value)
+      )
+    ) {
+      return NextResponse.json(
+        { error: "Experience must be a whole number between 0 and 60 years." },
+        { status: 400 }
+      );
+    }
     const allowedJobFunctions = [
   "Finance",
   "Accounting",
@@ -237,22 +290,14 @@ if (profile.role === "agency") {
       );
     }
 
-    if (
-      body.salaryMin !== undefined &&
-      body.salaryMax !== undefined &&
-      Number(body.salaryMin) > Number(body.salaryMax)
-    ) {
+    if (salaryMin !== null && salaryMax !== null && salaryMin > salaryMax) {
       return NextResponse.json(
         { error: "Minimum salary cannot exceed maximum salary." },
         { status: 400 }
       );
     }
 
-    if (
-      body.experienceMin !== undefined &&
-      body.experienceMax !== undefined &&
-      Number(body.experienceMin) > Number(body.experienceMax)
-    ) {
+    if (experienceMin !== null && experienceMax !== null && experienceMin > experienceMax) {
       return NextResponse.json(
         { error: "Minimum experience cannot exceed maximum experience." },
         { status: 400 }
@@ -358,18 +403,14 @@ if (profile.role === "agency") {
         remote: Boolean(body.remote),
         workplace_type: body.remote ? "Remote" : "On-site",
         salary_min:
-          body.salaryMin !== undefined ? Number(body.salaryMin) : null,
+          salaryMin,
         salary_max:
-          body.salaryMax !== undefined ? Number(body.salaryMax) : null,
+          salaryMax,
         currency,
         experience_min:
-          body.experienceMin !== undefined
-            ? Number(body.experienceMin)
-            : null,
+          experienceMin,
         experience_max:
-          body.experienceMax !== undefined
-            ? Number(body.experienceMax)
-            : null,
+          experienceMax,
         status: "pending_review",
         visibility: "standard",
       })
