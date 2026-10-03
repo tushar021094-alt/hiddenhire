@@ -102,9 +102,9 @@ export default async function DashboardPage() {
     <main className="min-h-screen bg-[#05080c] text-white">
       <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
         <header className="flex items-center justify-between border-b border-white/10 pb-5">
-          <a href="/" className="text-xl font-semibold tracking-tight">
+          <Link href="/" className="text-xl font-semibold tracking-tight">
             Hidden<span className="text-cyan-300">Hire</span>
-          </a>
+          </Link>
           <div className="flex items-center gap-3 text-sm text-white/60">
             <span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-cyan-200">
               {role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : role === "candidate" ? "Candidate" : "Admin"}
