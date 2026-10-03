@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       );
 
       return NextResponse.json(
-        { error: error.message },
+        { error: "Unable to complete recruiter verification review." },
         { status: 400 },
       );
     }
