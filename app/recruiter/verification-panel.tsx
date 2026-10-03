@@ -136,7 +136,11 @@ export default function VerificationPanel() {
   }
 
   useEffect(() => {
-    void loadStatus();
+    const timer = window.setTimeout(() => {
+      void loadStatus();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   function updateField(key: keyof FormState, value: string) {
