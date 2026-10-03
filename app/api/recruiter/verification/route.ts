@@ -163,7 +163,7 @@ export async function POST(request: Request) {
 
     if (verificationError) {
       return NextResponse.json(
-        { error: verificationError.message },
+        { error: "Unable to submit the verification request." },
         { status: 400 }
       );
     }
