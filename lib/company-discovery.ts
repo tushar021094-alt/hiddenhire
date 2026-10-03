@@ -1,5 +1,8 @@
 export type DetectedProvider = "greenhouse" | "lever" | "ashby" | "workable" | "workday" | "structured-jobposting" | "unknown";
 
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
 export type CompanyDiscovery = {
   inputUrl: string;
   canonicalUrl: string;
@@ -61,7 +64,7 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
   const direct = providerFromUrl(new URL(canonicalUrl));
   const response = await fetchPublicPage(canonicalUrl);
   const finalUrl = new URL(response.url);
-  const html = await response.text();
+  const html = response.html;
   const signals: string[] = [];
   if (direct.signal) signals.push(direct.signal);
 
@@ -90,7 +93,7 @@ export async function discoverCompanySource(inputUrl: string): Promise<CompanyDi
 async function fetchPublicPage(startUrl: string) {
   let currentUrl = startUrl;
   for (let redirectCount = 0; redirectCount <= 5; redirectCount++) {
-    if (!isSafePublicUrl(currentUrl)) {
+    if (!(await isSafePublicUrl(currentUrl))) {
       throw new Error("Redirect target is not a public HTTP(S) URL.");
     }
     const response = await fetch(currentUrl, {
