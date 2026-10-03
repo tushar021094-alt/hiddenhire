@@ -13,7 +13,7 @@ import {
 
 const registry = createJobSourceRegistry();
 
-function normalizeCandidateProfile(
+export function normalizeCandidateProfile(
   profile: Record<string, unknown>,
   expandedRoles: string[]
 ): CandidateProfile {
