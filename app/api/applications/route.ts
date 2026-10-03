@@ -126,7 +126,7 @@ export async function PATCH(request: Request) {
 
     if (profileError) {
       return NextResponse.json(
-        { error: profileError.message },
+        { error: "Unable to verify your account." },
         { status: 500 },
       );
     }
@@ -192,7 +192,7 @@ export async function PATCH(request: Request) {
 
       if (updateError) {
         return NextResponse.json(
-          { error: updateError.message },
+          { error: "Unable to update the application status." },
           { status: 500 },
         );
       }
