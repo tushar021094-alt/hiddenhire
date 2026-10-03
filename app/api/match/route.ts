@@ -4,6 +4,7 @@ import { isRoleRelevant, matchJob } from "@/lib/matcher";
 import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_ROLE_LENGTH = 200;
 const MAX_SKILLS = 30;
@@ -126,6 +127,8 @@ function locationMatches(job: Job, filters: SearchFilters) {
   return true;
 }
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`match:${getClientIdentifier(request)}`, 20, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
