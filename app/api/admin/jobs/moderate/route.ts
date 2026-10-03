@@ -64,7 +64,8 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 500 });
+      console.error("[admin/jobs/moderate] profile lookup failed", profileError);
+      return NextResponse.json({ error: "Unable to verify admin access." }, { status: 500 });
     }
 
     if (profile?.role !== "admin") {
@@ -99,7 +100,8 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (jobError) {
-      return NextResponse.json({ error: jobError.message }, { status: 500 });
+      console.error("[admin/jobs/moderate] job lookup failed", jobError);
+      return NextResponse.json({ error: "Unable to load the requested job." }, { status: 500 });
     }
 
     if (!job) {
