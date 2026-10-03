@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -43,6 +44,7 @@ type CandidateProfile = {
 };
 
 export default function JobsPage() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
@@ -90,7 +92,7 @@ useEffect(() => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        window.location.href = "/login";
+        router.replace("/login");
         return;
       }
 
@@ -198,7 +200,7 @@ useEffect(() => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-[#05080c] text-white">
