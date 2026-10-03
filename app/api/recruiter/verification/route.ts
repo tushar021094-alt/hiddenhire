@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
+const MAX_BODY_BYTES = 64_000;
+
 type VerificationEvidence = {
   mobile?: string;
   recruiter_name?: string;
@@ -80,6 +82,11 @@ export async function POST(request: Request) {
         { error: "Only employers and agencies can request verification." },
         { status: 403 }
       );
+    }
+
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
     }
 
     let body: unknown;
