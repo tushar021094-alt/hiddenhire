@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
     if (profileError) {
       return NextResponse.json(
-        { error: profileError.message },
+        { error: "Unable to verify your account." },
         { status: 500 },
       );
     }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
     if (jobError) {
       return NextResponse.json(
-        { error: jobError.message },
+        { error: "Unable to load the requested job." },
         { status: 500 },
       );
     }
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json(
-        { error: applicationError.message },
+        { error: "Unable to submit the application." },
         { status: 500 },
       );
     }
@@ -171,7 +171,7 @@ export async function PATCH(request: Request) {
 
       if (updateError) {
         return NextResponse.json(
-          { error: updateError.message },
+          { error: "Unable to update the application status." },
           { status: 500 },
         );
       }
