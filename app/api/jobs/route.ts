@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SeedJobSource, createJobSourceRegistry } from '@/lib/job-source';
 import { sortMatches } from '@/lib/match-engine';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit';
 
 const registry = createJobSourceRegistry();
 const fallbackSource = new SeedJobSource();
@@ -26,6 +27,8 @@ function isDemoRequest(payload: unknown): boolean {
 }
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`jobs:${getClientIdentifier(request)}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
