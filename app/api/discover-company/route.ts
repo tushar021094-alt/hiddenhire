@@ -35,8 +35,10 @@ export async function POST(request: Request) {
     const result = await discoverCompanySource(url);
     return NextResponse.json(result);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Company discovery failed.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error("[discover-company] discovery failed", error);
+    return NextResponse.json(
+      { error: "Company discovery failed. Please check the URL and try again." },
+      { status: 400 },
+    );
   }
 }
