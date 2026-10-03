@@ -13,6 +13,70 @@ import {
 
 const registry = createJobSourceRegistry();
 
+const MAX_BODY_BYTES = 64_000;
+const MAX_TEXT_LENGTH = 500;
+const MAX_RESUME_LENGTH = 20_000;
+const MAX_ARRAY_ITEMS = 30;
+
+function validSearchProfile(profile: Record<string, unknown>) {
+  const role =
+    typeof profile.targetJobTitle === 'string'
+      ? profile.targetJobTitle
+      : profile.targetRole;
+
+  if (typeof role !== 'string' || role.length === 0 || role.length > MAX_TEXT_LENGTH) {
+    return false;
+  }
+
+  if (
+    typeof profile.resumeText === 'string' &&
+    profile.resumeText.length > MAX_RESUME_LENGTH
+  ) {
+    return false;
+  }
+
+  if (
+    typeof profile.yearsOfExperience === 'number' &&
+    (!Number.isFinite(profile.yearsOfExperience) ||
+      profile.yearsOfExperience < 0 ||
+      profile.yearsOfExperience > 60)
+  ) {
+    return false;
+  }
+
+  if (
+    typeof profile.minimumSalary === 'number' &&
+    (!Number.isFinite(profile.minimumSalary) ||
+      profile.minimumSalary < 0 ||
+      profile.minimumSalary > 1_000_000_000)
+  ) {
+    return false;
+  }
+
+  for (const key of [
+    'preferredCountries',
+    'preferredIndustries',
+    'skills',
+    'keySkills',
+    'targetRoles',
+    'preferredLocations',
+  ]) {
+    const value = profile[key];
+    if (
+      value !== undefined &&
+      (!Array.isArray(value) ||
+        value.length > MAX_ARRAY_ITEMS ||
+        !value.every(
+          (item) => typeof item === 'string' && item.length <= MAX_TEXT_LENGTH,
+        ))
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function normalizeCandidateProfile(
   profile: Record<string, unknown>,
   expandedRoles: string[]
@@ -96,8 +160,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+
     const payload = await request.json();
-    const profile = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+    const profile =
+      payload && typeof payload === 'object' && !Array.isArray(payload)
+        ? payload as Record<string, unknown>
+        : {};
+
+    if (!validSearchProfile(profile)) {
+      return NextResponse.json(
+        { error: 'Please provide a valid job search profile.' },
+        { status: 400 },
+      );
+    }
+
     const demoMode = Boolean(profile.demo || profile.demoMode === 'demo');
     const expandedRoles = buildExpandedRoleQueries(profile as Parameters<typeof buildExpandedRoleQueries>[0]);
     const candidateProfile = normalizeCandidateProfile(profile, expandedRoles);
