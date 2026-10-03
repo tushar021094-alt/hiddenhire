@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { discoverCompanySource } from "@/lib/company-discovery";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
-import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 
 const MAX_URL_LENGTH = 2_048;
 const MAX_BODY_BYTES = 8_192;
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     const { user, error: authError } = await getAuthenticatedUser();
 
-    const rate = checkRateLimit(`discover-company:${user?.id ?? 'anonymous'}`, 10, 60_000);
+    const rate = checkRateLimit(`discover-company:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     if (!user) {
