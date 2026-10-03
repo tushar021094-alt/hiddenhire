@@ -10,6 +10,7 @@ import {
   buildCandidateSearchIntent,
   isJobEligible,
 } from '@/lib/search-policy';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit';
 
 const registry = createJobSourceRegistry();
 
@@ -159,6 +160,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`jobs-search:${getClientIdentifier(request)}`, 20, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > MAX_BODY_BYTES) {
