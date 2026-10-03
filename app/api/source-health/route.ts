@@ -14,14 +14,19 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const sources = await checkRegisteredSources();
-  const summary = {
-    total: sources.length,
-    healthy: sources.filter(source => source.status === "healthy").length,
-    empty: sources.filter(source => source.status === "empty").length,
-    failing: sources.filter(source => source.status === "failing").length,
-    jobs: sources.reduce((sum, source) => sum + source.jobCount, 0),
-  };
+  try {
+    const sources = await checkRegisteredSources();
+    const summary = {
+      total: sources.length,
+      healthy: sources.filter(source => source.status === "healthy").length,
+      empty: sources.filter(source => source.status === "empty").length,
+      failing: sources.filter(source => source.status === "failing").length,
+      jobs: sources.reduce((sum, source) => sum + source.jobCount, 0),
+    };
 
-  return NextResponse.json({ checkedAt: new Date().toISOString(), summary, sources });
+    return NextResponse.json({ checkedAt: new Date().toISOString(), summary, sources });
+  } catch (error) {
+    console.error("[source-health] GET failed", error);
+    return NextResponse.json({ error: "Source health check failed." }, { status: 500 });
+  }
 }
