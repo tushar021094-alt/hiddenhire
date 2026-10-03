@@ -346,9 +346,7 @@ if (profile.role === "agency") {
       if (companyError || !company) {
         return NextResponse.json(
           {
-            error:
-              companyError?.message ||
-              "Unable to create the company profile.",
+            error: "Unable to create the company profile.",
           },
           { status: 500 }
         );
