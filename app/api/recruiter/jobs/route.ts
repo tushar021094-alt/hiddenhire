@@ -422,9 +422,7 @@ if (profile.role === "agency") {
     if (jobError || !job) {
       return NextResponse.json(
         {
-          error:
-            jobError?.message ||
-            "Unable to create the job. Please try again.",
+          error: "Unable to create the job. Please try again.",
         },
         { status: 500 }
       );
@@ -441,9 +439,7 @@ if (profile.role === "agency") {
 if (candidateDiscoveryError) {
   return NextResponse.json(
     {
-      error:
-        candidateDiscoveryError.message ||
-        "Job was created, but candidate discovery failed.",
+      error: "Job was created, but candidate discovery failed.",
       job,
       aiNormalized: normalized,
     },
@@ -460,9 +456,7 @@ const { data: company, error: companyLookupError } = await supabase
 if (companyLookupError) {
   return NextResponse.json(
     {
-      error:
-        companyLookupError.message ||
-        "Job was created, but company information could not be loaded.",
+      error: "Job was created, but company information could not be loaded.",
       job,
       aiNormalized: normalized,
     },
@@ -496,8 +490,7 @@ const candidateMatches = (
 
         if (matchSaveError) {
           throw new Error(
-            matchSaveError.message ||
-              "Unable to save candidate match."
+            "Unable to save candidate match."
           );
         }
 
