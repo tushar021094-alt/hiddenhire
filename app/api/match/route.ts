@@ -11,6 +11,7 @@ const MAX_SKILL_LENGTH = 100;
 const MAX_LOCATION_FILTERS = 50;
 const MAX_LOCATION_LENGTH = 100;
 const MAX_CTC = 1_000_000_000;
+const MAX_BODY_BYTES = 32_000;
 
 function validProfile(value: unknown): value is SearchFilters {
   if (!value || typeof value !== "object") return false;
@@ -126,6 +127,8 @@ function locationMatches(job: Job, filters: SearchFilters) {
 }
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get('content-length') || 0);
+    if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     const body: unknown = await request.json();
     if (!validProfile(body)) return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
     const liveJobs = await discoverJobs(); const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
