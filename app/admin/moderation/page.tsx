@@ -231,9 +231,9 @@ export default function AdminModerationPage() {
 
                       <p className="mt-2 text-sm text-white/50">
                         {job.city || job.region || "India"}
-                        {job.remote ? " Â· Remote" : ""}
+                        {job.remote ? " · Remote" : ""}
                         {job.workplace_type
-                          ? ` Â· ${job.workplace_type}`
+                          ? ` · ${job.workplace_type}`
                           : ""}
                       </p>
 
@@ -245,7 +245,7 @@ export default function AdminModerationPage() {
                           <p className="mt-1 text-sm text-white/75">
                             {job.salary_min != null &&
                             job.salary_max != null
-                              ? `${job.salary_min.toLocaleString()} â€“ ${job.salary_max.toLocaleString()} ${job.currency ?? ""}`
+                              ? `${job.salary_min.toLocaleString()} – ${job.salary_max.toLocaleString()} ${job.currency ?? ""}`
                               : "Not specified"}
                           </p>
                         </div>
@@ -257,7 +257,7 @@ export default function AdminModerationPage() {
                           <p className="mt-1 text-sm text-white/75">
                             {job.experience_min != null ||
                             job.experience_max != null
-                              ? `${job.experience_min ?? 0} â€“ ${job.experience_max ?? "10+"} years`
+                              ? `${job.experience_min ?? 0} – ${job.experience_max ?? "10+"} years`
                               : "Not specified"}
                           </p>
                         </div>
