@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
 import type { MatchResult } from "@/lib/types";
 import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
@@ -74,7 +75,10 @@ export default function Home() {
     <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
       <div className="flex items-center gap-3"><div className="brand-mark">H</div><div className="text-lg font-bold tracking-tight">HiddenHire</div></div>
       <div className="hidden items-center gap-7 text-sm text-white/50 sm:flex"><a href="#how-it-works">How it works</a><a href="#sources">Sources</a><a href="#how-it-works">Matching</a></div>
-      <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55">India + global job discovery</div>
+      <div className="flex items-center gap-3">
+        <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55 lg:block">India + global job discovery</div>
+        <Link href="/login" className="rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/[0.16] hover:text-white">Sign in</Link>
+      </div>
     </nav>
 
     <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">

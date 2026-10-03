@@ -1,6 +1,7 @@
-import type { CandidateProfile, Job, SalaryCurrency } from './job-types';
+﻿import type { CandidateProfile, Job, SalaryCurrency } from './job-types';
 import { seedJobs } from './job-data';
 import { verifiedCompanyRegistry } from './company-registry';
+import { createClient } from './supabase/server';
 
 export type DiscoveryQuery = Partial<CandidateProfile> & {
   targetRole?: string;
@@ -32,6 +33,7 @@ interface JobSourceWithMetrics extends JobSource {
 }
 
 export interface SourceConfig {
+  hiddenhire: boolean;
   greenhouse: boolean;
   lever: boolean;
   ashby: boolean;
@@ -141,7 +143,7 @@ function normalizeCurrency(value?: string | null): SalaryCurrency {
   const text = normalizeText(value).toLowerCase();
   if (text.includes('inr')) return 'INR';
   if (text.includes('eur')) return 'EUR';
-  if (text.includes('gbp') || text.includes('£')) return 'GBP';
+  if (text.includes('gbp') || text.includes('Â£')) return 'GBP';
   return 'USD';
 }
 
@@ -197,27 +199,32 @@ function classifyIndiaEligibility(input?: boolean | string | null, location?: st
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
   }
 
-  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(locationText)) {
+  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted|india.*excluded|excluding.*india|except.*india/i.test(text)) {
     return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
   }
 
   if (typeof input === 'boolean') {
-    return {
-      indiaEligible: input,
-      indiaEligibilityStatus: input ? 'YES' : 'NO',
-    };
+    if (input) {
+      return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
+    }
+
+    // Providers often use false when India is not explicitly listed.
+    // For genuinely remote geography, that is ambiguous rather than a hard exclusion.
+    if (/remote|distributed|worldwide|global|anywhere|virtual|work from anywhere/i.test(locationText)) {
+      return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
+    }
+
+    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
   }
 
   if (/india.*eligible|eligible.*india|hiring.*india|can.*apply.*india|india.*hire|remote.*india|open.*to.*india/i.test(text)) {
     return { indiaEligible: true, indiaEligibilityStatus: 'YES' };
   }
 
-  if (/remote\s*[-,]?\s*(usa|us|united states|canada|abu dhabi|united arab emirates)|\b(us|usa|united states|canada|abu dhabi|united arab emirates)\s*remote\b|\b(canada|abu dhabi|united arab emirates)\b/i.test(text)) {
-    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
-  }
-
-  if (/india.*not eligible|not eligible.*india|not.*hiring.*india|cannot.*apply.*india|india.*not.*eligible|not open.*india|india.*not.*accepted/i.test(text)) {
-    return { indiaEligible: false, indiaEligibilityStatus: 'NO' };
+  // Mentioning another country in a remote-job description is not enough to
+  // conclude that India is excluded. Keep ambiguous geography searchable.
+  if (/remote|distributed|work from anywhere|worldwide|global|anywhere|virtual/i.test(text)) {
+    return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
   }
 
   return { indiaEligible: true, indiaEligibilityStatus: 'UNKNOWN' };
@@ -401,19 +408,129 @@ export function getSourceConfig(envSource: NodeJS.ProcessEnv = process.env): Sou
     .filter(Boolean);
 
   return {
-    greenhouse: envSource.GREENHOUSE_ENABLED !== 'false',
-    lever: envSource.LEVER_ENABLED !== 'false',
-    ashby: envSource.ASHBY_ENABLED !== 'false',
-    remoteok: envSource.REMOTEOK_ENABLED !== 'false',
-    remotive: envSource.REMOTIVE_ENABLED !== 'false',
-    companyDiscovery: envSource.COMPANY_DISCOVERY_ENABLED !== 'false',
-    seed: envSource.SEED_ENABLED !== 'false',
-    ashbyBoards,
-  };
+  hiddenhire: envSource.HIDDENHIRE_ENABLED !== 'false',
+  greenhouse: envSource.GREENHOUSE_ENABLED !== 'false',
+  lever: envSource.LEVER_ENABLED !== 'false',
+  ashby: envSource.ASHBY_ENABLED !== 'false',
+  remoteok: envSource.REMOTEOK_ENABLED !== 'false',
+  remotive: envSource.REMOTIVE_ENABLED !== 'false',
+  companyDiscovery: envSource.COMPANY_DISCOVERY_ENABLED !== 'false',
+  seed: envSource.SEED_ENABLED !== 'false',
+  ashbyBoards,
+};
 }
 
 export const defaultCompanyRegistry: CompanySourceProfile[] = verifiedCompanyRegistry;
 
+export class HiddenHireJobSource implements JobSource {
+  name = 'hiddenhire';
+
+  async fetchJobs(query: DiscoveryQuery): Promise<Job[]> {
+    const supabase = await createClient();
+
+    let builder = supabase
+      .from('jobs')
+      .select(`
+        id,
+        title,
+        description,
+        city,
+        region,
+        country,
+        remote,
+        workplace_type,
+        salary_min,
+        salary_max,
+        currency,
+        experience_min,
+        experience_max,
+        created_at,
+        job_function,
+        companies:companies(name)
+      `)
+      .eq('source_type', 'native')
+      .eq('status', 'published')
+      .eq('country', 'India')
+      .order('published_at', { ascending: false });
+
+    if (query.remoteOnly) {
+      builder = builder.eq('remote', true);
+    }
+
+    const { data, error } = await builder;
+
+    if (error) {
+      throw new Error(`HiddenHire jobs query failed: ${error.message}`);
+    }
+
+    type NativeJobRow = {
+      id: string;
+      title: string;
+      job_function: string | null;
+      description: string;
+      city: string | null;
+      region: string | null;
+      country: string | null;
+      remote: boolean;
+      workplace_type: string | null;
+      salary_min: number | null;
+      salary_max: number | null;
+      currency: string | null;
+      experience_min: number | null;
+      experience_max: number | null;
+      created_at: string;
+      companies:
+        | { name: string | null }
+        | { name: string | null }[]
+        | null;
+    };
+
+    const rows = (data ?? []) as NativeJobRow[];
+
+    return rows.map((row) => {
+      const company = Array.isArray(row.companies)
+        ? row.companies[0]?.name
+        : row.companies?.name;
+
+      const country = row.country?.trim() || 'India';
+
+      return {
+        id: row.id,
+        title: row.title,
+        jobFunction: row.job_function || undefined,
+        company: company || 'HiddenHire Employer',
+        location:
+          row.city ||
+          row.region ||
+          country,
+        country,
+        remote: Boolean(row.remote),
+        remoteStatus: row.remote ? 'TRUE' : 'FALSE',
+        indiaEligible: country.toLowerCase() === 'india',
+        indiaEligibilityStatus:
+          country.toLowerCase() === 'india' ? 'YES' : 'UNKNOWN',
+        salaryMin: row.salary_min,
+        salaryMax: row.salary_max,
+        salaryCurrency:
+          row.currency === 'USD' ||
+          row.currency === 'INR' ||
+          row.currency === 'EUR' ||
+          row.currency === 'GBP'
+            ? row.currency
+            : 'INR',
+        employmentType: 'Full-time',
+        industry: '',
+        requiredSkills: [],
+        requiredExperience: row.experience_min,
+        description: row.description,
+        applicationUrl: '',
+        source: 'HiddenHire',
+        postedDate: row.created_at,
+        isDemo: false,
+      };
+    });
+  }
+}
 export class SeedJobSource implements JobSource {
   name = 'seed';
 
@@ -927,7 +1044,20 @@ export interface SourceRegistryOptions {
 
 export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
   fetchJobs: (query: DiscoveryQuery) => Promise<Job[]>;
-  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number }> }>;
+  fetchJobsWithMetrics: (query: DiscoveryQuery) => Promise<{
+  jobs: Job[];
+  metrics: Record<string, number | string | Record<string, number | string>>;
+  diagnostics: Array<{
+    source: string;
+    fetched: number;
+    normalized: number;
+    rejected: number;
+    duplicate: number;
+    filtered: number;
+    ranked: number;
+    error?: string;
+  }>;
+}>
   sources: JobSource[];
 } {
   const baseConfig = getSourceConfig();
@@ -937,7 +1067,15 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
     ashbyBoards: options.config?.ashbyBoards ?? baseConfig.ashbyBoards,
   };
 
-  const liveAllowedSources = ['greenhouse', 'lever', 'ashby', 'remoteok', 'remotive', 'companyDiscovery'];
+  const liveAllowedSources = [
+  'hiddenhire',
+  'greenhouse',
+  'lever',
+  'ashby',
+  'remoteok',
+  'remotive',
+  'companyDiscovery',
+];
   const defaultEnabled = options.enabledSources?.length
     ? options.enabledSources
     : Object.entries(config)
@@ -945,14 +1083,15 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
         .map(([key]) => key);
 
   const sources: JobSource[] = [
-    new GreenhouseJobSource(),
-    new LeverJobSource(),
-    new AshbyPublicJobBoardSource(config.ashbyBoards),
-    new RemoteOKJobSource(),
-    new RemotiveJobSource(),
-    new CompanyDiscoverySource(),
-    new SeedJobSource(),
-  ].filter((source) => defaultEnabled.includes(source.name));
+  new HiddenHireJobSource(),
+  new GreenhouseJobSource(),
+  new LeverJobSource(),
+  new AshbyPublicJobBoardSource(config.ashbyBoards),
+  new RemoteOKJobSource(),
+  new RemotiveJobSource(),
+  new CompanyDiscoverySource(),
+  new SeedJobSource(),
+].filter((source) => defaultEnabled.includes(source.name));
 
   return {
     sources,
@@ -960,35 +1099,56 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
       const { jobs } = await this.fetchJobsWithMetrics(query);
       return jobs;
     },
-    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number }> }> {
+    async fetchJobsWithMetrics(query: DiscoveryQuery): Promise<{ jobs: Job[]; metrics: Record<string, number | string | Record<string, number | string>>; diagnostics: Array<{ source: string; fetched: number; normalized: number; rejected: number; duplicate: number; filtered: number; ranked: number; error?: string }> }> {
       const sourceResults = await Promise.allSettled(
         sources.map(async (source) => {
-          const result = 'fetchJobsWithMetrics' in source
-            ? await (source as JobSourceWithMetrics).fetchJobsWithMetrics(query)
-            : { jobs: await source.fetchJobs(query), metrics: undefined };
-          const fetched = result.jobs;
-          return {
-            source: source.name,
-            fetched: fetched.length,
-            normalized: fetched.length,
-            rejected: 0,
-            duplicate: 0,
-            filtered: 0,
-            ranked: 0,
-            jobs: fetched,
-            sourceMetrics: result.metrics,
-          };
+          try {
+            const result = 'fetchJobsWithMetrics' in source
+              ? await (source as JobSourceWithMetrics).fetchJobsWithMetrics(query)
+              : { jobs: await source.fetchJobs(query), metrics: undefined };
+            const fetched = result.jobs;
+            return {
+              source: source.name,
+              fetched: fetched.length,
+              normalized: fetched.length,
+              rejected: 0,
+              duplicate: 0,
+              filtered: 0,
+              ranked: 0,
+              jobs: fetched,
+              sourceMetrics: result.metrics,
+              error: undefined as string | undefined,
+            };
+          } catch (error) {
+            return {
+              source: source.name,
+              fetched: 0,
+              normalized: 0,
+              rejected: 0,
+              duplicate: 0,
+              filtered: 0,
+              ranked: 0,
+              jobs: [] as Job[],
+              sourceMetrics: undefined,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
         })
       );
 
-      const providerEntries = sourceResults.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+const providerEntries = sourceResults
+  .filter((result) => result.status === 'fulfilled')
+  .map((result) => result.value);
       const flattened = providerEntries.flatMap((entry) => entry.jobs);
       const deduped = dedupeJobs(flattened);
       const filtered = applyJobFilters(deduped, query);
 
       const sourceCounts: Record<string, number> = {};
+      const sourceErrors: Record<string, string> = {};
       for (const source of sources) {
-        sourceCounts[source.name] = providerEntries.find((entry) => entry.source === source.name)?.fetched ?? 0;
+        const entry = providerEntries.find((item) => item.source === source.name);
+        sourceCounts[source.name] = entry?.fetched ?? 0;
+        if (entry?.error) sourceErrors[source.name] = entry.error;
       }
 
       const metrics = {
@@ -1004,6 +1164,7 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
         indiaUnknown: filtered.filter((job) => job.indiaEligibilityStatus === 'UNKNOWN').length,
         indiaExplicitNo: filtered.filter((job) => job.indiaEligibilityStatus === 'NO').length,
         sources: sourceCounts,
+        sourceErrors,
       };
 
       const companyEntry = providerEntries.find((entry) => entry.source === 'companyDiscovery');
@@ -1022,6 +1183,7 @@ export function createJobSourceRegistry(options: SourceRegistryOptions = {}): {
           duplicate: 0,
           filtered: 0,
           ranked: entry.jobs.length,
+          error: entry.error,
         })),
       };
     },
@@ -1037,7 +1199,10 @@ export function buildExpandedRoleQueries(profile: Partial<CandidateProfile> & { 
   const normalized = baseTitle.toLowerCase();
   const titleMap: Record<string, string[]> = {
     'finance manager': ['Finance Manager', 'Senior Finance Manager', 'Finance & Accounting Manager', 'Accounting Manager', 'Finance Lead', 'Accounting Lead', 'Financial Controller', 'Assistant Financial Controller', 'FP&A Manager', 'Finance Business Partner', 'Senior Finance Business Partner', 'Commercial Finance Manager', 'Management Accountant', 'Senior Accountant', 'Financial Reporting Manager', 'Regional Finance Manager'],
+    'finance analyst': ['Finance Analyst', 'Financial Analyst', 'Senior Finance Analyst', 'FP&A Analyst', 'Financial Planning Analyst', 'Management Accountant', 'Commercial Finance Analyst'],
     'accounting manager': ['Accounting Manager', 'Finance Manager', 'Senior Accountant', 'Financial Controller', 'Accounting Lead', 'Management Accountant', 'Finance & Accounting Manager'],
+    'accounts payable manager': ['Accounts Payable Manager', 'Account Payable Manager', 'AP Manager', 'Accounts Payable Lead', 'AP Lead', 'P2P Manager', 'Procure to Pay Manager', 'Finance Operations Manager'],
+    'account payable manager': ['Accounts Payable Manager', 'Account Payable Manager', 'AP Manager', 'Accounts Payable Lead', 'AP Lead', 'P2P Manager', 'Procure to Pay Manager', 'Finance Operations Manager'],
     'financial controller': ['Financial Controller', 'Assistant Financial Controller', 'Finance Manager', 'Accounting Manager', 'Senior Finance Manager', 'Finance Lead'],
     'business analyst': ['Business Analyst', 'Senior Business Analyst', 'Product Analyst', 'Data Analyst', 'Operations Analyst', 'Business Systems Analyst'],
     'product manager': ['Product Manager', 'Senior Product Manager', 'Associate Product Manager', 'Product Lead', 'Growth Product Manager'],
@@ -1077,3 +1242,4 @@ export function getDefaultJobSources(): JobSource[] {
     new CompanyDiscoverySource(),
   ];
 }
+

@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
     "lucide-react": "latest",
     "next": "latest",
     "openai": "latest",
@@ -24,6 +26,7 @@
     "eslint-config-next": "^16.3.5",
     "postcss": "latest",
     "tailwindcss": "latest",
+    "tsx": "^4.23.15",
     "typescript": "latest"
   }
 }
