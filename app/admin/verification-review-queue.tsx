@@ -90,7 +90,11 @@ export default function VerificationReviewQueue() {
   }
 
   useEffect(() => {
-    void loadVerifications();
+    const timer = window.setTimeout(() => {
+      void loadVerifications();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function reviewVerification(
