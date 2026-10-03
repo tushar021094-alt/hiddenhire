@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 const MAX_INPUT_LENGTH = 20_000;
 const MAX_BODY_BYTES = 48_000;
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
     }
 
     const { user, error: authError } = await getAuthenticatedUser();
+
+    const rate = checkRateLimit(`openai:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
+    if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     if (!user) {
       return NextResponse.json(
