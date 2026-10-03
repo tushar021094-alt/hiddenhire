@@ -3,9 +3,15 @@ import { discoverCompanySource } from "@/lib/company-discovery";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 const MAX_URL_LENGTH = 2_048;
+const MAX_BODY_BYTES = 8_192;
 
 export async function POST(request: Request) {
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
     const { user, error: authError } = await getAuthenticatedUser();
 
     if (!user) {
