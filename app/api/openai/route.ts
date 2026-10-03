@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getAuthenticatedUser } from '@/lib/supabase/server';
-import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit';
 
 const MAX_INPUT_LENGTH = 20_000;
 const MAX_BODY_BYTES = 48_000;
