@@ -44,12 +44,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+const MAX_EVIDENCE_FIELD_LENGTH = 500;
+const MAX_DOCUMENT_FIELD_LENGTH = 500;
+
 function cleanString(
-  value: unknown
+  value: unknown,
+  maxLength = MAX_EVIDENCE_FIELD_LENGTH,
 ): string | undefined {
-  return typeof value === "string" && value.trim()
-    ? value.trim()
-    : undefined;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) return undefined;
+  return trimmed;
 }
 
 export async function POST(request: Request) {
@@ -109,6 +114,30 @@ export async function POST(request: Request) {
 
     const raw = body.evidence;
 
+    const oversizedEvidenceField = Object.entries(raw).some(
+      ([key, value]) =>
+        key !== "verification_documents" &&
+        typeof value === "string" &&
+        value.trim().length > MAX_EVIDENCE_FIELD_LENGTH,
+    );
+
+    if (oversizedEvidenceField) {
+      return NextResponse.json(
+        { error: "A verification evidence field is too long." },
+        { status: 413 },
+      );
+    }
+
+    if (
+      Array.isArray(raw.verification_documents) &&
+      raw.verification_documents.length > 5
+    ) {
+      return NextResponse.json(
+        { error: "A maximum of five verification documents can be submitted." },
+        { status: 400 },
+      );
+    }
+
     const evidence: VerificationEvidence = {
       mobile: cleanString(raw.mobile),
       recruiter_name: cleanString(raw.recruiter_name),
@@ -144,10 +173,10 @@ export async function POST(request: Request) {
       evidence.verification_documents = raw.verification_documents
         .filter(isRecord)
         .map((document) => ({
-          type: cleanString(document.type) || "other",
-          path: cleanString(document.path) || "",
-          file_name: cleanString(document.file_name) || "",
-          mime_type: cleanString(document.mime_type) || "",
+          type: cleanString(document.type, MAX_DOCUMENT_FIELD_LENGTH) || "other",
+          path: cleanString(document.path, MAX_DOCUMENT_FIELD_LENGTH) || "",
+          file_name: cleanString(document.file_name, MAX_DOCUMENT_FIELD_LENGTH) || "",
+          mime_type: cleanString(document.mime_type, MAX_DOCUMENT_FIELD_LENGTH) || "",
           size:
             typeof document.size === "number" &&
             Number.isFinite(document.size)
