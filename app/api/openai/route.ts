@@ -1,15 +1,44 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getAuthenticatedUser } from '@/lib/supabase/server';
+
+const MAX_INPUT_LENGTH = 20_000;
 
 export async function POST(request: Request) {
   try {
-    const { resumeText, jobDescription } = await request.json();
+    const { user, error: authError } = await getAuthenticatedUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: authError || 'Authentication is required.' },
+        { status: 401 },
+      );
+    }
+
+    const body = await request.json();
+    const resumeText =
+      body && typeof body.resumeText === 'string'
+        ? body.resumeText.trim()
+        : '';
+    const jobDescription =
+      body && typeof body.jobDescription === 'string'
+        ? body.jobDescription.trim()
+        : '';
+
+    if (resumeText.length > MAX_INPUT_LENGTH || jobDescription.length > MAX_INPUT_LENGTH) {
+      return NextResponse.json(
+        { error: 'Resume and job description inputs are too large.' },
+        { status: 413 },
+      );
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({
         fallback: true,
-        summary: 'OpenAI is not configured locally, so HiddenHire used the deterministic scoring engine instead.',
+        summary:
+          'OpenAI is not configured locally, so HiddenHire used the deterministic scoring engine instead.',
       });
     }
 
@@ -30,14 +59,16 @@ export async function POST(request: Request) {
       ],
     });
 
-    const summary = response.choices[0]?.message?.content ?? 'No summary generated.';
+    const summary =
+      response.choices[0]?.message?.content ?? 'No summary generated.';
 
     return NextResponse.json({ fallback: false, summary });
   } catch (error) {
     console.error('OpenAI route error', error);
     return NextResponse.json({
       fallback: true,
-      summary: 'OpenAI call failed; the deterministic match engine remains active.',
+      summary:
+        'OpenAI call failed; the deterministic match engine remains active.',
     });
   }
 }
