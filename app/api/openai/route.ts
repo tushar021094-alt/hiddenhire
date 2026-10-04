@@ -14,7 +14,6 @@ export async function POST(request: Request) {
     }
 
     const { user, error: authError } = await getAuthenticatedUser();
-
     const rate = checkRateLimit(`openai:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
@@ -25,14 +24,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    }
+
     const resumeText =
-      body && typeof body.resumeText === 'string'
-        ? body.resumeText.trim()
+      body && typeof body === 'object' && !Array.isArray(body) && typeof (body as { resumeText?: unknown }).resumeText === 'string'
+        ? (body as { resumeText: string }).resumeText.trim()
         : '';
     const jobDescription =
-      body && typeof body.jobDescription === 'string'
-        ? body.jobDescription.trim()
+      body && typeof body === 'object' && !Array.isArray(body) && typeof (body as { jobDescription?: unknown }).jobDescription === 'string'
+        ? (body as { jobDescription: string }).jobDescription.trim()
         : '';
 
     if (resumeText.length > MAX_INPUT_LENGTH || jobDescription.length > MAX_INPUT_LENGTH) {
@@ -69,16 +79,13 @@ export async function POST(request: Request) {
       ],
     });
 
-    const summary =
-      response.choices[0]?.message?.content ?? 'No summary generated.';
-
+    const summary = response.choices[0]?.message?.content ?? 'No summary generated.';
     return NextResponse.json({ fallback: false, summary });
   } catch (error) {
     console.error('OpenAI route error', error);
     return NextResponse.json({
       fallback: true,
-      summary:
-        'OpenAI call failed; the deterministic match engine remains active.',
+      summary: 'OpenAI call failed; the deterministic match engine remains active.',
     });
   }
 }
