@@ -37,7 +37,7 @@ const statusLabels: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
-function companyName(company: Application["jobs"] extends infer J ? J extends object ? J["companies"] : never : never) {
+function companyName(company: Application["jobs"]?.["companies"]) {
   if (Array.isArray(company)) return company[0]?.name || "Company undisclosed";
   return company?.name || "Company undisclosed";
 }
