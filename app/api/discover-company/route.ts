@@ -14,32 +14,35 @@ export async function POST(request: Request) {
     }
 
     const { user, error: authError } = await getAuthenticatedUser();
-
-    const rate = checkRateLimit(`discover-company:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
+    const rate = checkRateLimit(`discover-company:${user?.id ?? getClientIdentifier(request, "anonymous")}`, 10, 60_000);
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
     if (!user) {
-      return NextResponse.json(
-        { error: authError || "Authentication is required." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
     }
 
-    const body = await request.json() as { url?: unknown };
-    const url = typeof body.url === "string" ? body.url.trim() : "";
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+
+    const url = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { url?: unknown }).url === "string"
+      ? (body as { url: string }).url.trim()
+      : "";
 
     if (!url) {
-      return NextResponse.json(
-        { error: "Please provide a company or careers URL." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Please provide a company or careers URL." }, { status: 400 });
     }
 
     if (url.length > MAX_URL_LENGTH) {
-      return NextResponse.json(
-        { error: "The company URL is too long." },
-        { status: 413 },
-      );
+      return NextResponse.json({ error: "The company URL is too long." }, { status: 413 });
     }
 
     const result = await discoverCompanySource(url);
