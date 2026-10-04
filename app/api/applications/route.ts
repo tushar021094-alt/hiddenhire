@@ -32,7 +32,7 @@ export async function GET() {
     const { data: applications, error } = await supabase
       .from("applications")
       .select(
-        "id, job_id, status, created_at, updated_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, application_url, companies(name))",
+        "id, job_id, status, created_at, updated_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, companies(name))",
       )
       .eq("candidate_id", user.id)
       .order("created_at", { ascending: false });
