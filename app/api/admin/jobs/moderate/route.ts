@@ -7,6 +7,9 @@ import {
   parseModerationRequest,
   type ModeratableJobRow,
 } from "@/lib/moderation";
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
+
+const MAX_BODY_BYTES = 8_192;
 
 export const runtime = "nodejs";
 
@@ -47,7 +50,11 @@ function firstRow(data: unknown): ModerationRpcRow | null {
 }
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`admin-job-moderate:${getClientIdentifier(request)}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
     const { supabase, user, error: authError } = await getAuthenticatedUser();
 
     if (!user) {
@@ -75,12 +82,14 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: unknown = null;
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
 
+    let body: unknown = null;
     try {
-      body = await request.json();
+      body = JSON.parse(rawBody);
     } catch {
-      body = null;
+      return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 });
     }
 
     const parsed = parseModerationRequest(body);
