@@ -12,7 +12,6 @@ import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/ra
 const MAX_BODY_BYTES = 8_192;
 
 export const runtime = "nodejs";
-const MAX_BODY_BYTES = 8_192;
 
 /**
  * POST /api/admin/jobs/moderate
