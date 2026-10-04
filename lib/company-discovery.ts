@@ -26,6 +26,8 @@ function isPrivateIp(hostname: string) {
   }
   if (isIP(hostname) === 6) {
     const normalized = hostname.toLowerCase();
+    const mappedIpv4 = normalized.match(/^::ffff:(\\d+\\.\\d+\\.\\d+\\.\\d+)$/);
+    if (mappedIpv4) return isPrivateIp(mappedIpv4[1]);
     return normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("fe80:");
   }
   return false;
