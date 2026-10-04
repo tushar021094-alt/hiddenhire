@@ -1,0 +1,34 @@
+name: Refresh Lockfile
+
+on:
+  push:
+    branches: ["maintenance/refresh-lockfile"]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: maintenance/refresh-lockfile
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Regenerate package lock
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git rm .github/workflows/refresh-lockfile.yml
+          if git diff --cached --quiet; then
+            echo "No lockfile changes required."
+            exit 0
+          fi
+          git commit -m "Regenerate package lockfile"
+          git push origin HEAD:maintenance/refresh-lockfile
