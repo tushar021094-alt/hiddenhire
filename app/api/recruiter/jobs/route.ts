@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 import { calculateJobMatch } from "@/lib/match-engine";
 import {
   toCandidateProfile,
@@ -8,7 +9,9 @@ import {
   type RecruiterCandidateRow,
 } from "@/lib/recruiter-matching";
 
-type RecruiterJobInput = {
+const MAX_BODY_BYTES = 64_000;
+
+ type RecruiterJobInput = {
   title?: string;
   description?: string;
   jobFunction?: string;
@@ -86,7 +89,13 @@ async function normalizeJob(input: RecruiterJobInput) {
 }
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`recruiter-jobs:${getClientIdentifier(request)}`, 10, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
     const { supabase, user, error: authError } = await getAuthenticatedUser();
 
     if (!user) {
@@ -96,7 +105,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as RecruiterJobInput;
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    let body: RecruiterJobInput;
+    try {
+      body = JSON.parse(rawBody) as RecruiterJobInput;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
 
     const title = body.title?.trim() || "";
     const description = body.description?.trim() || "";
