@@ -168,7 +168,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
 
-    const payload = await request.json();
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
     const profile =
       payload && typeof payload === 'object' && !Array.isArray(payload)
         ? payload as Record<string, unknown>
