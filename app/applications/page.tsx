@@ -101,7 +101,17 @@ export default function ApplicationsPage() {
   }
 
   useEffect(() => {
-    loadApplications();
+    let cancelled = false;
+
+    async function initialise() {
+      if (cancelled) return;
+      await loadApplications();
+    }
+
+    void initialise();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
