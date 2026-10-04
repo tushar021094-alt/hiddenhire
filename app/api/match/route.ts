@@ -32,7 +32,7 @@ function validProfile(value: unknown): value is SearchFilters {
     p.candidateCountry.length > MAX_LOCATION_LENGTH ||
     (p.market !== "india" && p.market !== "worldwide") ||
     typeof p.remoteOnly !== "boolean" ||
-    !["any","remote","hybrid","onsite"].includes(p.workplace ?? "") ||
+    !["any", "remote", "hybrid", "onsite"].includes(p.workplace ?? "") ||
     typeof p.minCtc !== "number" ||
     !Number.isFinite(p.minCtc) ||
     p.minCtc < 0 ||
@@ -45,38 +45,35 @@ function validProfile(value: unknown): value is SearchFilters {
     p.cities.length > MAX_LOCATION_FILTERS
   ) return false;
 
-  if (typeof p.maxCtc === "number" && (!Number.isFinite(p.maxCtc) || p.maxCtc < 0 || p.maxCtc > MAX_CTC)) {
-    return false;
-  }
+  if (typeof p.maxCtc === "number" && (!Number.isFinite(p.maxCtc) || p.maxCtc < 0 || p.maxCtc > MAX_CTC)) return false;
 
-  if (!p.skills.every(skill => typeof skill === "string" && skill.trim().length > 0 && skill.length <= MAX_SKILL_LENGTH)) {
-    return false;
-  }
+  if (!p.skills.every(skill => typeof skill === "string" && skill.trim().length > 0 && skill.length <= MAX_SKILL_LENGTH)) return false;
 
   return [...p.states, ...p.cities].every(
     value => typeof value === "string" && value.trim().length > 0 && value.length <= MAX_LOCATION_LENGTH,
   );
 }
+
 const LOCATION_ALIASES: Record<string, string[]> = {
   "new delhi": ["new delhi", "delhi"],
-  "delhi": ["delhi", "new delhi"],
-  "gurugram": ["gurugram", "gurgaon"],
-  "gurgaon": ["gurgaon", "gurugram"],
-  "bengaluru": ["bengaluru", "bangalore"],
-  "bangalore": ["bangalore", "bengaluru"],
+  delhi: ["delhi", "new delhi"],
+  gurugram: ["gurugram", "gurgaon"],
+  gurgaon: ["gurgaon", "gurugram"],
+  bengaluru: ["bengaluru", "bangalore"],
+  bangalore: ["bangalore", "bengaluru"],
   "greater noida": ["greater noida", "greaternoida"],
-  "noida": ["noida"],
-  "mumbai": ["mumbai", "bombay"],
-  "kolkata": ["kolkata", "calcutta"],
-  "chennai": ["chennai", "madras"],
+  noida: ["noida"],
+  mumbai: ["mumbai", "bombay"],
+  kolkata: ["kolkata", "calcutta"],
+  chennai: ["chennai", "madras"],
 };
 
 const STATE_ALIASES: Record<string, string[]> = {
   "uttar pradesh": ["uttar pradesh", "up"],
-  "delhi": ["delhi", "new delhi"],
-  "haryana": ["haryana"],
-  "karnataka": ["karnataka"],
-  "maharashtra": ["maharashtra"],
+  delhi: ["delhi", "new delhi"],
+  haryana: ["haryana"],
+  karnataka: ["karnataka"],
+  maharashtra: ["maharashtra"],
 };
 
 function locationMatches(job: Job, filters: SearchFilters) {
@@ -101,9 +98,6 @@ function locationMatches(job: Job, filters: SearchFilters) {
   const cities = filters.cities.map(c => c.trim().toLowerCase()).filter(Boolean);
   const states = (filters.states ?? []).map(s => s.trim().toLowerCase()).filter(Boolean);
 
-  // "Any" workplace allows remote roles, but explicit physical location
-  // filters mean the user is asking for jobs tied to those places.
-  // Remote-only is handled above and therefore intentionally bypasses this.
   if (job.remote && (cities.length || states.length)) return false;
   if (job.remote) return true;
   if (cities.length) {
@@ -126,23 +120,46 @@ function locationMatches(job: Job, filters: SearchFilters) {
 
   return true;
 }
+
 export async function POST(request: Request) {
   const rate = checkRateLimit(`match:${getClientIdentifier(request)}`, 20, 60_000);
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+
   try {
-    const contentLength = Number(request.headers.get('content-length') || 0);
-    if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
-    const body: unknown = await request.json();
-    if (!validProfile(body)) return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
-    const liveJobs = await discoverJobs(); const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Request is too large." }, { status: 413 });
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+
+    if (!validProfile(body)) {
+      return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
+    }
+
+    const liveJobs = await discoverJobs();
+    const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
     const currencies = [...new Set(sourceJobs.map(job => job.currency).filter(Boolean))] as string[];
     const rateEntries = await Promise.all(currencies.map(async code => [code, await usdRate(code)] as const));
     const rates = new Map(rateEntries);
     const normalizedJobs = sourceJobs.map(job => {
-      const code = job.currency || "USD"; const rate = rates.get(code) ?? 1;
+      const code = job.currency || "USD";
+      const rate = rates.get(code) ?? 1;
       return { ...job, currency: code, salaryUsdMin: job.salaryMin != null ? job.salaryMin * rate : undefined, salaryUsdMax: job.salaryMax != null ? job.salaryMax * rate : undefined };
     });
-    const profileRate = await usdRate(body.ctcCurrency); const minUsd = body.minCtc * profileRate; const maxUsd = body.maxCtc && body.maxCtc > 0 ? body.maxCtc * profileRate : undefined;
+    const profileRate = await usdRate(body.ctcCurrency);
+    const minUsd = body.minCtc * profileRate;
+    const maxUsd = body.maxCtc && body.maxCtc > 0 ? body.maxCtc * profileRate : undefined;
     const locationEligibleJobs = normalizedJobs.filter(job => locationMatches(job, body));
     const eligibleJobs = locationEligibleJobs.filter(job => {
       if (job.salaryUsdMax != null && job.salaryUsdMax < minUsd) return false;
@@ -150,7 +167,9 @@ export async function POST(request: Request) {
       return true;
     });
     const roleEligibleJobs = eligibleJobs.filter(job => isRoleRelevant(job, body));
-    const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a,b) => b.score-a.score).slice(0,50);
+    const results = roleEligibleJobs.map(job => matchJob(job, { ...body, minCtc: minUsd })).sort((a, b) => b.score - a.score).slice(0, 50);
     return NextResponse.json({ mode: liveJobs.length ? "live" : "demo", sourceCount: sourceJobs.length, locationEligibleCount: locationEligibleJobs.length, salaryEligibleCount: eligibleJobs.length, eligibleCount: roleEligibleJobs.length, results });
-  } catch { return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 }); }
+  } catch {
+    return NextResponse.json({ error: "Job discovery failed. Please try again." }, { status: 500 });
+  }
 }
