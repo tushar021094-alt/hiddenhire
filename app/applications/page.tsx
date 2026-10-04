@@ -37,7 +37,9 @@ const statusLabels: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
-function companyName(company: Application["jobs"]?.["companies"]) {
+type Company = { name: string | null } | { name: string | null }[] | null | undefined;
+
+function companyName(company: Company) {
   if (Array.isArray(company)) return company[0]?.name || "Company undisclosed";
   return company?.name || "Company undisclosed";
 }
