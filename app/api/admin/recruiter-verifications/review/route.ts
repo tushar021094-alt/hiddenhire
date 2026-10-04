@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
+
+const MAX_BODY_BYTES = 8_192;
 
 type ReviewAction = "approve" | "reject";
 
@@ -8,7 +11,11 @@ function isReviewAction(value: unknown): value is ReviewAction {
 }
 
 export async function POST(request: Request) {
+  const rate = checkRateLimit(`admin-verification-review:${getClientIdentifier(request)}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   try {
+    const contentLength = Number(request.headers.get("content-length") || 0);
+    if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
     const { supabase, user, error: authError } =
       await getAuthenticatedUser();
 
@@ -39,10 +46,12 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: unknown;
+    const rawBody = await request.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
 
+    let body: unknown;
     try {
-      body = await request.json();
+      body = JSON.parse(rawBody);
     } catch {
       return NextResponse.json(
         { error: "Invalid JSON request." },
