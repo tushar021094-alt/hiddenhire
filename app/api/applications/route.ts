@@ -21,6 +21,34 @@ async function readJsonBody(request: Request): Promise<{ value?: unknown; respon
   }
 }
 
+export async function GET() {
+  try {
+    const { supabase, user, error: authError } = await getAuthenticatedUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
+    }
+
+    const { data: applications, error } = await supabase
+      .from("applications")
+      .select(
+        "id, job_id, status, created_at, updated_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, companies(name))",
+      )
+      .eq("candidate_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Unable to load applications", error);
+      return NextResponse.json({ error: "Unable to load your applications." }, { status: 500 });
+    }
+
+    return NextResponse.json({ applications: applications ?? [] });
+  } catch (error) {
+    console.error("Application list error", error);
+    return NextResponse.json({ error: "Unable to load your applications." }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { supabase, user, error: authError } = await getAuthenticatedUser();
