@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/ra
 
 const MAX_BODY_BYTES = 8_192;
 
+const MAX_BODY_BYTES = 8_192;
 type ReviewAction = "approve" | "reject";
 
 function isReviewAction(value: unknown): value is ReviewAction {
