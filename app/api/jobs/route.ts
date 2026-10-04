@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         message: 'No strong matches found. Try expanding your search.',
         sources: registry.sources.map((source) => source.name),
       },
-      { status: 200 }
+      { status: 503 }
     );
   }
 }
