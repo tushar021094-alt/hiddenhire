@@ -96,7 +96,15 @@ function parseExperience(value: unknown): number {
 function normalizeCountry(value?: string | null): string {
   const text = normalizeText(value);
   if (!text) return 'Remote';
-  if (/^in$|india|indian/i.test(text)) return 'India';
+
+  // ATS feeds frequently omit the country and provide only a city/region.
+  // Treat known Indian locations as India so country filters do not discard
+  // legitimate NCR/India on-site roles.
+  if (
+    /^in$|india|indian/i.test(text) ||
+    /\b(?:delhi|noida|greater noida|gurugram|gurgaon|faridabad|ghaziabad|bengaluru|bangalore|mumbai|hyderabad|pune|chennai|kolkata|ahmedabad|jaipur|lucknow|indore|chandigarh|kochi|coimbatore|kanpur|agra|surat|nagpur|bhubaneswar|patna|vadodara)\b/i.test(text) ||
+    /\b(?:uttar pradesh|uttarakhand|haryana|delhi ncr|delhi|maharashtra|karnataka|telangana|tamil nadu|west bengal|gujarat|rajasthan|madhya pradesh|punjab|kerala|odisha|bihar)\b/i.test(text)
+  ) return 'India';
   if (/abu dhabi|united arab emirates|\buae\b/i.test(text)) return 'United Arab Emirates';
   if (/canada/i.test(text)) return 'Canada';
   if (/europe|emea/i.test(text)) return 'EMEA';
