@@ -96,11 +96,11 @@ function parseExperience(value: unknown): number {
 function normalizeCountry(value?: string | null): string {
   const text = normalizeText(value);
   if (!text) return 'Remote';
-  if (/india|indian/i.test(text)) return 'India';
+  if (/^in$|india|indian/i.test(text)) return 'India';
   if (/abu dhabi|united arab emirates|\buae\b/i.test(text)) return 'United Arab Emirates';
   if (/canada/i.test(text)) return 'Canada';
   if (/europe|emea/i.test(text)) return 'EMEA';
-  if (/united states|usa|us/i.test(text)) return 'United States';
+  if (/^us$|united states|usa|\busa\b/i.test(text)) return 'United States';
   if (/uk|united kingdom|england|britain/i.test(text)) return 'United Kingdom';
   return text;
 }
@@ -739,11 +739,29 @@ export class LeverJobSource implements JobSource {
         commitment?: string;
       };
       workplace?: string;
+      workplaceType?: 'onsite' | 'remote' | 'hybrid' | 'unspecified';
       description?: string;
       descriptionPlain?: string;
       hostedUrl?: string;
       applyUrl?: string;
       createdAt?: string;
+      categories?: {
+        location?: string;
+        locationDetails?: {
+          city?: string;
+          region?: string;
+          country?: string;
+        };
+        allLocations?: string[];
+        team?: string;
+        role?: string;
+        commitment?: string;
+      };
+      salaryRange?: {
+        min?: number;
+        max?: number;
+        currency?: string;
+      };
     };
 
     const responses = await Promise.allSettled(
@@ -753,29 +771,48 @@ export class LeverJobSource implements JobSource {
         const data = await response.json();
         const jobs = Array.isArray(data) ? (data as LeverJob[]) : [];
 
-        return jobs.map((job) =>
-          buildCanonicalJob({
+        return jobs.map((job) => {
+          const locationDetails = job.categories?.locationDetails;
+          const rawLocation = job.categories?.location
+            || job.categories?.allLocations?.[0]
+            || locationDetails?.city
+            || job.workplace
+            || 'Remote';
+          const workplaceType = job.workplaceType || 'unspecified';
+          const remote = workplaceType === 'remote'
+            || (workplaceType === 'unspecified' && /remote|distributed|virtual|work from anywhere/i.test(rawLocation));
+          const salaryRange = job.salaryRange;
+          const structuredCountry = locationDetails?.country || '';
+          const locationText = [rawLocation, locationDetails?.city, locationDetails?.region, structuredCountry].filter(Boolean).join(', ');
+
+          return buildCanonicalJob({
             id: `lever-${job.id}`,
             title: job.text || job.title,
             company: job.company || company,
-            location: job.categories?.location || job.workplace || 'Remote',
-            country: job.categories?.location || job.workplace || 'Remote',
-            remote: /remote|distributed|virtual/i.test(job.categories?.location || job.workplace || 'Remote'),
-            indiaEligible: /india/i.test(job.categories?.location || job.description || ''),
+            location: rawLocation,
+            country: structuredCountry || locationText,
+            remote,
+            remoteStatus: workplaceType === 'onsite' || workplaceType === 'hybrid'
+              ? 'FALSE'
+              : workplaceType === 'remote'
+                ? 'TRUE'
+                : normalizeRemoteStatus(rawLocation),
+            indiaEligible: /india|\bIN\b/i.test(`${locationText} ${job.description || ''}`),
             description: job.description || job.descriptionPlain || 'No description provided.',
             applicationUrl: job.hostedUrl || job.applyUrl || `https://jobs.lever.co/${company}/${job.id}`,
             source: this.name,
             postedDate: job.createdAt || new Date().toISOString(),
-            salaryMin: null,
-            salaryMax: null,
-            salaryCurrency: 'USD',
+            salaryMin: salaryRange?.min ?? null,
+            salaryMax: salaryRange?.max ?? null,
+            salaryCurrency: normalizeCurrency(salaryRange?.currency || 'USD'),
             industry: job.categories?.team || 'Technology',
             requiredSkills: normalizeSkills([job.categories?.role, job.categories?.commitment]),
             requiredExperience: parseExperience(job.description || job.text || ''),
-            employmentType: normalizeEmploymentType(job.categories?.commitment || job.workplace),
+            employmentType: normalizeEmploymentType(job.categories?.commitment || 'Full-time'),
+            remotePolicy: workplaceType,
             isDemo: false,
-          })
-        );
+          });
+        });
       })
     );
 
