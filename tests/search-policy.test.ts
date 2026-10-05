@@ -127,6 +127,29 @@ test("native HR job fails for a finance candidate", () => {
   );
 });
 
+test("business and corporate finance roles pass for a Finance Manager search", () => {
+  for (const title of [
+    "Business Finance (Lending)",
+    "Corporate Finance Manager",
+    "Commercial Finance Manager",
+    "Treasury Manager",
+  ]) {
+    assert.equal(
+      isJobEligible(
+        intent,
+        job({
+          source: "lever",
+          title,
+          jobFunction: undefined,
+          location: "Noida, Uttar Pradesh",
+        }),
+      ),
+      true,
+      title,
+    );
+  }
+});
+
 test("external Finance Manager is classified through title/description fallback", () => {
   assert.equal(
     isJobEligible(
