@@ -406,6 +406,48 @@ test('lever city-only India locations remain eligible for India searches', async
   }
 });
 
+test('lever XML feed fallback preserves public jobs when JSON shape is unusable', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: string | URL | Request) => {
+    const url = String(input);
+
+    if (url.includes('?mode=json')) {
+      return new Response(JSON.stringify({ unexpected: 'object payload' }), { status: 200 });
+    }
+
+    if (url.includes('?mode=xml')) {
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <jobs><job>
+          <id><![CDATA[xml-noida-1]]></id>
+          <position><![CDATA[Business Finance Manager]]></position>
+          <description><![CDATA[<div>Finance role in Noida.</div>]]></description>
+          <apply_url><![CDATA[https://jobs.lever.co/paytm/xml-noida-1/apply]]></apply_url>
+          <employer><![CDATA[Paytm]]></employer>
+          <location><![CDATA[Noida, Uttar Pradesh]]></location>
+          <category><![CDATA[Finance]]></category>
+          <commitment><![CDATA[Full-time Employment]]></commitment>
+          <post_date>2026-10-01</post_date>
+        </job></jobs>`,
+        { status: 200, headers: { 'content-type': 'application/xml' } },
+      );
+    }
+
+    return new Response('', { status: 404 });
+  };
+
+  try {
+    const source = new LeverJobSource(['paytm']);
+    const jobs = await source.fetchJobs({});
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].title, 'Business Finance Manager');
+    assert.equal(jobs[0].country, 'India');
+    assert.equal(jobs[0].location, 'Noida, Uttar Pradesh');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('company location evidence classifies country eligibility and remote status', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ jobs: [
