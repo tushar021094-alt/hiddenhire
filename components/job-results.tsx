@@ -176,10 +176,6 @@ export function JobResults({ profile }: JobResultsProps) {
 
   const selected = filteredMatches.find((match) => match.job.id === selectedId) ?? filteredMatches[0] ?? null;
 
-  useEffect(() => {
-    if (selected && selected.job.id !== selectedId) setSelectedId(selected.job.id);
-  }, [selected, selectedId]);
-
   const setStatus = (jobId: string, nextStatus: TrackingStatus) => {
     setTracking((current) => ({ ...current, [jobId]: nextStatus }));
   };
