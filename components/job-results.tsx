@@ -245,8 +245,26 @@ export function JobResults({ profile }: JobResultsProps) {
   const selected = filteredMatches.find((match) => match.job.id === selectedId) ?? filteredMatches[0] ?? null;
 
   const setStatus = (jobId: string, nextStatus: TrackingStatus) => {
-    setTracking((current) => ({ ...current, [jobId]: nextStatus }));
+    setTracking((current) => {
+      const next = { ...current };
+      if (nextStatus === 'saved' && next[jobId] === 'saved') delete next[jobId];
+      else next[jobId] = nextStatus;
+      return next;
+    });
   };
+
+  const applicationReadiness = selected
+    ? Math.min(100, Math.round(selected.score * 0.65 + selected.opportunityScore * 0.15 + (selected.missingRequirements.length ? 20 : 35)))
+    : 0;
+
+  const tailoredPitch = selected
+    ? `I am interested in the ${selected.job.title} opportunity at ${selected.job.company}. My background aligns with ${selected.reasons.slice(0, 3).join(', ')}. I would welcome the opportunity to discuss how I can contribute to the role.`
+    : '';
+
+  async function copyPitch() {
+    if (!tailoredPitch || typeof navigator === 'undefined' || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(tailoredPitch);
+  }
 
   if (loading) {
     return (
@@ -398,6 +416,9 @@ export function JobResults({ profile }: JobResultsProps) {
                       {tracking[selected.job.id] === 'saved' ? '★ Saved' : '☆ Save'}
                     </button>
                     <a href={selected.job.applicationUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-cyan-300 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-200">Apply now ↗</a>
+                    <button type="button" onClick={() => setStatus(selected.job.id, 'applied')} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-medium text-emerald-200 hover:border-emerald-400/40">
+                      {tracking[selected.job.id] === 'applied' ? '✓ Tracked' : 'Track applied'}
+                    </button>
                   </div>
                 </div>
 
@@ -452,6 +473,29 @@ export function JobResults({ profile }: JobResultsProps) {
                     ))}
                   </div>
                 </div>
+
+                <section className="mt-5 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.025] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Application Copilot</div>
+                      <h4 className="mt-1 text-sm font-semibold text-white">Ready to apply: {applicationReadiness}%</h4>
+                      <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-400">A pre-submit checklist based on the job requirements and your current profile. HiddenHire will never submit an external application without your action.</p>
+                    </div>
+                    <span className={`rounded-md border px-2 py-1 text-[10px] font-semibold ${applicationReadiness >= 80 ? 'border-emerald-400/25 bg-emerald-400/5 text-emerald-200' : 'border-amber-400/25 bg-amber-400/5 text-amber-200'}`}>
+                      {applicationReadiness >= 80 ? 'READY' : 'REVIEW GAPS'}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs"><span className="text-emerald-300">✓</span> Role alignment {selected.score >= 70 ? 'strong' : 'needs review'}</div>
+                    <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs"><span className={selected.missingRequirements.length ? 'text-amber-300' : 'text-emerald-300'}>{selected.missingRequirements.length ? '⚠' : '✓'}</span> {selected.missingRequirements.length ? `${selected.missingRequirements.length} gap(s) to review` : 'No major gaps'}</div>
+                    <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs"><span className="text-cyan-300">↗</span> Source: {selected.job.source}</div>
+                  </div>
+                  <div className="mt-4 rounded-lg border border-white/10 bg-black/10 p-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Tailored application pitch</div>
+                    <p className="mt-2 text-xs leading-5 text-slate-300">{tailoredPitch}</p>
+                    <button type="button" onClick={() => void copyPitch()} className="mt-3 rounded-md border border-white/10 px-2.5 py-1.5 text-[10px] font-medium text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Copy pitch</button>
+                  </div>
+                </section>
 
                 <details className="mt-5 rounded-xl border border-white/10 bg-white/[0.02]">
                   <summary className="cursor-pointer px-3 py-2.5 text-xs font-medium text-slate-300">Job intelligence</summary>
