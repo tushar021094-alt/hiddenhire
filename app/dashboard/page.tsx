@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import CareerAgent from "@/components/career-agent";
 
 type Profile = {
   full_name: string | null;
@@ -8,6 +9,8 @@ type Profile = {
   location: string | null;
   skills: string[] | null;
   experience_years: number | null;
+  min_salary: number | null;
+  remote_only: boolean;
 };
 
 const roleCopy = {
@@ -69,9 +72,17 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, location, skills, experience_years")
+    .select("full_name, role, location, skills, experience_years, min_salary, remote_only")
     .eq("id", user.id)
     .maybeSingle();
+
+  const { data: candidateProfile } = profile?.role === "candidate"
+    ? await supabase
+        .from("candidate_profiles")
+        .select("target_roles, preferred_locations")
+        .eq("profile_id", user.id)
+        .maybeSingle()
+    : { data: null };
       const isRecruiter = profile?.role === "employer" || profile?.role === "agency";
 
   const { data: recruiterJobs } = isRecruiter
@@ -97,9 +108,14 @@ export default async function DashboardPage() {
   const copy = roleCopy[role] ?? roleCopy.candidate;
   const name = profile?.full_name || user.email?.split("@")[0] || "there";
   const skills = Array.isArray(profile?.skills) ? profile.skills : [];
-  const { count: applicationCount } = role === "candidate"
-    ? await supabase.from("applications").select("id", { count: "exact", head: true }).eq("candidate_id", user.id)
-    : { count: 0 };
+  const { data: candidateApplications, count: applicationCount } = role === "candidate"
+    ? await supabase
+        .from("applications")
+        .select("id, status, created_at, updated_at, jobs(title, companies(name))", { count: "exact" })
+        .eq("candidate_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20)
+    : { data: [], count: 0 };
   const profileSignals = [
     Boolean(profile?.full_name),
     Boolean(profile?.location),
@@ -146,6 +162,19 @@ export default async function DashboardPage() {
             </article>
           ))}
         </section>
+
+        {role === "candidate" && (
+          <CareerAgent
+            targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []}
+            preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []}
+            location={profile?.location ?? null}
+            skills={skills}
+            yearsOfExperience={Number(profile?.experience_years ?? 0)}
+            minimumSalary={Number(profile?.min_salary ?? 0)}
+            remoteOnly={Boolean(profile?.remote_only)}
+            applications={Array.isArray(candidateApplications) ? candidateApplications : []}
+          />
+        )}
 
         {isRecruiter ? (
           <section className="mt-6 space-y-6">
