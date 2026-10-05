@@ -795,7 +795,50 @@ export class LeverJobSource implements JobSource {
         }
 
         const data = await response.json();
-        const jobs = Array.isArray(data) ? (data as LeverJob[]) : [];
+        let jobs = Array.isArray(data) ? (data as LeverJob[]) : [];
+
+        // Lever also exposes a public XML job-board feed. Use it as a
+        // compatibility fallback if the JSON feed changes shape or returns
+        // an empty payload through an intermediary.
+        if (jobs.length === 0) {
+          const xmlResponse = await fetch(`https://api.lever.co/v0/postings/${company}?mode=xml`, {
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/xml,text/xml',
+              'User-Agent': 'HiddenHireJobDiscovery/1.0',
+            },
+          });
+
+          if (xmlResponse.ok) {
+            const xml = await xmlResponse.text();
+            const extract = (block: string, tag: string): string => {
+              const match = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i'));
+              return (match?.[1] || '').trim()
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>');
+            };
+
+            jobs = [...xml.matchAll(/<job>([\\s\\S]*?)<\\/job>/gi)].map((match) => {
+              const block = match[1];
+              return {
+                id: extract(block, 'id'),
+                text: extract(block, 'position'),
+                company: extract(block, 'employer') || company,
+                categories: {
+                  location: extract(block, 'location'),
+                  team: extract(block, 'category'),
+                  commitment: extract(block, 'commitment'),
+                },
+                description: extract(block, 'description'),
+                applyUrl: extract(block, 'apply_url'),
+                createdAt: extract(block, 'post_date'),
+              } satisfies LeverJob;
+            }).filter((job) => job.id && job.text);
+          }
+        }
 
         return jobs.map((job) => {
           const locationDetails = job.categories?.locationDetails;
