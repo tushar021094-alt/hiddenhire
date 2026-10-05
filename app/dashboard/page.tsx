@@ -97,6 +97,16 @@ export default async function DashboardPage() {
   const copy = roleCopy[role] ?? roleCopy.candidate;
   const name = profile?.full_name || user.email?.split("@")[0] || "there";
   const skills = Array.isArray(profile?.skills) ? profile.skills : [];
+  const { count: applicationCount } = role === "candidate"
+    ? await supabase.from("applications").select("id", { count: "exact", head: true }).eq("candidate_id", user.id)
+    : { count: 0 };
+  const profileSignals = [
+    Boolean(profile?.full_name),
+    Boolean(profile?.location),
+    skills.length > 0,
+    typeof profile?.experience_years === "number" && profile.experience_years > 0,
+  ];
+  const profileReadiness = Math.round((profileSignals.filter(Boolean).length / profileSignals.length) * 100);
 
   return (
     <main className="min-h-screen bg-[#05080c] text-white">
@@ -234,6 +244,24 @@ export default async function DashboardPage() {
               <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">
                 Your next dashboard modules will appear here as we connect real profiles, jobs, applications and matching data to Supabase.
               </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Profile readiness</p>
+                  <p className="mt-2 text-2xl font-semibold text-cyan-200">{profileReadiness}%</p>
+                  <p className="mt-1 text-xs text-white/45">Completeness signal</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Applications</p>
+                  <p className="mt-2 text-2xl font-semibold">{applicationCount ?? 0}</p>
+                  <p className="mt-1 text-xs text-white/45">Tracked in HiddenHire</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Next move</p>
+                  <p className="mt-2 text-sm font-semibold text-emerald-200">{profileReadiness < 100 ? "Strengthen profile" : "Review matches"}</p>
+                  <p className="mt-1 text-xs text-white/45">Career agent recommendation</p>
+                </div>
+              </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
