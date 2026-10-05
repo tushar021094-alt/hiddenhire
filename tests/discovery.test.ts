@@ -387,7 +387,7 @@ test('lever city-only India locations remain eligible for India searches', async
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input: string | URL | Request) => {
     const url = String(input);
-    if (url.includes('/postings/paytm')) {
+    if (url.includes('/postings/paytm-city-only')) {
       return new Response(JSON.stringify([
         {
           id: 'noida-finance',
@@ -420,7 +420,7 @@ test('lever city-only India locations remain eligible for India searches', async
   };
 
   try {
-    const source = new LeverJobSource(['paytm']);
+    const source = new LeverJobSource(['paytm-city-only']);
     const jobs = await source.fetchJobs({});
     const noida = jobs.find((job) => job.applicationUrl.endsWith('/noida-finance'));
     const us = jobs.find((job) => job.applicationUrl.endsWith('/us-finance'));
