@@ -79,8 +79,12 @@ function writeCache<T>(key: string, value: T, ttlMs: number): void {
   });
 }
 
-function normalizeText(value?: string | null): string {
-  return (value ?? '').trim();
+function normalizeText(value?: unknown | null): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value).trim();
+  }
+  return '';
 }
 
 function unique<T>(values: T[]): T[] {
@@ -897,11 +901,14 @@ export class LeverJobSource implements JobSource {
 
         return jobs.map((job) => {
           const locationDetails = job.categories?.locationDetails;
-          const rawLocation = job.categories?.location
-            || job.categories?.allLocations?.[0]
-            || locationDetails?.city
-            || job.workplace
-            || 'Remote';
+          const allLocations = job.categories?.allLocations ?? [];
+      const rawLocation = allLocations.length > 1
+            ? allLocations.join(' / ')
+            : job.categories?.location
+              || allLocations[0]
+              || locationDetails?.city
+              || job.workplace
+              || 'Remote';
           const workplaceType = job.workplaceType || 'unspecified';
           const remote = workplaceType === 'remote'
             || (workplaceType === 'unspecified' && /remote|distributed|virtual|work from anywhere/i.test(rawLocation));
