@@ -734,6 +734,12 @@ export class LeverJobSource implements JobSource {
       company?: string;
       categories?: {
         location?: string;
+        locationDetails?: {
+          city?: string;
+          region?: string;
+          country?: string;
+        };
+        allLocations?: string[];
         team?: string;
         role?: string;
         commitment?: string;
@@ -745,18 +751,6 @@ export class LeverJobSource implements JobSource {
       hostedUrl?: string;
       applyUrl?: string;
       createdAt?: string;
-      categories?: {
-        location?: string;
-        locationDetails?: {
-          city?: string;
-          region?: string;
-          country?: string;
-        };
-        allLocations?: string[];
-        team?: string;
-        role?: string;
-        commitment?: string;
-      };
       salaryRange?: {
         min?: number;
         max?: number;
