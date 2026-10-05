@@ -80,7 +80,7 @@ test('remote-only candidates still require remote jobs', () => {
 
 test("Delhi ranks Noida and Gurugram as local NCR before generic remote roles", () => {
   const profile = {
-    ...candidate,
+    ...baseCandidate,
     targetJobTitle: "Finance Manager",
     preferredLocations: ["Delhi"],
     remoteOnly: false,
