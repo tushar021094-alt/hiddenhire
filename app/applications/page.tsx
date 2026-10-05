@@ -57,6 +57,7 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
 
   async function loadApplications() {
     setLoading(true);
@@ -165,8 +166,28 @@ export default function ApplicationsPage() {
         )}
 
         {!loading && !error && applications.length > 0 && (
-          <section className="space-y-4">
-            {applications.map((application) => {
+          <>
+            <section className="mb-5 grid gap-3 sm:grid-cols-4">
+              {[
+                ['Total', applications.length],
+                ['Active', applications.filter((a) => !['rejected', 'withdrawn', 'hired'].includes(a.status)).length],
+                ['Interviews', applications.filter((a) => a.status === 'interview').length],
+                ['Offers', applications.filter((a) => a.status === 'hired').length],
+              ].map(([label, value]) => (
+                <button key={label} type="button" onClick={() => setFilter(label === 'Total' ? 'all' : label.toString().toLowerCase())} className={`rounded-xl border p-4 text-left transition ${filter === (label === 'Total' ? 'all' : label.toString().toLowerCase()) ? 'border-cyan-300/30 bg-cyan-300/5' : 'border-white/10 bg-white/[0.025]'}`}>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">{label}</p>
+                  <p className="mt-2 text-2xl font-semibold">{value}</p>
+                </button>
+              ))}
+            </section>
+            <section className="space-y-4">
+            {applications.filter((application) => {
+              if (filter === 'all') return true;
+              if (filter === 'active') return !['rejected', 'withdrawn', 'hired'].includes(application.status);
+              if (filter === 'interviews') return application.status === 'interview';
+              if (filter === 'offers') return application.status === 'hired';
+              return true;
+            }).map((application) => {
               const job = application.jobs;
               const location = job?.remote
                 ? "Remote"
@@ -226,7 +247,8 @@ export default function ApplicationsPage() {
                 </article>
               );
             })}
-          </section>
+            </section>
+          </>
         )}
       </div>
     </main>
