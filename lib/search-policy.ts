@@ -1,4 +1,5 @@
 import type { CandidateProfile, Job } from "./job-types";
+import { isLocationMatch, normalizeLocation } from "./location-utils";
 import {
   classifyJobFunction,
   isFinanceRoleRelevant,
@@ -30,35 +31,6 @@ const FINANCE_FUNCTIONS = new Set<JobFunction>([
   "Treasury",
   "Risk",
 ]);
-
-const LOCATION_ALIASES: Record<string, string> = {
-  noida: "noida",
-  "noida, uttar pradesh": "noida",
-  "noida, up": "noida",
-
-  delhi: "delhi",
-  "new delhi": "delhi",
-  "delhi, india": "delhi",
-
-  gurugram: "gurugram",
-  gurgaon: "gurugram",
-  "gurugram, haryana": "gurugram",
-  "gurgaon, haryana": "gurugram",
-
-  bengaluru: "bengaluru",
-  bangalore: "bengaluru",
-  "bengaluru, india": "bengaluru",
-  "bangalore, india": "bengaluru",
-};
-
-function normalizeLocation(value: string): string {
-  const normalized = value
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return LOCATION_ALIASES[normalized] || normalized;
-}
 
 function roleToFunctions(role: string): JobFunction[] {
   const normalized = role.toLowerCase().trim();
@@ -151,17 +123,9 @@ function isLocationCompatible(
     return true;
   }
 
-  const jobLocation = normalizeLocation(job.location);
-
-  return intent.preferredLocations.some((preferredLocation) => {
-    const normalizedPreferred = normalizeLocation(preferredLocation);
-
-    return (
-      jobLocation === normalizedPreferred ||
-      jobLocation.includes(normalizedPreferred) ||
-      normalizedPreferred.includes(jobLocation)
-    );
-  });
+  return intent.preferredLocations.some((preferredLocation) =>
+    isLocationMatch(preferredLocation, job.location),
+  );
 }
 
 function isSalaryCompatible(
