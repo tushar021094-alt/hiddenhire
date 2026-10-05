@@ -812,7 +812,7 @@ export class LeverJobSource implements JobSource {
           if (xmlResponse.ok) {
             const xml = await xmlResponse.text();
             const extract = (block: string, tag: string): string => {
-              const match = block.match(new RegExp(`<${tag}>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/${tag}>`, 'i'));
+              const match = block.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i'));
               return (match?.[1] || '').trim()
                 .replace(/&amp;/g, '&')
                 .replace(/&quot;/g, '"')
