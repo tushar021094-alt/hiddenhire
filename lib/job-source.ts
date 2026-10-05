@@ -768,8 +768,32 @@ export class LeverJobSource implements JobSource {
 
     const responses = await Promise.allSettled(
       this.companies.map(async (company) => {
-        const response = await fetch(`https://api.lever.co/v0/postings/${company}?mode=json`, { next: { revalidate: 300 } });
-        if (!response.ok) return [];
+        let response: Response | null = null;
+        let lastStatus = 0;
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          response = await fetch(`https://api.lever.co/v0/postings/${company}?mode=json`, {
+            cache: 'no-store',
+            headers: {
+              Accept: 'application/json',
+              'User-Agent': 'HiddenHireJobDiscovery/1.0',
+            },
+          });
+
+          if (response.ok) break;
+
+          lastStatus = response.status;
+          if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) {
+            throw new Error(`Lever postings request failed for ${company}: HTTP ${response.status}`);
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+        }
+
+        if (!response?.ok) {
+          throw new Error(`Lever postings request failed for ${company}: HTTP ${lastStatus || 500}`);
+        }
+
         const data = await response.json();
         const jobs = Array.isArray(data) ? (data as LeverJob[]) : [];
 
