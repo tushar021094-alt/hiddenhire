@@ -448,6 +448,47 @@ test('lever XML feed fallback preserves public jobs when JSON shape is unusable'
   }
 });
 
+test('lever HTML board fallback recovers jobs when feed APIs are empty', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: string | URL | Request) => {
+    const url = String(input);
+
+    if (url.includes('?mode=json')) {
+      return new Response(JSON.stringify({ unexpected: 'object payload' }), { status: 200 });
+    }
+
+    if (url.includes('?mode=xml')) {
+      return new Response('<?xml version="1.0"?><jobs></jobs>', { status: 200, headers: { 'content-type': 'application/xml' } });
+    }
+
+    if (url.includes('jobs.lever.co/htmlfallback')) {
+      return new Response(`
+        <a class="posting-title" href="https://jobs.lever.co/htmlfallback/12345678-1234-1234-1234-123456789012">
+          <h5 data-qa="posting-name">Business Finance Manager</h5>
+          <div class="posting-categories">
+            <span class="workplaceTypes">On-site — </span>
+            <span class="commitment">Full-time Employment</span>
+            <span class="location">Noida, Uttar Pradesh</span>
+          </div>
+        </a>`, { status: 200, headers: { 'content-type': 'text/html' } });
+    }
+
+    return new Response('', { status: 404 });
+  };
+
+  try {
+    const source = new LeverJobSource(['htmlfallback']);
+    const jobs = await source.fetchJobs({});
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].title, 'Business Finance Manager');
+    assert.equal(jobs[0].country, 'India');
+    assert.equal(jobs[0].remote, false);
+    assert.equal(jobs[0].location, 'Noida, Uttar Pradesh');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('company location evidence classifies country eligibility and remote status', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ jobs: [
