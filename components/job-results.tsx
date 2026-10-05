@@ -51,6 +51,20 @@ function getLane(job: Job): Exclude<Lane, 'all'> {
   return getLocationCluster(job.location) === 'delhi-ncr' ? 'local' : 'india';
 }
 
+
+function buildInterviewQuestions(match: Match) {
+  const role = match.job.title;
+  const skills = match.job.requiredSkills.slice(0, 3);
+  const gaps = match.missingRequirements.slice(0, 2);
+  return [
+    `Walk me through your experience that is most relevant to the ${role} role.`,
+    skills[0] ? `Give a concrete example of using ${skills[0]} to improve a business or finance outcome.` : `What is the most important KPI you would own in this role, and why?`,
+    skills[1] ? `How do you approach ${skills[1]} when the data or assumptions are incomplete?` : `Describe a difficult stakeholder situation and how you resolved it.`,
+    gaps[0] ? `Your profile may need stronger evidence for “${gaps[0]}”. What relevant experience can you demonstrate?` : `Tell me about a decision you made using financial analysis or forecasting.`,
+    `Why this company and this role, and what would you aim to accomplish in your first 90 days?`,
+  ];
+}
+
 function formatSalary(job: Job) {
   if (job.salaryMin === null && job.salaryMax === null) return 'Salary not listed';
   if (job.salaryMin !== null && job.salaryMax !== null) {
@@ -496,6 +510,21 @@ export function JobResults({ profile }: JobResultsProps) {
                     <button type="button" onClick={() => void copyPitch()} className="mt-3 rounded-md border border-white/10 px-2.5 py-1.5 text-[10px] font-medium text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Copy pitch</button>
                   </div>
                 </section>
+
+                <details className="mt-5 rounded-xl border border-white/10 bg-white/[0.02]">
+                  <summary className="cursor-pointer px-3 py-2.5 text-xs font-medium text-slate-300">Interview Lab · 5 likely questions</summary>
+                  <div className="border-t border-white/10 p-4">
+                    <p className="text-[11px] leading-5 text-slate-400">Prepare evidence from your real experience. HiddenHire gives you the questions; it does not fabricate answers or experience.</p>
+                    <ol className="mt-3 space-y-2">
+                      {buildInterviewQuestions(selected).map((question, index) => (
+                        <li key={question} className="flex gap-3 rounded-lg border border-white/10 bg-black/10 p-3 text-xs leading-5 text-slate-200">
+                          <span className="font-semibold text-cyan-300">{index + 1}</span>
+                          <span>{question}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </details>
 
                 <details className="mt-5 rounded-xl border border-white/10 bg-white/[0.02]">
                   <summary className="cursor-pointer px-3 py-2.5 text-xs font-medium text-slate-300">Job intelligence</summary>
