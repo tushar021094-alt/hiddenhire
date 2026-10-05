@@ -12,6 +12,8 @@ type ApplicationSummary = {
   jobs?: { title: string | null; company?: { name: string | null } | { name: string | null }[] | null } | null;
 };
 
+type Company = { name: string | null } | { name: string | null }[] | null | undefined;
+
 type Props = {
   targetRoles: string[];
   preferredLocations: string[];
@@ -23,7 +25,7 @@ type Props = {
   applications: ApplicationSummary[];
 };
 
-function companyName(company: ApplicationSummary["jobs"] extends infer T ? T extends { company?: infer C } ? C : never : never) {
+function companyName(company: Company) {
   if (Array.isArray(company)) return company[0]?.name || "Company";
   return company?.name || "Company";
 }
