@@ -180,6 +180,42 @@ function getSeniorityCompatibility(candidate: CandidateProfile, job: Job): Match
   return 'LOW';
 }
 
+export function calculateLocationPreferenceScore(candidate: CandidateProfile, job: Job): number {
+  const preferredLocations = (candidate.preferredLocations ?? [])
+    .map((value) => value.toLowerCase().trim())
+    .filter(Boolean);
+
+  if (candidate.remoteOnly) {
+    return job.remote ? 100 : 0;
+  }
+
+  if (preferredLocations.length === 0) {
+    return job.remote ? 75 : 70;
+  }
+
+  const jobLocation = job.location.toLowerCase().replace(/\\s+/g, ' ').trim();
+  const preferredMatch = preferredLocations.some((location) => {
+    const normalized = location.replace(/\\s+/g, ' ').trim();
+    return (
+      jobLocation === normalized ||
+      jobLocation.includes(normalized) ||
+      normalized.includes(jobLocation)
+    );
+  });
+
+  if (preferredMatch) return job.remote ? 92 : 100;
+
+  const isIndiaJob =
+    job.country.toLowerCase().includes('india') ||
+    job.location.toLowerCase().includes('india');
+
+  if (job.remote) {
+    return isIndiaJob ? 82 : 60;
+  }
+
+  return isIndiaJob ? 68 : 40;
+}
+
 function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, roleRelevanceScore: number, subfunctionScore: number): { score: number; seniority: MatchResult['seniorityCompatibility'] } {
   const indiaEligibility = candidate.preferredCountries.includes('India')
     ? job.indiaEligibilityStatus === 'YES' ? 100 : job.indiaEligibilityStatus === 'UNKNOWN' ? 45 : 0
@@ -262,9 +298,8 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
     (job.remote && candidate.remoteOnly) ||
     (!candidate.remoteOnly && candidate.preferredCountries.includes(job.country));
 
-  const locationScore = job.indiaEligibilityStatus === 'UNKNOWN' && candidate.preferredCountries.includes('India')
-    ? locationWeight * 0.5
-    : locationEligible ? locationWeight : 0;
+  const locationPreferenceScore = calculateLocationPreferenceScore(candidate, job);
+  const locationScore = (locationPreferenceScore / 100) * locationWeight;
 
   const salaryCandidate = candidate.minimumSalary;
   const salaryThreshold = job.salaryMin;

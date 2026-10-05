@@ -65,6 +65,7 @@ export interface CandidateProfile {
   minimumSalary: number;
   preferredCurrency: SalaryCurrency;
   preferredCountries: string[];
+  preferredLocations?: string[];
   remoteOnly: boolean;
   preferredIndustries: string[];
   keySkills: string[];

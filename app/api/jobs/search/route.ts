@@ -112,6 +112,11 @@ export function normalizeCandidateProfile(
         ? profile.preferredCurrency
         : 'INR',
     preferredCountries: preferredCountries.length > 0 ? preferredCountries : ['India'],
+    preferredLocations: Array.isArray(profile.preferredLocations)
+      ? profile.preferredLocations.filter(
+          (value): value is string => typeof value === 'string'
+        )
+      : [],
     remoteOnly: Boolean(profile.remoteOnly),
     preferredIndustries: Array.isArray(profile.preferredIndustries)
       ? profile.preferredIndustries.filter(
