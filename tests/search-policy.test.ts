@@ -335,3 +335,23 @@ test("native employer-selected function is authoritative", () => {
     false,
   );
 });
+
+test("Delhi preference includes the wider Delhi NCR metro for on-site roles", () => {
+  const delhiIntent = buildCandidateSearchIntent({
+    ...candidate,
+    preferredLocations: ["Delhi"],
+  });
+
+  for (const location of ["Noida, Uttar Pradesh", "Greater Noida, Uttar Pradesh", "Gurugram, Haryana", "Ghaziabad, Uttar Pradesh", "Faridabad, Haryana"]) {
+    assert.equal(
+      isJobEligible(delhiIntent, job({ location, remote: false, remoteStatus: "FALSE" })),
+      true,
+      location,
+    );
+  }
+
+  assert.equal(
+    isJobEligible(delhiIntent, job({ location: "Bengaluru, India", remote: false, remoteStatus: "FALSE" })),
+    false,
+  );
+});
