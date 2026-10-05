@@ -6,7 +6,7 @@ type Context = { params: Promise<{ id: string }> };
 const allowedFields = new Set(["name","query","targetRoles","preferredLocations","preferredCountries","skills","minimumSalary","currency","remoteOnly","minMatchScore","enabled"]);
 
 function arrayValue(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim()).slice(0, 20).map((item) => item.trim()) : undefined;
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, 20).map((item) => item.trim()) : undefined;
 }
 
 export async function PATCH(request: Request, context: Context) {
