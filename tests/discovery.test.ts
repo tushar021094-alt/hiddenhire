@@ -385,7 +385,7 @@ test('lever city-only India locations remain eligible for India searches', async
   };
 
   try {
-    const source = new LeverJobSource(['paytm']);
+    const source = new LeverJobSource(['xmlfallback']);
     const jobs = await source.fetchJobs({});
     const noida = jobs.find((job) => job.applicationUrl.endsWith('/noida-finance'));
     const us = jobs.find((job) => job.applicationUrl.endsWith('/us-finance'));
@@ -437,7 +437,7 @@ test('lever XML feed fallback preserves public jobs when JSON shape is unusable'
   };
 
   try {
-    const source = new LeverJobSource(['paytm']);
+    const source = new LeverJobSource(['xmlfallback']);
     const jobs = await source.fetchJobs({});
     assert.equal(jobs.length, 1);
     assert.equal(jobs[0].title, 'Business Finance Manager');
