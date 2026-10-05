@@ -348,6 +348,41 @@ test('company discovery isolates failures and reports metrics', async () => {
   }
 });
 
+test('lever normalizes numeric timestamps and multi-location India roles', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes('/postings/paytm')) {
+      return new Response(JSON.stringify([{
+        id: 'multi-location-finance',
+        text: 'Business Finance Manager',
+        categories: {
+          location: 'Dubai',
+          allLocations: ['Dubai', 'Noida, Uttar Pradesh', 'Mumbai, Maharashtra'],
+          team: 'Finance',
+          commitment: 'Full-time Employment',
+        },
+        workplaceType: 'onsite',
+        description: 'Finance role with India locations.',
+        hostedUrl: 'https://example.com/multi-location-finance',
+        createdAt: 1783043640931,
+      }]), { status: 200 });
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  };
+
+  try {
+    const source = new LeverJobSource(['paytm']);
+    const jobs = await source.fetchJobs({});
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].location, 'Dubai / Noida, Uttar Pradesh / Mumbai, Maharashtra');
+    assert.equal(jobs[0].country, 'India');
+    assert.match(jobs[0].postedDate, /^\d+$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('lever city-only India locations remain eligible for India searches', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input: string | URL | Request) => {
