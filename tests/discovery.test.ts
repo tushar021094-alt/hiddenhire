@@ -385,7 +385,7 @@ test('lever city-only India locations remain eligible for India searches', async
   };
 
   try {
-    const source = new LeverJobSource(['xmlfallback']);
+    const source = new LeverJobSource(['paytm']);
     const jobs = await source.fetchJobs({});
     const noida = jobs.find((job) => job.applicationUrl.endsWith('/noida-finance'));
     const us = jobs.find((job) => job.applicationUrl.endsWith('/us-finance'));
