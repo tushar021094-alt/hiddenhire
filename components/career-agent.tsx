@@ -9,7 +9,7 @@ type ApplicationSummary = {
   status: string;
   created_at: string;
   updated_at: string;
-  jobs?: { title: string | null; company?: { name: string | null } | { name: string | null }[] | null } | null;
+  jobs?: { title: string | null; companies?: Company } | { title: string | null; companies?: Company }[] | null;
 };
 
 type Company = { name: string | null } | { name: string | null }[] | null | undefined;
@@ -170,14 +170,14 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             {followUps.slice(0, 3).map((item) => (
               <div key={item.id} className="rounded-lg border border-amber-400/15 bg-amber-400/[0.03] p-3">
                 <p className="text-xs font-semibold">{item.jobs?.title || "Application"}</p>
-                <p className="mt-1 text-[10px] text-white/45">{companyName(item.jobs?.company)} · {ageInDays(item.created_at)} days since applying</p>
+                <p className="mt-1 text-[10px] text-white/45">{companyName(Array.isArray(item.jobs) ? item.jobs[0]?.companies : item.jobs?.companies)} · {ageInDays(item.created_at)} days since applying</p>
                 <Link href="/applications" className="mt-2 inline-block text-[10px] font-semibold text-amber-200">Open tracker →</Link>
               </div>
             ))}
             {interviews.slice(0, 3).map((item) => (
               <div key={item.id} className="rounded-lg border border-cyan-400/15 bg-cyan-400/[0.03] p-3">
                 <p className="text-xs font-semibold">{item.jobs?.title || "Interview"}</p>
-                <p className="mt-1 text-[10px] text-white/45">{companyName(item.jobs?.company)} · interview stage</p>
+                <p className="mt-1 text-[10px] text-white/45">{companyName(Array.isArray(item.jobs) ? item.jobs[0]?.companies : item.jobs?.companies)} · interview stage</p>
                 <Link href="/applications" className="mt-2 inline-block text-[10px] font-semibold text-cyan-200">Prepare →</Link>
               </div>
             ))}
