@@ -387,6 +387,15 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
     matchTier: getMatchTier(totalScore),
     reasons: visibleReasons,
     missingRequirements: missingRequirements.slice(0, 5),
+    scoreBreakdown: {
+      role: Math.round(applicability.score / 100 * roleWeight),
+      skills: Math.round(skillScore),
+      experience: Math.round(experienceScore),
+      location: Math.round(locationScore),
+      salary: Math.round(salaryScore),
+      industry: Math.round(industryScore),
+      seniority: Math.round(seniorityScore),
+    },
   };
 }
 
