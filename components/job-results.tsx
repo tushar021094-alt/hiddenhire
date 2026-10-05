@@ -9,6 +9,16 @@ interface JobResultsProps {
   profile: CandidateProfile;
 }
 
+type ScoreBreakdown = {
+  role: number;
+  skills: number;
+  experience: number;
+  location: number;
+  salary: number;
+  industry: number;
+  seniority: number;
+};
+
 type Match = {
   job: Job;
   score: number;
@@ -16,7 +26,7 @@ type Match = {
   matchTier: string;
   reasons: string[];
   missingRequirements: string[];
-  scoreBreakdown?: Match['scoreBreakdown'];
+  scoreBreakdown?: ScoreBreakdown;
 };
 
 const STORAGE_KEY = 'hiddenhire-tracking';
