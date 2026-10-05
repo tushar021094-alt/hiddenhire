@@ -9,6 +9,8 @@ type Profile = {
   location: string | null;
   skills: string[] | null;
   experience_years: number | null;
+  min_salary: number | null;
+  remote_only: boolean;
 };
 
 const roleCopy = {
