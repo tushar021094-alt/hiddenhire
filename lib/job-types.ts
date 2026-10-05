@@ -84,4 +84,13 @@ export interface MatchResult {
   matchTier: MatchTier;
   reasons: string[];
   missingRequirements: string[];
+  scoreBreakdown: {
+    role: number;
+    skills: number;
+    experience: number;
+    location: number;
+    salary: number;
+    industry: number;
+    seniority: number;
+  };
 }

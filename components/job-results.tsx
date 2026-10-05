@@ -9,6 +9,16 @@ interface JobResultsProps {
   profile: CandidateProfile;
 }
 
+type ScoreBreakdown = {
+  role: number;
+  skills: number;
+  experience: number;
+  location: number;
+  salary: number;
+  industry: number;
+  seniority: number;
+};
+
 type Match = {
   job: Job;
   score: number;
@@ -16,11 +26,13 @@ type Match = {
   matchTier: string;
   reasons: string[];
   missingRequirements: string[];
+  scoreBreakdown?: ScoreBreakdown;
 };
 
 const STORAGE_KEY = 'hiddenhire-tracking';
 type TrackingStatus = 'saved' | 'applied' | 'rejected';
 type Lane = 'all' | 'local' | 'india' | 'india-remote' | 'global-remote';
+type RankingFocus = 'match' | 'local' | 'fresh' | 'salary' | 'priority';
 
 const laneLabels: Record<Lane, string> = {
   all: 'All',
@@ -47,6 +59,40 @@ function formatSalary(job: Job) {
   return `${job.salaryCurrency} ${(job.salaryMin ?? job.salaryMax ?? 0).toLocaleString()}+`;
 }
 
+
+
+function parseNaturalQuery(query: string, profile: CandidateProfile) {
+  const text = query.trim().toLowerCase();
+  const next = { ...profile };
+  const locations = ['delhi', 'noida', 'greater noida', 'gurugram', 'gurgaon', 'ghaziabad', 'faridabad', 'mumbai', 'bengaluru', 'bangalore', 'hyderabad', 'pune', 'chennai'];
+  const location = locations.find((item) => text.includes(item));
+  if (location) next.preferredLocations = [location];
+  if (/\b(remote|work from home|wfh)\b/.test(text)) next.remoteOnly = true;
+  else if (/\b(on[- ]site|onsite|office|hybrid)\b/.test(text)) next.remoteOnly = false;
+
+  const lakhMatch = text.match(/(?:above|over|at least|min(?:imum)?|>=?)\s*(?:₹|inr)?\s*(\d+(?:\.\d+)?)\s*(?:lakh|lac|l)\b/);
+  const croreMatch = text.match(/(?:above|over|at least|min(?:imum)?|>=?)\s*(?:₹|inr)?\s*(\d+(?:\.\d+)?)\s*(?:crore|cr)\b/);
+  const rawMatch = text.match(/(?:above|over|at least|min(?:imum)?|>=?)\s*(?:₹|inr)?\s*(\d[\d,]*)\b/);
+  if (lakhMatch) next.minimumSalary = Math.round(Number(lakhMatch[1]) * 100000);
+  else if (croreMatch) next.minimumSalary = Math.round(Number(croreMatch[1]) * 10000000);
+  else if (rawMatch) next.minimumSalary = Number(rawMatch[1].replace(/,/g, ''));
+
+  return next;
+}
+
+function freshnessScore(job: Job) {
+  const timestamp = new Date(job.postedDate).getTime();
+  if (!Number.isFinite(timestamp)) return 25;
+  const days = Math.max(0, (Date.now() - timestamp) / 86400000);
+  return Math.max(0, Math.round(100 - days * 8));
+}
+
+function priorityScore(match: Match) {
+  const localBoost = getLocationCluster(match.job.location) === 'delhi-ncr' ? 12 : 0;
+  const directBoost = match.job.source === 'lever' || match.job.source === 'greenhouse' ? 5 : 0;
+  return Math.min(100, Math.round(match.score * 0.58 + match.opportunityScore * 0.22 + freshnessScore(match.job) * 0.10 + localBoost + directBoost));
+}
+
 function freshnessLabel(job: Job) {
   const timestamp = new Date(job.postedDate).getTime();
   if (!Number.isFinite(timestamp)) return 'Freshness unknown';
@@ -60,6 +106,8 @@ export function JobResults({ profile }: JobResultsProps) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lane, setLane] = useState<Lane>('all');
+  const [naturalQuery, setNaturalQuery] = useState('');
+  const [rankingFocus, setRankingFocus] = useState<RankingFocus>('priority');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState({ totalCollected: 0, totalEligible: 0, returned: 0 });
@@ -157,16 +205,36 @@ export function JobResults({ profile }: JobResultsProps) {
     [matches],
   );
 
-  const filteredMatches = useMemo(() => matches.filter((match) => {
-    const { remoteOnly, indiaEligible, salary, jobType, industry } = filters;
-    const passesLane = lane === 'all' || getLane(match.job) === lane;
-    const passesRemote = !remoteOnly || match.job.remote;
-    const passesIndia = !indiaEligible || match.job.indiaEligible;
-    const passesSalary = !salary || (match.job.salaryMin !== null && match.job.salaryMin >= salary);
-    const passesType = jobType === 'All' || match.job.employmentType === jobType;
-    const passesIndustry = industry === 'All' || match.job.industry.toLowerCase() === industry.toLowerCase();
-    return passesLane && passesRemote && passesIndia && passesSalary && passesType && passesIndustry;
-  }), [filters, lane, matches]);
+  const queryIntent = useMemo(() => parseNaturalQuery(naturalQuery, profile), [naturalQuery, profile]);
+
+  const filteredMatches = useMemo(() => {
+    const queryText = naturalQuery.trim().toLowerCase();
+    const queryTokens = queryText.split(/\s+/).filter((token) => token.length > 2);
+    const roleTerms = queryTokens.filter((token) => !['with', 'above', 'over', 'at', 'least', 'lakh', 'lac', 'remote', 'onsite', 'on-site', 'hybrid', 'office', 'jobs', 'job', 'in', 'for'].includes(token));
+    const source = matches.filter((match) => {
+      const { remoteOnly, indiaEligible, salary, jobType, industry } = filters;
+      const passesLane = lane === 'all' || getLane(match.job) === lane;
+      const passesRemote = !remoteOnly || match.job.remote;
+      const passesIndia = !indiaEligible || match.job.indiaEligible;
+      const passesSalary = !salary || (match.job.salaryMin !== null && match.job.salaryMin >= salary);
+      const passesType = jobType === 'All' || match.job.employmentType === jobType;
+      const passesIndustry = industry === 'All' || match.job.industry.toLowerCase() === industry.toLowerCase();
+      const searchable = `${match.job.title} ${match.job.company} ${match.job.location} ${match.job.description}`.toLowerCase();
+      const queryMatch = !queryText || roleTerms.length === 0 || roleTerms.every((token) => searchable.includes(token));
+      const queryLocation = !queryIntent.preferredLocations?.length || getLocationCluster(match.job.location) === getLocationCluster(queryIntent.preferredLocations[0]) || match.job.location.toLowerCase().includes(queryIntent.preferredLocations[0].toLowerCase());
+      const queryRemote = !naturalQuery || !queryIntent.remoteOnly || match.job.remote;
+      const querySalary = !naturalQuery || !queryIntent.minimumSalary || match.job.salaryMin === null || match.job.salaryMin >= queryIntent.minimumSalary;
+      return passesLane && passesRemote && passesIndia && passesSalary && passesType && passesIndustry && queryMatch && queryLocation && queryRemote && querySalary;
+    });
+
+    return [...source].sort((a, b) => {
+      if (rankingFocus === 'local') return (getLocationCluster(b.job.location) === 'delhi-ncr' ? 1 : 0) - (getLocationCluster(a.job.location) === 'delhi-ncr' ? 1 : 0) || b.score - a.score;
+      if (rankingFocus === 'fresh') return freshnessScore(b.job) - freshnessScore(a.job) || b.score - a.score;
+      if (rankingFocus === 'salary') return (b.job.salaryMax ?? b.job.salaryMin ?? 0) - (a.job.salaryMax ?? a.job.salaryMin ?? 0) || b.score - a.score;
+      if (rankingFocus === 'match') return b.score - a.score || b.opportunityScore - a.opportunityScore;
+      return priorityScore(b) - priorityScore(a) || b.score - a.score;
+    });
+  }, [filters, lane, matches, naturalQuery, profile, queryIntent, rankingFocus]);
 
   const laneCounts = useMemo(() => {
     const counts: Record<Lane, number> = { all: matches.length, local: 0, india: 0, 'india-remote': 0, 'global-remote': 0 };
@@ -229,6 +297,20 @@ export function JobResults({ profile }: JobResultsProps) {
             </div>
           </div>
 
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <div className="flex-1 rounded-lg border border-cyan-400/20 bg-cyan-400/[0.03] px-3 py-2">
+              <div className="text-[9px] uppercase tracking-[0.18em] text-cyan-300">Natural language search</div>
+              <input value={naturalQuery} onChange={(e) => setNaturalQuery(e.target.value)} placeholder="Try: finance manager in Noida above 15 lakh, onsite" className="mt-1 w-full bg-transparent text-xs text-white outline-none placeholder:text-slate-600" />
+            </div>
+            <select value={rankingFocus} onChange={(e) => setRankingFocus(e.target.value as RankingFocus)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white outline-none focus:border-cyan-400/50">
+              <option value="priority">Rank: AI Priority</option>
+              <option value="match">Rank: Match</option>
+              <option value="local">Rank: Local first</option>
+              <option value="fresh">Rank: Freshest</option>
+              <option value="salary">Rank: Highest salary</option>
+            </select>
+          </div>
+
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
             <label className="rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 text-[11px] text-slate-400">
               <span className="mr-2">Remote only</span>
@@ -256,7 +338,7 @@ export function JobResults({ profile }: JobResultsProps) {
           <div className="border-b border-white/10 lg:border-b-0 lg:border-r lg:border-white/10">
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Opportunity stream</span>
-              <span className="text-[10px] text-slate-600">{filteredMatches.length} shown</span>
+              <span className="text-[10px] text-slate-600">{filteredMatches.length} shown · {naturalQuery ? 'AI query active' : 'profile ranking'}</span>
             </div>
             <div className="max-h-[680px] overflow-y-auto">
               {filteredMatches.map((match) => {
@@ -297,6 +379,7 @@ export function JobResults({ profile }: JobResultsProps) {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="rounded-md border border-cyan-400/25 bg-cyan-400/10 px-2 py-1 text-[10px] font-bold text-cyan-100">{selected.score}% MATCH</span>
+                      <span className="rounded-md border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 text-[10px] font-bold text-emerald-200">{priorityScore(selected)} PRIORITY</span>
                       <span className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-slate-400">{selected.matchTier}</span>
                       <span className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-slate-400">Opportunity {selected.opportunityScore}</span>
                     </div>
@@ -353,6 +436,21 @@ export function JobResults({ profile }: JobResultsProps) {
                       </ul>
                     ) : <p className="mt-3 text-xs text-emerald-200">No major gaps identified.</p>}
                   </section>
+                </div>
+
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Match signal matrix</div>
+                    <div className="text-[10px] text-slate-600">weighted contribution</div>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {Object.entries(selected.scoreBreakdown ?? {}).map(([label, value]) => (
+                      <div key={label}>
+                        <div className="mb-1 flex justify-between text-[10px] text-slate-400"><span className="capitalize">{label}</span><span>{value}</span></div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-cyan-400" style={{ width: `${Math.min(100, Number(value) * 2.5)}%` }} /></div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <details className="mt-5 rounded-xl border border-white/10 bg-white/[0.02]">
