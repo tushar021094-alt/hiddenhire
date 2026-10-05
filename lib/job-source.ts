@@ -645,7 +645,7 @@ export class AshbyPublicJobBoardSource implements JobSource {
               return decodeHtml(match?.[1] || '');
             };
 
-            jobs = [...html.matchAll(/<a class="posting-title" href="([^"]+)">\\s*<h5[^>]*data-qa="posting-name"[^>]*>([\\s\\S]*?)</h5>\\s*<div class="posting-categories">([\\s\\S]*?)</div>\\s*</a>/gi)]
+            jobs = [...html.matchAll(/<a class="posting-title" href="([^"]+)">\s*<h5[^>]*data-qa="posting-name"[^>]*>([\s\S]*?)<\/h5>\s*<div class="posting-categories">([\s\S]*?)<\/div>\s*<\/a>/gi)]
               .map((match) => {
                 const categories = match[3];
                 const location = extractSpan(categories, 'location');
