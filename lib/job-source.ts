@@ -652,7 +652,7 @@ export class AshbyPublicJobBoardSource implements JobSource {
                 const workplace = extractSpan(categories, 'workplaceTypes');
                 const commitment = extractSpan(categories, 'commitment');
                 const href = decodeHtml(match[1]);
-                const idMatch = href.match(/\\/([a-f0-9-]{20,})\\/?$/i);
+                const idMatch = href.match(/\/([a-f0-9-]{20,})\/?$/i);
 
                 return {
                   id: idMatch?.[1] || href,
