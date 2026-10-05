@@ -397,7 +397,19 @@ export function applyJobFilters(jobs: Job[], query: DiscoveryQuery): Job[] {
 }
 
 const defaultGreenhouseBoards = ['stripe', 'github', 'notion', 'shopify', 'airtable', 'coinbase'];
-const defaultLeverCompanies = ['posthog', 'notion', 'stripe', 'github', 'coinbase', 'airtable'];
+const defaultLeverCompanies = [
+  'posthog',
+  'notion',
+  'stripe',
+  'github',
+  'coinbase',
+  'airtable',
+  // Verified India/NCR employer boards: these materially expand local/on-site inventory.
+  'paytm',
+  'paytmpayments',
+  'dnb',
+  'aleph',
+];
 
 const CACHE_TTL_MS = Number(process.env.JOB_CACHE_TTL_MS ?? '300000');
 
