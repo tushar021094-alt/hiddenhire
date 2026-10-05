@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CandidateProfile, Job } from '@/lib/job-types';
 import { sortMatches } from '@/lib/match-engine';
+import { getLocationCluster } from '@/lib/location-utils';
 
 interface JobResultsProps {
   profile: CandidateProfile;
@@ -155,7 +156,7 @@ export function JobResults({ profile }: JobResultsProps) {
 
   if (loading) {
     return (
-      <section className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6">
         <div className="rounded-3xl border border-cyan-500/20 bg-white/[0.03] p-8 text-center">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
           <p className="mt-4 text-lg font-medium text-slate-100">Finding your best-fit jobs…</p>
@@ -247,39 +248,42 @@ export function JobResults({ profile }: JobResultsProps) {
           <p className="mt-2 text-sm text-slate-400">Try widening your salary or location preferences.</p>
         </div>
       ) : (
-        <div className="grid gap-5">
+        <div className="grid gap-4 xl:grid-cols-2">
           {filteredMatches.map((match) => {
             const status = tracking[match.job.id];
             return (
-              <article key={match.job.id} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl shadow-slate-950/30">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs uppercase tracking-[0.2em] text-cyan-300">{match.score}% MATCH</span>
-                      <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-indigo-200">{match.matchTier}</span>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Opportunity {match.opportunityScore}</span>
+              <article key={match.job.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-cyan-400/30 hover:bg-white/[0.045]">
+                <div className="flex items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 text-[11px] font-semibold text-cyan-200">{match.score}%</span>
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{match.matchTier}</span>
+                      <span className="text-[10px] text-slate-500">Opportunity {match.opportunityScore}</span>
                     </div>
-                    <h3 className="mt-3 text-3xl font-semibold text-white">{match.job.title}</h3>
-                    <p className="mt-2 text-lg text-slate-200">{match.job.company}</p>
-                    <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-200">
-                      <span className="rounded-full border border-white/10 bg-slate-950 px-3 py-1">{match.job.remote ? 'Remote' : match.job.location}</span>
-                      <span className={`rounded-full border px-3 py-1 ${match.job.indiaEligibilityStatus === 'YES' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-rose-500/20 bg-rose-500/10 text-rose-100'}`}>
-                        {match.job.indiaEligibilityStatus === 'YES' ? 'Remote — India eligible' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'Remote — eligibility unknown' : 'Remote — India not eligible'}
+                    <h3 className="mt-2 line-clamp-2 text-xl font-semibold leading-tight text-white">{match.job.title}</h3>
+                    <p className="mt-1 text-sm font-medium text-slate-300">{match.job.company}</p>
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+                      <span className="rounded-md border border-white/10 bg-slate-950/80 px-2 py-1 text-slate-200">
+                        {match.job.remote ? 'Remote' : match.job.location}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-slate-950 px-3 py-1">
+                      {!match.job.remote && getLocationCluster(match.job.location) === 'delhi-ncr' && (
+                        <span className="rounded-md border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 text-cyan-200">Delhi NCR</span>
+                      )}
+                      <span className={`rounded-md border px-2 py-1 ${match.job.indiaEligibilityStatus === 'YES' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'border-amber-500/20 bg-amber-500/10 text-amber-100' : 'border-rose-500/20 bg-rose-500/10 text-rose-100'}`}>
+                        {match.job.remote
+                          ? match.job.indiaEligibilityStatus === 'YES' ? 'India eligible' : match.job.indiaEligibilityStatus === 'UNKNOWN' ? 'India eligibility unknown' : 'India not eligible'
+                          : 'On-site / Hybrid'}
+                      </span>
+                      <span className="rounded-md border border-white/10 bg-slate-950/80 px-2 py-1 text-slate-300">
                         {match.job.salaryMin !== null && match.job.salaryMax !== null
                           ? `${match.job.salaryCurrency} ${match.job.salaryMin.toLocaleString()}–${match.job.salaryMax.toLocaleString()}`
                           : 'Salary not listed'}
                       </span>
-                      {match.job.isDemo ? (
-                        <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-violet-100">Demo data</span>
-                      ) : (
-                        <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 text-sky-100">{match.job.source}</span>
-                      )}
+                      <span className="rounded-md border border-white/10 bg-slate-950/80 px-2 py-1 text-slate-500">{match.job.source}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-col gap-1.5">
                     <button
                       type="button"
                       onClick={() => setStatus(match.job.id, status === 'saved' ? 'rejected' : 'saved')}
@@ -301,41 +305,35 @@ export function JobResults({ profile }: JobResultsProps) {
                     >
                       {status === 'rejected' ? 'Rejected' : 'Skip'}
                     </button>
-                    <a href={match.job.applicationUrl} target="_blank" rel="noreferrer" className="rounded-xl bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200">
+                    <a href={match.job.applicationUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-200">
                       Apply
                     </a>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-                  <div>
-                    <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Why you match</div>
-                    <ul className="space-y-2 text-sm text-slate-200">
-                      {match.reasons.map((reason) => (
-                        <li key={reason} className="flex items-start gap-2">
-                          <span className="mt-0.5 text-emerald-300">✓</span>
-                          <span>{reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-400">Missing</div>
-                    {match.missingRequirements.length ? (
-                      <ul className="space-y-2 text-sm text-amber-100">
-                        {match.missingRequirements.map((item) => (
-                          <li key={item} className="flex items-start gap-2">
-                            <span className="mt-0.5 text-amber-300">⚠</span>
-                            <span>{item}</span>
-                          </li>
+                <details className="mt-3 rounded-xl border border-white/10 bg-slate-950/30">
+                  <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-slate-300">Why this match · AI evidence</summary>
+                  <div className="grid gap-4 border-t border-white/10 p-3 sm:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Why you match</div>
+                      <ul className="space-y-1.5 text-xs text-slate-200">
+                        {match.reasons.map((reason) => (
+                          <li key={reason} className="flex items-start gap-2"><span className="text-emerald-300">✓</span><span>{reason}</span></li>
                         ))}
                       </ul>
-                    ) : (
-                      <p className="text-sm text-emerald-200">No major gaps identified.</p>
-                    )}
+                    </div>
+                    <div>
+                      <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-slate-500">Gaps</div>
+                      {match.missingRequirements.length ? (
+                        <ul className="space-y-1.5 text-xs text-amber-100">
+                          {match.missingRequirements.map((item) => (
+                            <li key={item} className="flex items-start gap-2"><span className="text-amber-300">⚠</span><span>{item}</span></li>
+                          ))}
+                        </ul>
+                      ) : <p className="text-xs text-emerald-200">No major gaps identified.</p>}
+                    </div>
                   </div>
-                </div>
+                </details>
               </article>
             );
           })}
