@@ -37,6 +37,16 @@ create index if not exists job_watch_events_fingerprint_idx on public.job_watch_
 alter table public.job_watches enable row level security;
 alter table public.job_watch_events enable row level security;
 
+drop policy if exists "job_watches_own_select" on public.job_watches;
+drop policy if exists "job_watches_own_insert" on public.job_watches;
+drop policy if exists "job_watches_own_update" on public.job_watches;
+drop policy if exists "job_watches_own_delete" on public.job_watches;
+
+drop policy if exists "job_watch_events_own_select" on public.job_watch_events;
+drop policy if exists "job_watch_events_own_insert" on public.job_watch_events;
+drop policy if exists "job_watch_events_own_update" on public.job_watch_events;
+drop policy if exists "job_watch_events_own_delete" on public.job_watch_events;
+
 create policy "job_watches_own_select" on public.job_watches for select to authenticated
   using ((select auth.uid()) = candidate_id);
 create policy "job_watches_own_insert" on public.job_watches for insert to authenticated
