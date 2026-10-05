@@ -101,7 +101,7 @@ export function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): bo
 
   if (/finance manager|senior finance manager|finance lead|finance director|head of finance/i.test(target)) {
     if (
-      /strategic finance|fp&a|financial planning|finance business partner|commercial finance|finance manager|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
+      /strategic finance|business finance|corporate finance|fp&a|financial planning|finance business partner|commercial finance|treasury|finance operations|finance manager|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
     ) {
       return true;
     }
