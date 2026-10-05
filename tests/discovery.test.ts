@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyJobFilters, buildExpandedRoleQueries, CompanyDiscoverySource, createJobSourceRegistry, dedupeJobs } from '../lib/job-source.ts';
+import { applyJobFilters, buildExpandedRoleQueries, CompanyDiscoverySource, createJobSourceRegistry, dedupeJobs, LeverJobSource } from '../lib/job-source.ts';
 import { verifiedCompanyRegistry } from '../lib/company-registry.ts';
 import { calculateJobMatch, calculateOpportunityScore, classifyFinanceSubfunction, classifyJobFunction, getMatchTier } from '../lib/match-engine.ts';
 import type { CandidateProfile, Job } from '../lib/job-types.ts';
@@ -343,6 +343,64 @@ test('company discovery isolates failures and reports metrics', async () => {
     assert.equal(result.jobs[0].salaryMin, null);
     assert.equal(result.jobs[0].indiaEligibilityStatus, 'YES');
     assert.equal(result.jobs[0].remoteStatus, 'TRUE');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('lever city-only India locations remain eligible for India searches', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes('/postings/paytm')) {
+      return new Response(JSON.stringify([
+        {
+          id: 'noida-finance',
+          text: 'Accounts Payable Manager',
+          categories: {
+            location: 'Noida, Uttar Pradesh',
+            team: 'Finance',
+            commitment: 'Full-time Employment',
+          },
+          workplaceType: 'onsite',
+          description: 'Finance role based in Noida.',
+          hostedUrl: 'https://jobs.lever.co/paytm/noida-finance',
+        },
+        {
+          id: 'us-finance',
+          text: 'Finance Manager',
+          categories: {
+            location: 'New York, NY',
+            locationDetails: { country: 'US', city: 'New York', region: 'NY' },
+            team: 'Finance',
+            commitment: 'Full-time Employment',
+          },
+          workplaceType: 'onsite',
+          description: 'Finance role based in New York.',
+          hostedUrl: 'https://jobs.lever.co/paytm/us-finance',
+        },
+      ]), { status: 200 });
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  };
+
+  try {
+    const source = new LeverJobSource(['paytm']);
+    const jobs = await source.fetchJobs({});
+    const noida = jobs.find((job) => job.applicationUrl.endsWith('/noida-finance'));
+    const us = jobs.find((job) => job.applicationUrl.endsWith('/us-finance'));
+
+    assert.equal(noida?.country, 'India');
+    assert.equal(us?.country, 'United States');
+
+    const filtered = applyJobFilters(jobs, {
+      targetRole: 'Finance Manager',
+      country: 'India',
+      indiaOnly: true,
+    });
+
+    assert.equal(filtered.some((job) => job.applicationUrl.endsWith('/noida-finance')), true);
+    assert.equal(filtered.some((job) => job.applicationUrl.endsWith('/us-finance')), false);
   } finally {
     globalThis.fetch = originalFetch;
   }
