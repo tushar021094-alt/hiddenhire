@@ -18,7 +18,7 @@ test("job fingerprint is stable across tracking parameters", () => {
   );
 });
 
-test("new job event is classified as new", () => {
+test("location changes keep the same job identity", () => {\n  assert.equal(buildJobFingerprint(job), buildJobFingerprint({ ...job, location: "Gurugram, India" }));\n});\n\ntest("new job event is classified as new", () => {
   assert.equal(classifyWatchEvent(null, { score: 88, job }), "new");
 });
 
