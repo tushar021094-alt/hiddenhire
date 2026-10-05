@@ -1,4 +1,5 @@
 import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
+import { getLocationCluster, isIndiaLocation, isLocationMatch } from './location-utils';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
@@ -193,27 +194,30 @@ export function calculateLocationPreferenceScore(candidate: CandidateProfile, jo
     return job.remote ? 75 : 70;
   }
 
-  const jobLocation = job.location.toLowerCase().replace(/\\s+/g, ' ').trim();
-  const preferredMatch = preferredLocations.some((location) => {
-    const normalized = location.replace(/\\s+/g, ' ').trim();
-    return (
-      jobLocation === normalized ||
-      jobLocation.includes(normalized) ||
-      normalized.includes(jobLocation)
-    );
-  });
+  const exactOrRegionalMatch = preferredLocations.some((location) =>
+    isLocationMatch(location, job.location),
+  );
 
-  if (preferredMatch) return job.remote ? 92 : 100;
-
-  const isIndiaJob =
-    job.country.toLowerCase().includes('india') ||
-    job.location.toLowerCase().includes('india');
-
-  if (job.remote) {
-    return isIndiaJob ? 82 : 60;
+  if (exactOrRegionalMatch) {
+    // Prefer an exact city match over another city in the same metro.
+    const exactCityMatch = preferredLocations.some((location) => {
+      const preferred = location.toLowerCase().trim();
+      const actual = job.location.toLowerCase().trim();
+      return actual === preferred || actual.includes(preferred) || preferred.includes(actual);
+    });
+    if (exactCityMatch) return job.remote ? 92 : 100;
+    return job.remote ? 84 : 94;
   }
 
-  return isIndiaJob ? 68 : 40;
+  const jobCluster = getLocationCluster(job.location);
+  const isIndiaJob = isIndiaLocation(`${job.location} ${job.country}`);
+
+  if (job.remote) {
+    return isIndiaJob ? 76 : 55;
+  }
+
+  if (jobCluster !== 'other' && isIndiaJob) return 72;
+  return isIndiaJob ? 64 : 35;
 }
 
 function calculateApplicabilityScore(candidate: CandidateProfile, job: Job, roleRelevanceScore: number, subfunctionScore: number): { score: number; seniority: MatchResult['seniorityCompatibility'] } {

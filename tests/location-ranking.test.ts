@@ -76,3 +76,33 @@ test('remote-only candidates still require remote jobs', () => {
   assert.equal(calculateLocationPreferenceScore(remoteOnly, job({ remote: false })), 0);
   assert.equal(calculateLocationPreferenceScore(remoteOnly, job({ remote: true, remoteStatus: 'TRUE' })), 100);
 });
+
+
+test("Delhi ranks Noida and Gurugram as local NCR before generic remote roles", () => {
+  const profile = {
+    ...baseCandidate,
+    targetJobTitle: "Finance Manager",
+    preferredLocations: ["Delhi"],
+    remoteOnly: false,
+  };
+
+  const ncr = job({
+    title: "Finance Manager",
+    location: "Noida, Uttar Pradesh",
+    country: "India",
+    remote: false,
+    remoteStatus: "FALSE",
+  });
+
+  const remote = job({
+    title: "Finance Manager",
+    location: "Remote",
+    country: "United States",
+    remote: true,
+    remoteStatus: "TRUE",
+    indiaEligible: true,
+    indiaEligibilityStatus: "UNKNOWN",
+  });
+
+  assert.ok(calculateLocationPreferenceScore(profile, ncr) > calculateLocationPreferenceScore(profile, remote));
+});
