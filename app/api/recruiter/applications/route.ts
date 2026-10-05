@@ -1,4 +1,4 @@
-import { NextResponse } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 type CandidateSummary = {
