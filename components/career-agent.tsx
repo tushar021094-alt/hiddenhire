@@ -88,8 +88,45 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void scan();
-  }, []);
+    let cancelled = false;
+
+    async function initialise() {
+      try {
+        const response = await fetch("/api/jobs/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetJobTitle: targetRoles[0] || "Finance Manager",
+            targetRoles,
+            yearsOfExperience,
+            minimumSalary,
+            preferredCurrency: "INR",
+            preferredCountries: ["India"],
+            preferredLocations: preferredLocations.length ? preferredLocations : (location ? [location] : ["Delhi NCR"]),
+            remoteOnly,
+            preferredIndustries: [],
+            skills,
+            keySkills: skills,
+          }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload?.message || "Agent scan failed.");
+        if (!cancelled) {
+          setMatches(Array.isArray(payload?.results) ? payload.results : []);
+          setLastScan(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Agent scan failed.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void initialise();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetRoles, preferredLocations, location, skills, yearsOfExperience, minimumSalary, remoteOnly]);
 
   const highMatches = matches.filter((item) => item.score >= 70).slice(0, 3);
   const nextAction =
