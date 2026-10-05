@@ -34,7 +34,6 @@ export function buildJobFingerprint(job: WatchableMatch["job"]) {
   return [
     normalizeWatchText(job.company),
     normalizeWatchText(job.title),
-    normalizeWatchText(job.location),
     normalizeWatchUrl(job.applicationUrl),
   ].join("|");
 }
