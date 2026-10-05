@@ -37,6 +37,17 @@ const headlineRoleRules: Array<{ keywords: string[]; roles: string[] }> = [
   { keywords: ["finance", "financial"], roles: ["Finance Manager", "FP&A Manager", "Finance Analyst", "Business Finance", "Commercial Finance", "Financial Controller"] },
 ];
 
+function suggestedRolesForHeadline(headline: string) {
+  const text = headline.toLowerCase().trim();
+  if (!text) return roleSuggestions.slice(0, 4);
+
+  const matches = headlineRoleRules
+    .filter((rule) => rule.keywords.some((keyword) => text.includes(keyword)))
+    .flatMap((rule) => rule.roles);
+
+  return [...new Set(matches)].slice(0, 6);
+}
+
 export default function CandidateOnboardingPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -73,22 +84,17 @@ export default function CandidateOnboardingPage() {
     void checkAuth();
   }, [router]);
 
-  const suggestedRoles = useMemo(() => {
-    const text = form.headline.toLowerCase().trim();
-    if (!text) return roleSuggestions.slice(0, 4);
+  const suggestedRoles = useMemo(() => suggestedRolesForHeadline(form.headline), [form.headline]);
 
-    const matches = headlineRoleRules
-      .filter((rule) => rule.keywords.some((keyword) => text.includes(keyword)))
-      .flatMap((rule) => rule.roles);
-
-    return [...new Set(matches)].slice(0, 6);
-  }, [form.headline]);
-
-  useEffect(() => {
-    if (!form.headline.trim() || form.targetRoles.trim()) return;
-    if (suggestedRoles.length === 0) return;
-    setForm((current) => ({ ...current, targetRoles: suggestedRoles.slice(0, 3).join(", ") }));
-  }, [form.headline, form.targetRoles, suggestedRoles]);
+  function handleHeadlineChange(value: string) {
+    setForm((current) => ({
+      ...current,
+      headline: value,
+      targetRoles: current.targetRoles.trim()
+        ? current.targetRoles
+        : suggestedRolesForHeadline(value).slice(0, 3).join(", "),
+    }));
+  }
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -215,7 +221,7 @@ export default function CandidateOnboardingPage() {
 
             <label className="block">
               <span className="text-xs uppercase tracking-[0.16em] text-white/65">Professional headline</span>
-              <input value={form.headline} onChange={(e) => setField("headline", e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-[#101820] px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/10" placeholder="Finance professional | FP&A | Business Finance" />
+              <input value={form.headline} onChange={(e) => handleHeadlineChange(e.target.value)} className="mt-2 w-full rounded-xl border border-white/15 bg-[#101820] px-4 py-3 text-white outline-none placeholder:text-white/35 focus:border-cyan-300/60 focus:ring-2 focus:ring-cyan-300/10" placeholder="Finance professional | FP&A | Business Finance" />
               <span className="mt-2 block text-xs text-white/45">Add your headline and HiddenHire will suggest relevant roles automatically.</span>
             </label>
 
