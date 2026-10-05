@@ -181,7 +181,7 @@ function getSeniorityCompatibility(candidate: CandidateProfile, job: Job): Match
 }
 
 export function calculateLocationPreferenceScore(candidate: CandidateProfile, job: Job): number {
-  const preferredLocations = candidate.preferredLocations
+  const preferredLocations = (candidate.preferredLocations ?? [])
     .map((value) => value.toLowerCase().trim())
     .filter(Boolean);
 
@@ -207,7 +207,7 @@ export function calculateLocationPreferenceScore(candidate: CandidateProfile, jo
 
   const isIndiaJob =
     job.country.toLowerCase().includes('india') ||
-    job.indiaEligibilityStatus === 'YES';
+    job.location.toLowerCase().includes('india');
 
   if (job.remote) {
     return isIndiaJob ? 82 : 60;
