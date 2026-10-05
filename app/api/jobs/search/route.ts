@@ -168,7 +168,7 @@ function normalizeApplicationUrl(url: string) {
   }
 }
 
-function deduplicateJobs<T extends { company: string; title: string; location: string; applicationUrl: string }>(jobs: T[]) {
+export function deduplicateJobs<T extends { company: string; title: string; location: string; applicationUrl: string }>(jobs: T[]) {
   const seen = new Set<string>();
   return jobs.filter((job) => {
     const fingerprint = [
