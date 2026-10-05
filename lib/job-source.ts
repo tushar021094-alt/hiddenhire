@@ -617,61 +617,6 @@ export class AshbyPublicJobBoardSource implements JobSource {
         const data = await response.json();
         const jobs = Array.isArray(data) ? (data as AshbyPosting[]) : Array.isArray((data as { jobs?: AshbyPosting[] }).jobs) ? ((data as { jobs?: AshbyPosting[] }).jobs as AshbyPosting[]) : [];
 
-        // Final compatibility fallback: the public Lever job board HTML is
-        // stable enough to recover title/location/workplace/application data
-        // even when the feed APIs return an unusable payload.
-        if (jobs.length === 0) {
-          const htmlResponse = await fetch(`https://jobs.lever.co/${company}`, {
-            cache: 'no-store',
-            headers: {
-              Accept: 'text/html,application/xhtml+xml',
-              'User-Agent': 'HiddenHireJobDiscovery/1.0',
-            },
-          });
-
-          if (htmlResponse.ok) {
-            const html = await htmlResponse.text();
-            const decodeHtml = (value: string): string => value
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/&amp;/g, '&')
-              .replace(/&quot;/g, '"')
-              .replace(/&#39;/g, "'")
-              .replace(/&lt;/g, '<')
-              .replace(/&gt;/g, '>')
-              .replace(/\s+/g, ' ')
-              .trim();
-            const extractSpan = (categories: string, className: string): string => {
-              const match = categories.match(new RegExp(`<span[^>]*class="[^"]*\\b${className}\\b[^"]*"[^>]*>([\\s\\S]*?)</span>`, 'i'));
-              return decodeHtml(match?.[1] || '');
-            };
-
-            jobs = [...html.matchAll(/<a class="posting-title" href="([^"]+)">\s*<h5[^>]*data-qa="posting-name"[^>]*>([\s\S]*?)<\/h5>\s*<div class="posting-categories">([\s\S]*?)<\/div>\s*<\/a>/gi)]
-              .map((match) => {
-                const categories = match[3];
-                const location = extractSpan(categories, 'location');
-                const workplace = extractSpan(categories, 'workplaceTypes');
-                const commitment = extractSpan(categories, 'commitment');
-                const href = decodeHtml(match[1]);
-                const idMatch = href.match(/\/([a-f0-9-]{20,})\/?$/i);
-
-                return {
-                  id: idMatch?.[1] || href,
-                  text: decodeHtml(match[2]),
-                  company,
-                  categories: {
-                    location,
-                    commitment,
-                  },
-                  workplace: workplace || undefined,
-                  description: `${decodeHtml(match[2])} ${location} ${commitment}`,
-                  hostedUrl: href,
-                  applyUrl: href.endsWith('/apply') ? href : `${href}/apply`,
-                } satisfies LeverJob;
-              })
-              .filter((job) => job.id && job.text);
-          }
-        }
-
         return jobs.map((job) => {
           const rawTitle = job.title || job.jobTitle || 'Role';
           const rawLocation = job.location || job.locations?.[0]?.city || job.locations?.[0]?.name || 'Remote';
@@ -892,6 +837,61 @@ export class LeverJobSource implements JobSource {
                 createdAt: extract(block, 'post_date'),
               } satisfies LeverJob;
             }).filter((job) => job.id && job.text);
+          }
+        }
+
+        // Final compatibility fallback: the public Lever job board HTML is
+        // stable enough to recover title/location/workplace/application data
+        // even when the feed APIs return an unusable payload.
+        if (jobs.length === 0) {
+          const htmlResponse = await fetch(`https://jobs.lever.co/${company}`, {
+            cache: 'no-store',
+            headers: {
+              Accept: 'text/html,application/xhtml+xml',
+              'User-Agent': 'HiddenHireJobDiscovery/1.0',
+            },
+          });
+
+          if (htmlResponse.ok) {
+            const html = await htmlResponse.text();
+            const decodeHtml = (value: string): string => value
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/\s+/g, ' ')
+              .trim();
+            const extractSpan = (categories: string, className: string): string => {
+              const match = categories.match(new RegExp(`<span[^>]*class="[^"]*\\b${className}\\b[^"]*"[^>]*>([\\s\\S]*?)</span>`, 'i'));
+              return decodeHtml(match?.[1] || '');
+            };
+
+            jobs = [...html.matchAll(/<a class="posting-title" href="([^"]+)">\s*<h5[^>]*data-qa="posting-name"[^>]*>([\s\S]*?)<\/h5>\s*<div class="posting-categories">([\s\S]*?)<\/div>\s*<\/a>/gi)]
+              .map((match) => {
+                const categories = match[3];
+                const location = extractSpan(categories, 'location');
+                const workplace = extractSpan(categories, 'workplaceTypes');
+                const commitment = extractSpan(categories, 'commitment');
+                const href = decodeHtml(match[1]);
+                const idMatch = href.match(/\/([a-f0-9-]{20,})\/?$/i);
+
+                return {
+                  id: idMatch?.[1] || href,
+                  text: decodeHtml(match[2]),
+                  company,
+                  categories: {
+                    location,
+                    commitment,
+                  },
+                  workplace: workplace || undefined,
+                  description: `${decodeHtml(match[2])} ${location} ${commitment}`,
+                  hostedUrl: href,
+                  applyUrl: href.endsWith('/apply') ? href : `${href}/apply`,
+                } satisfies LeverJob;
+              })
+              .filter((job) => job.id && job.text);
           }
         }
 
