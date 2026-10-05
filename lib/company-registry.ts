@@ -1,12 +1,17 @@
 import type { CompanySourceProfile } from './job-source';
 
-// Board identifiers are verified against public ATS job endpoints before inclusion.
+// Board identifiers are verified against public Greenhouse job endpoints before inclusion.
 export const verifiedCompanyRegistry: CompanySourceProfile[] = [
-  // India-focused sources: keep direct employer ATS boards in the discovery mix so
-  // local and hybrid India roles are not drowned out by remote-only aggregators.
-  { companyName: 'Aleph', companyWebsite: 'https://www.alephholding.com', careersUrl: 'https://jobs.lever.co/aleph', ats: 'lever', boardIdentifier: 'aleph', country: 'India', industries: ['Finance', 'Technology', 'Marketing'], remotePolicy: 'India hybrid and role-specific locations' },
+  // India-focused direct employer boards. These improve local/hybrid inventory without
+  // removing the existing remote sources from the discovery pipeline.
+  { companyName: 'Shubhashray Housing India', companyWebsite: 'https://shubhashray.com', careersUrl: 'https://job-boards.greenhouse.io/shubhashrayhousingcareers', ats: 'greenhouse', boardIdentifier: 'shubhashrayhousingcareers', country: 'India', industries: ['Finance', 'Real Estate', 'Operations'], remotePolicy: 'India on-site roles with strong Delhi NCR and Gurugram coverage' },
+  { companyName: 'Anaplan', companyWebsite: 'https://www.anaplan.com', careersUrl: 'https://job-boards.greenhouse.io/anaplan', ats: 'greenhouse', boardIdentifier: 'anaplan', country: 'India', industries: ['Finance', 'Technology', 'Operations'], remotePolicy: 'India office and role-specific hybrid opportunities including Gurugram' },
+  { companyName: 'Tide', companyWebsite: 'https://www.tide.co', careersUrl: 'https://job-boards.greenhouse.io/tide', ats: 'greenhouse', boardIdentifier: 'tide', country: 'India', industries: ['Finance', 'Fintech', 'Operations'], remotePolicy: 'India roles including Delhi NCR, Gurugram and Hyderabad with role-specific workplace policy' },
   { companyName: 'Legion', companyWebsite: 'https://legion.co', careersUrl: 'https://job-boards.greenhouse.io/legion', ats: 'greenhouse', boardIdentifier: 'legion', country: 'India', industries: ['Finance', 'Technology', 'Operations'], remotePolicy: 'India hybrid roles in Bangalore and Pune plus role-specific remote openings' },
   { companyName: 'Zeta Global', companyWebsite: 'https://zetaglobal.com', careersUrl: 'https://job-boards.greenhouse.io/zetaglobal', ats: 'greenhouse', boardIdentifier: 'zetaglobal', country: 'India', industries: ['Finance', 'Technology', 'Marketing'], remotePolicy: 'India on-site and role-specific locations including Hyderabad and Bengaluru' },
+  { companyName: 'Graviton Research Capital', companyWebsite: 'https://www.gravitontrading.com', careersUrl: 'https://job-boards.greenhouse.io/gravitonresearchcapital', ats: 'greenhouse', boardIdentifier: 'gravitonresearchcapital', country: 'India', industries: ['Finance', 'Trading', 'Technology'], remotePolicy: 'Primarily on-site roles including Gurugram' },
+  { companyName: 'ClearView Healthcare Partners', companyWebsite: 'https://www.clearviewhcp.com', careersUrl: 'https://job-boards.greenhouse.io/clearviewhealthcarepartners', ats: 'greenhouse', boardIdentifier: 'clearviewhealthcarepartners', country: 'India', industries: ['Finance', 'Consulting', 'Operations'], remotePolicy: 'Role-specific with India opportunities in Gurugram' },
+  { companyName: 'The Economist Group', companyWebsite: 'https://www.economistgroup.com', careersUrl: 'https://job-boards.greenhouse.io/theeconomistgroup', ats: 'greenhouse', boardIdentifier: 'theeconomistgroup', country: 'India', industries: ['Finance', 'Media', 'Operations'], remotePolicy: 'Role-specific with finance operations in Gurugram' },
 
   { companyName: 'Stripe', companyWebsite: 'https://stripe.com', careersUrl: 'https://boards.greenhouse.io/stripe', ats: 'greenhouse', boardIdentifier: 'stripe', country: 'United States', industries: ['Finance', 'Technology'], remotePolicy: 'Distributed teams with role-specific location requirements' },
   { companyName: 'Airtable', companyWebsite: 'https://www.airtable.com', careersUrl: 'https://boards.greenhouse.io/airtable', ats: 'greenhouse', boardIdentifier: 'airtable', country: 'United States', industries: ['Technology', 'Operations'], remotePolicy: 'Role-specific' },
