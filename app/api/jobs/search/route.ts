@@ -156,6 +156,33 @@ export function buildDiscoveryQueries(
   }));
 }
 
+
+function normalizeApplicationUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '').toLowerCase();
+  } catch {
+    return url.trim().replace(/\/$/, '').toLowerCase();
+  }
+}
+
+export function deduplicateJobs<T extends { company: string; title: string; location: string; applicationUrl: string }>(jobs: T[]) {
+  const seen = new Set<string>();
+  return jobs.filter((job) => {
+    const fingerprint = [
+      job.company.trim().toLowerCase(),
+      job.title.trim().toLowerCase(),
+      job.location.trim().toLowerCase(),
+      normalizeApplicationUrl(job.applicationUrl),
+    ].join('|');
+    if (seen.has(fingerprint)) return false;
+    seen.add(fingerprint);
+    return true;
+  });
+}
+
 export async function GET() {
   return NextResponse.json({
     ok: true,
@@ -216,7 +243,7 @@ export async function POST(request: Request) {
     const inventoryQuery = { ...queries[0], targetRole: '', targetJobTitle: '' };
     const collected = await registry.fetchJobsWithMetrics(inventoryQuery);
     const collectedJobs = collected.jobs;
-    const deduped = Array.from(new Map(collectedJobs.map((job) => [`${job.company}:${job.title}:${job.applicationUrl}`, job])).values());
+    const deduped = deduplicateJobs(collectedJobs);
     const searchIntent = buildCandidateSearchIntent({
   ...candidateProfile,
   targetRoles: Array.isArray(profile.targetRoles)
