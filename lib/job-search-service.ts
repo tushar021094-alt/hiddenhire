@@ -17,7 +17,7 @@ const MAX_TEXT_LENGTH = 500;
 const MAX_RESUME_LENGTH = 20_000;
 const MAX_ARRAY_ITEMS = 30;
 
-function validSearchProfile(profile: Record<string, unknown>) {
+export function validSearchProfile(profile: Record<string, unknown>) {
   const role =
     typeof profile.targetJobTitle === 'string'
       ? profile.targetJobTitle
