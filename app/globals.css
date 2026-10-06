@@ -266,3 +266,45 @@ nav a:hover { color:rgba(255,255,255,.9); }
 .landing-v2 .live-badge{border-color:rgba(5,150,105,.16);background:#ecfdf3;color:#047857}
 .landing-v2 .demo-badge{border-color:rgba(217,119,6,.16);background:#fffbeb;color:#b45309}
 .landing-v2 ::selection{background:rgba(99,102,241,.18);color:#172033}
+
+
+/* HiddenHire 2.0 — authenticated workspace shell */
+.app-v2{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 78% 0%,rgba(99,102,241,.06),transparent 24%),
+    linear-gradient(180deg,#f8fafc 0%,#f5f7fb 100%)!important;
+  color:#172033!important;
+}
+.app-v2 > .mx-auto{max-width:1440px}
+.app-v2 header{
+  border-bottom:1px solid #e7eaf0!important;
+  background:rgba(255,255,255,.76);
+  backdrop-filter:blur(18px);
+  position:sticky;top:0;z-index:30;
+}
+.app-v2 header a:first-child{color:#111827!important}
+.app-v2 header a:first-child span{color:#4f46e5!important}
+.app-v2 header .border-cyan-300\/20{
+  border-color:rgba(79,70,229,.14)!important;
+  background:#f7f7ff!important;
+  color:#4f46e5!important;
+}
+.app-v2 header .text-white\/60{color:#667085!important}
+.app-v2 section.relative{padding-top:72px!important;padding-bottom:72px!important}
+.app-v2 section.relative h1{color:#111827!important}
+.app-v2 section.relative h1 span{color:#4f46e5!important}
+.app-v2 section.relative p{color:#667085!important}
+.app-v2 section.relative > .pointer-events-none{opacity:.55}
+.app-v2 > .mx-auto > section:not(.relative) article{
+  border-color:#e7eaf0!important;
+  background:rgba(255,255,255,.84)!important;
+  box-shadow:0 14px 40px rgba(15,23,42,.05)!important;
+}
+.app-v2 > .mx-auto > section:not(.relative) article h2{color:#172033!important}
+.app-v2 > .mx-auto > section:not(.relative) article p{color:#667085!important}
+.app-v2 > .mx-auto > section:not(.relative) article .bg-cyan-300\/70{background:#6366f1!important}
+.app-v2 .text-white{color:#172033}
+.app-v2 .text-white\/55,.app-v2 .text-white\/60,.app-v2 .text-white\/45,.app-v2 .text-white\/40{color:#667085!important}
+.app-v2 .border-white\/10{border-color:#e7eaf0!important}
+.app-v2 .bg-white\/\[0\.035\],.app-v2 .bg-white\/\[0\.03\],.app-v2 .bg-white\/\[0\.025\],.app-v2 .bg-white\/\[0\.02\]{background:rgba(255,255,255,.82)!important}
