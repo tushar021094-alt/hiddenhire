@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CareerAgent from "@/components/career-agent";
+import JobWatchManager from "@/components/job-watch-manager";
 
 type Profile = {
   full_name: string | null;
@@ -173,6 +174,17 @@ export default async function DashboardPage() {
             minimumSalary={Number(profile?.min_salary ?? 0)}
             remoteOnly={Boolean(profile?.remote_only)}
             applications={Array.isArray(candidateApplications) ? candidateApplications : []}
+          />
+        )}
+
+        {role === "candidate" && (
+          <JobWatchManager
+            targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []}
+            preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []}
+            skills={skills}
+            minimumSalary={Number(profile?.min_salary ?? 0)}
+            currency="INR"
+            remoteOnly={Boolean(profile?.remote_only)}
           />
         )}
 
