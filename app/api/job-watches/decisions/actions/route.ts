@@ -7,7 +7,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("career_agent_actions")
-    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,due_at,last_reminded_at,created_at")
+    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,due_at,last_reminded_at,outcome,outcome_at,outcome_source,created_at")
     .eq("candidate_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -37,7 +37,7 @@ export async function GET() {
     if (action.action === "prepare" && applicationStatus && ["rejected", "withdrawn", "hired"].includes(applicationStatus)) {
       effectiveStatus = "dismissed";
     }
-    return { ...action, application_status: applicationStatus, effective_status: effectiveStatus };
+    return { ...action, application_status: applicationStatus, effective_status: effectiveStatus, outcome: applicationStatus ?? action.outcome, outcome_at: applicationStatus ? new Date().toISOString() : action.outcome_at, outcome_source: applicationStatus ? "application" : action.outcome_source };
   });
 
   const openActions = actions.filter((action) => action.effective_status === "open");
