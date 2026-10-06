@@ -86,12 +86,11 @@ export function buildAttributionInsights(observations: CareerAttributionObservat
   return { dimensions: attribution, recommendations, policy };
 }
 
-export function applyLearningPolicy(
-  baseScore: number,
+export function getLearningPolicyAdjustment(
   attributes: { source?: string | null; role?: string | null; remote?: boolean | null },
   policy: ReturnType<typeof buildAttributionInsights>["policy"],
 ) {
-  if (!policy.eligible) return Math.max(0, Math.min(100, Math.round(baseScore)));
+  if (!policy.eligible) return 0;
   let adjustment = 0;
   for (const signal of [...policy.boosts, ...policy.penalties]) {
     const value = signal.dimension === "remote"
@@ -103,5 +102,13 @@ export function applyLearningPolicy(
           : null;
     if (value === signal.group) adjustment += signal.points;
   }
-  return Math.max(0, Math.min(100, Math.round(baseScore + Math.max(-4, Math.min(4, adjustment)))));
+  return Math.max(-4, Math.min(4, adjustment));
+}
+
+export function applyLearningPolicy(
+  baseScore: number,
+  attributes: { source?: string | null; role?: string | null; remote?: boolean | null },
+  policy: ReturnType<typeof buildAttributionInsights>["policy"],
+) {
+  return Math.max(0, Math.min(100, Math.round(baseScore + getLearningPolicyAdjustment(attributes, policy))));
 }
