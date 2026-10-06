@@ -17,7 +17,7 @@ type Company = { name: string | null } | { name: string | null }[] | null | unde
 
 type DecisionItem = { jobFingerprint: string; title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
 
-type LearningMetrics = {
+type ApplicationPreparation = { professionalSummary?: string; coverLetter?: string; matchedSkills?: string[]; missingSkills?: string[]; experienceFit?: string; requirementChecklist?: string[]; jobDescriptionSnapshot?: string };\n\ntype LearningMetrics = {
   totals: { actions: number; applications: number; interviews: number; hires: number; application_conversion_rate: number; interview_conversion_rate: number; hire_conversion_rate: number };
   learning: Array<{ action: string; sampleSize: number; eligible: boolean; recommendation: "hold" | "increase" | "decrease"; scoreAdjustment: number; reason: string }>;
   calibration: { eligible: boolean; sampleSize: number; adjustment: number; overallPositiveRate?: number; highScorePositiveRate?: number; lowScorePositiveRate?: number; reason: string };
@@ -54,10 +54,10 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
+  const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null>(null);
   const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; outcome?: string | null }>>([]);
   const [learningMetrics, setLearningMetrics] = useState<LearningMetrics | null>(null);
-  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
+  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -254,7 +254,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             <p className="text-[10px] font-semibold text-cyan-100">{workflow.title}</p>
             {workflow.message && <p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.message}</p>}
             {workflow.timing && <p className="mt-2 text-[9px] text-cyan-100/60">{workflow.timing}</p>}
-            {workflow.checklist && <ul className="mt-2 space-y-1 text-[10px] leading-5 text-white/60">{workflow.checklist.map((item) => <li key={item}>• {item}</li>)}</ul>}
+            {workflow.checklist && <ul className="mt-2 space-y-1 text-[10px] leading-5 text-white/60">{workflow.checklist.map((item) => <li key={item}>• {item}</li>)}</ul>}\n            {workflow.preparation?.professionalSummary && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Tailored summary</p><p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.preparation.professionalSummary}</p></div>}\n            {workflow.preparation?.coverLetter && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Cover letter draft</p><p className="mt-2 whitespace-pre-line text-[10px] leading-5 text-white/65">{workflow.preparation.coverLetter}</p></div>}
           </div>}
           {actionMessage && <p className="mb-2 rounded-lg border border-cyan-300/10 bg-cyan-300/[0.03] p-2 text-[10px] text-cyan-100/80">{actionMessage}</p>}
           {decisions.slice(0, 6).map((item) => {
