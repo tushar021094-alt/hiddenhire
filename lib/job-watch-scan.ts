@@ -310,6 +310,9 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
               company_name: task.company_name,
               job_location: task.job_location,
               workflow: task.workflow,
+              outcome: task.outcome,
+              outcome_at: task.outcome_at,
+              outcome_source: task.outcome_source,
               last_evaluated_at: new Date().toISOString(),
             })
             .eq("candidate_id", watch.candidate_id)
@@ -326,7 +329,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
   const now = new Date().toISOString();
   const { data: openTasks, error: taskError } = await supabase
     .from("career_agent_actions")
-    .select("id,job_fingerprint,action,source_url,task_status,outcome,outcome_at,outcome_source")
+    .select("id,job_fingerprint,action,source_url,task_status,outcome,outcome_at,outcome_source,due_at,last_reminded_at,job_title,company_name")
     .eq("candidate_id", watch.candidate_id)
     .eq("task_status", "open")
     .limit(200);
