@@ -238,69 +238,71 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       if (actionError) throw new Error("Unable to create Career Agent tasks.");
     }
 
-    const now = new Date().toISOString();
-    const { data: openTasks, error: taskError } = await supabase
-      .from("career_agent_actions")
-      .select("id,job_fingerprint,action,source_url,task_status")
-      .eq("candidate_id", watch.candidate_id)
-      .eq("task_status", "open")
-      .limit(200);
-    if (taskError) throw new Error("Unable to load Career Agent tasks.");
 
-    const currentFingerprints = new Set(usable.map((match) => buildJobFingerprint(match.job)));
-    const { data: applicationRows } = await supabase
-      .from("applications")
-      .select("status,jobs(application_url)")
-      .eq("candidate_id", watch.candidate_id)
-      .limit(100);
+  }
 
-    const applicationByUrl = new Map<string, string>();
-    for (const application of applicationRows ?? []) {
-      const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
-      const url = normalizeUrl(jobs?.application_url);
-      if (url) applicationByUrl.set(url, application.status);
+  const now = new Date().toISOString();
+  const { data: openTasks, error: taskError } = await supabase
+    .from("career_agent_actions")
+    .select("id,job_fingerprint,action,source_url,task_status")
+    .eq("candidate_id", watch.candidate_id)
+    .eq("task_status", "open")
+    .limit(200);
+  if (taskError) throw new Error("Unable to load Career Agent tasks.");
+
+  const currentFingerprints = new Set(usable.map((match) => buildJobFingerprint(match.job)));
+  const { data: applicationRows } = await supabase
+    .from("applications")
+    .select("status,jobs(application_url)")
+    .eq("candidate_id", watch.candidate_id)
+    .limit(100);
+
+  const applicationByUrl = new Map<string, string>();
+  for (const application of applicationRows ?? []) {
+    const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+    const url = normalizeUrl(jobs?.application_url);
+    if (url) applicationByUrl.set(url, application.status);
+  }
+
+  const staleTaskIds: string[] = [];
+  const completedTaskIds: string[] = [];
+  for (const task of openTasks ?? []) {
+    const applicationStatus = applicationByUrl.get(normalizeUrl(task.source_url));
+    if (task.action === "follow_up" && applicationStatus &&
+      ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) {
+      completedTaskIds.push(task.id);
+      continue;
     }
-
-    const staleTaskIds: string[] = [];
-    const completedTaskIds: string[] = [];
-    for (const task of openTasks ?? []) {
-      const applicationStatus = applicationByUrl.get(normalizeUrl(task.source_url));
-      if (task.action === "follow_up" && applicationStatus &&
-        ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) {
-        completedTaskIds.push(task.id);
-        continue;
-      }
-      if (task.action === "prepare" && applicationStatus && ["rejected", "withdrawn", "hired"].includes(applicationStatus)) {
-        staleTaskIds.push(task.id);
-        continue;
-      }
-      if (task.action !== "follow_up" && task.action !== "prepare" && !currentFingerprints.has(task.job_fingerprint)) {
-        staleTaskIds.push(task.id);
-      }
+    if (task.action === "prepare" && applicationStatus && ["rejected", "withdrawn", "hired"].includes(applicationStatus)) {
+      staleTaskIds.push(task.id);
+      continue;
     }
-
-    if (completedTaskIds.length) {
-      const { error } = await supabase.from("career_agent_actions")
-        .update({ task_status: "completed", completed_at: now, last_evaluated_at: now })
-        .in("id", completedTaskIds).eq("candidate_id", watch.candidate_id);
-      if (error) throw new Error("Unable to complete resolved Career Agent tasks.");
+    if (task.action !== "follow_up" && task.action !== "prepare" && !currentFingerprints.has(task.job_fingerprint)) {
+      staleTaskIds.push(task.id);
     }
+  }
 
-    if (staleTaskIds.length) {
-      const { error } = await supabase.from("career_agent_actions")
-        .update({ task_status: "dismissed", completed_at: null, last_evaluated_at: now })
-        .in("id", staleTaskIds).eq("candidate_id", watch.candidate_id);
-      if (error) throw new Error("Unable to dismiss stale Career Agent tasks.");
-    }
+  if (completedTaskIds.length) {
+    const { error } = await supabase.from("career_agent_actions")
+      .update({ task_status: "completed", completed_at: now, last_evaluated_at: now })
+      .in("id", completedTaskIds).eq("candidate_id", watch.candidate_id);
+    if (error) throw new Error("Unable to complete resolved Career Agent tasks.");
+  }
 
-    const activeTaskIds = new Set([...(completedTaskIds), ...(staleTaskIds)]);
-    const remainingOpenIds = (openTasks ?? []).filter((task) => !activeTaskIds.has(task.id)).map((task) => task.id);
-    if (remainingOpenIds.length) {
-      const { error } = await supabase.from("career_agent_actions")
-        .update({ last_evaluated_at: now })
-        .in("id", remainingOpenIds).eq("candidate_id", watch.candidate_id);
-      if (error) throw new Error("Unable to timestamp Career Agent task evaluation.");
-    }
+  if (staleTaskIds.length) {
+    const { error } = await supabase.from("career_agent_actions")
+      .update({ task_status: "dismissed", completed_at: null, last_evaluated_at: now })
+      .in("id", staleTaskIds).eq("candidate_id", watch.candidate_id);
+    if (error) throw new Error("Unable to dismiss stale Career Agent tasks.");
+  }
+
+  const activeTaskIds = new Set([...(completedTaskIds), ...(staleTaskIds)]);
+  const remainingOpenIds = (openTasks ?? []).filter((task) => !activeTaskIds.has(task.id)).map((task) => task.id);
+  if (remainingOpenIds.length) {
+    const { error } = await supabase.from("career_agent_actions")
+      .update({ last_evaluated_at: now })
+      .in("id", remainingOpenIds).eq("candidate_id", watch.candidate_id);
+    if (error) throw new Error("Unable to timestamp Career Agent task evaluation.");
   }
 
   const now = new Date().toISOString();
