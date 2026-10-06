@@ -87,7 +87,7 @@ export function buildAttributionInsights(observations: CareerAttributionObservat
 }
 
 export function getLearningPolicyAdjustment(
-  attributes: { source?: string | null; role?: string | null; remote?: boolean | null },
+  attributes: { source?: string | null; role?: string | null; remote?: boolean | null; score?: number | null },
   policy: ReturnType<typeof buildAttributionInsights>["policy"],
 ) {
   if (!policy.eligible) return 0;
