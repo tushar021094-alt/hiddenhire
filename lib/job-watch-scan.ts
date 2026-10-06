@@ -232,10 +232,64 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     }
 
     if (actionsToCreate.length) {
+      const fingerprints = [...new Set(actionsToCreate.map((task) => task.job_fingerprint))];
+      const { data: existingOpenTasks, error: existingTaskError } = await supabase
+        .from("career_agent_actions")
+        .select("id,job_fingerprint,action")
+        .eq("candidate_id", watch.candidate_id)
+        .eq("task_status", "open")
+        .in("job_fingerprint", fingerprints);
+      if (existingTaskError) throw new Error("Unable to load existing Career Agent tasks.");
+
+      const supersededIds = (existingOpenTasks ?? [])
+        .filter((task) => {
+          const replacement = actionsToCreate.find((candidate) => candidate.job_fingerprint === task.job_fingerprint);
+          return replacement && replacement.action !== task.action;
+        })
+        .map((task) => task.id);
+
+      if (supersededIds.length) {
+        const { error: supersedeError } = await supabase
+          .from("career_agent_actions")
+          .update({ task_status: "dismissed", completed_at: null, last_evaluated_at: new Date().toISOString() })
+          .in("id", supersededIds)
+          .eq("candidate_id", watch.candidate_id);
+        if (supersedeError) throw new Error("Unable to supersede outdated Career Agent tasks.");
+      }
+
       const { error: actionError } = await supabase
         .from("career_agent_actions")
         .upsert(actionsToCreate, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
       if (actionError) throw new Error("Unable to create Career Agent tasks.");
+
+      const reactivationFingerprints = actionsToCreate
+        .filter((task) => events.some((event) =>
+          String(event.job_fingerprint) === task.job_fingerprint &&
+          ["reopened", "score_increase", "salary_change", "location_change"].includes(String(event.event_type))
+        ))
+        .map((task) => task.job_fingerprint);
+
+      if (reactivationFingerprints.length) {
+        for (const task of actionsToCreate.filter((candidate) => reactivationFingerprints.includes(candidate.job_fingerprint))) {
+          const { error: reactivateError } = await supabase
+            .from("career_agent_actions")
+            .update({
+              task_status: "open",
+              completed_at: null,
+              decision_score: task.decision_score,
+              source_url: task.source_url,
+              job_title: task.job_title,
+              company_name: task.company_name,
+              job_location: task.job_location,
+              workflow: task.workflow,
+              last_evaluated_at: new Date().toISOString(),
+            })
+            .eq("candidate_id", watch.candidate_id)
+            .eq("job_fingerprint", task.job_fingerprint)
+            .eq("action", task.action);
+          if (reactivateError) throw new Error("Unable to reactivate Career Agent task.");
+        }
+      }
     }
 
 
