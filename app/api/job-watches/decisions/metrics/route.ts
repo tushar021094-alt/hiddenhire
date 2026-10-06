@@ -42,7 +42,7 @@ export async function GET() {
   const learning = buildLearningInsights(learningObservations);
   const effectiveness = buildCareerAgentEffectiveness((actions ?? []).map((action) => ({ action: action.action, taskStatus: action.task_status, outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" })));
   const effectivenessPolicy = buildCareerAgentEffectivenessPolicy(effectiveness);
-  const calibration = calibrateScore((actions ?? []).map((action) => ({ score: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" })).filter((item) => item.outcome !== "not_started")));
+  const calibration = calibrateScore((actions ?? []).map((action) => ({ score: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" } )).filter((item) => item.outcome !== "not_started"));
   const attribution = buildAttributionInsights((actions ?? []).map((action) => ({
     action: action.action,
     decisionScore: Number(action.decision_score || 0),
