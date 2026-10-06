@@ -11,3 +11,38 @@ export function buildCareerAgentEffectiveness(observations: Array<{ action: stri
   };
   return { ...summarize(observations), actions: [...actions.entries()].map(([action, items]) => ({ action, ...summarize(items) })).sort((a,b) => b.sampleSize - a.sampleSize) };
 }
+
+
+const EFFECTIVENESS_SAMPLE = 30;
+
+export function buildCareerAgentEffectivenessPolicy(
+  effectiveness: ReturnType<typeof buildCareerAgentEffectiveness>,
+) {
+  if (effectiveness.sampleSize < EFFECTIVENESS_SAMPLE) {
+    return {
+      eligible: false,
+      sampleSize: effectiveness.sampleSize,
+      recommendations: [] as Array<{ action: string; direction: "positive" | "negative"; delta: number; reason: string }>,
+    };
+  }
+
+  const recommendations = effectiveness.actions
+    .filter((item) => item.sampleSize >= EFFECTIVENESS_SAMPLE && item.resolvedOutcomes >= EFFECTIVENESS_SAMPLE)
+    .map((item) => {
+      const delta = item.positiveOutcomeRate - effectiveness.positiveOutcomeRate;
+      if (Math.abs(delta) < 10) return null;
+      return {
+        action: item.action,
+        direction: delta > 0 ? "positive" as const : "negative" as const,
+        delta,
+        reason: delta > 0
+          ? `${item.action} is outperforming the overall positive-outcome rate by ${delta} points.`
+          : `${item.action} is underperforming the overall positive-outcome rate by ${Math.abs(delta)} points.`,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 5);
+
+  return { eligible: true, sampleSize: effectiveness.sampleSize, recommendations };
+}
