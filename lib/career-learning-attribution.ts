@@ -25,7 +25,7 @@ export function buildAttributionInsights(observations: CareerAttributionObservat
     ["remote", (x: CareerAttributionObservation) => x.remote ? "remote" : "non_remote"],
   ] as const;
 
-  return dimensions.map(([dimension, getGroup]) => {
+  const attribution = dimensions.map(([dimension, getGroup]) => {
     const groups = new Map<string, CareerAttributionObservation[]>();
     for (const observation of observations) {
       const key = getGroup(observation);
@@ -42,4 +42,30 @@ export function buildAttributionInsights(observations: CareerAttributionObservat
       })).sort((a, b) => b.sampleSize - a.sampleSize),
     };
   });
+
+  const overallPositiveRate = observations.length
+    ? Math.round(observations.filter((x) => POSITIVE.has(x.outcome)).length / observations.length * 100)
+    : 0;
+
+  const recommendations = attribution.flatMap((dimension) =>
+    dimension.results
+      .filter((result) => result.eligible)
+      .map((result) => {
+        const delta = result.positiveRate - overallPositiveRate;
+        if (Math.abs(delta) < 10) return null;
+        return {
+          dimension: dimension.dimension,
+          group: result.group,
+          sampleSize: result.sampleSize,
+          direction: delta > 0 ? "positive" as const : "negative" as const,
+          delta,
+          reason: delta > 0
+            ? `${result.group} is outperforming the overall positive-outcome rate by ${delta} points.`
+            : `${result.group} is underperforming the overall positive-outcome rate by ${Math.abs(delta)} points.`,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+  ).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 5);
+
+  return { dimensions: attribution, recommendations };
 }
