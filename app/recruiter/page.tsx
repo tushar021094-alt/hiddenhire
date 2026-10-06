@@ -94,7 +94,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
   }catch(e){setError(e instanceof Error?e.message:"Matching failed")}finally{setLoading(false)}
  }
  const set=(k:keyof typeof form,v:string)=>setForm(x=>({...x,[k]:v}));
- return <main className="min-h-screen bg-[#08090d] px-5 py-10 text-white"><div className="mx-auto max-w-6xl">
+ return <main className="app-v2 recruiter-v2 min-h-screen bg-[#08090d] px-5 py-10 text-white"><div className="mx-auto max-w-6xl">
   <div className="mb-10"><div className="text-xs font-semibold uppercase tracking-[.2em] text-cyan-300">Recruiter workspace</div>
    <h1 className="mt-3 text-4xl font-bold">Post a job. Let HiddenHire find the candidates.</h1>
    <p className="mt-3 max-w-2xl text-white/50">The same relevance-first engine works in reverse: job function, skills, experience, location, compensation and seniority.</p>
