@@ -82,6 +82,7 @@ export interface MatchResult {
   financeSubfunctionScore: number;
   seniorityCompatibility: 'STRONG' | 'ACCEPTABLE' | 'UNKNOWN' | 'LOW';
   matchTier: MatchTier;
+  learningAdjustment?: number;
   reasons: string[];
   missingRequirements: string[];
   scoreBreakdown: {
