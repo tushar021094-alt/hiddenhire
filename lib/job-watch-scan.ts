@@ -313,7 +313,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
           trend: opportunity.trend,
           last_material_event: material,
           last_decision: decision.action,
-          task_status: decision.action === "ignore" && prior ? prior.taskStatus : "open",
+          task_status: decision.action === "ignore" ? (prior?.taskStatus ?? "dismissed") : "open",
           outcome: applicationByUrl.get(normalizeUrl(opportunity.applicationUrl)) ?? prior?.outcome ?? "not_started",
           last_decision_at: stateNow,
           last_seen_at: stateNow,
@@ -483,6 +483,27 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       .update({ last_evaluated_at: now })
       .in("id", remainingOpenIds).eq("candidate_id", watch.candidate_id);
     if (error) throw new Error("Unable to timestamp Career Agent task evaluation.");
+  }
+
+  const reconciledStateRows = (openTasks ?? []).map((task) => ({
+    watch_id: watch.id,
+    candidate_id: watch.candidate_id,
+    job_fingerprint: task.job_fingerprint,
+    latest_score: Number(task.decision_score ?? 0),
+    trend: "stable" as const,
+    last_material_event: null,
+    last_decision: task.action,
+    task_status: completedTaskIds.includes(task.id) ? "completed" as const : staleTaskIds.includes(task.id) ? "dismissed" as const : "open" as const,
+    outcome: applicationByUrl.get(normalizeUrl(task.source_url)) ?? "not_started",
+    last_decision_at: now,
+    last_seen_at: now,
+    updated_at: now,
+  }));
+  if (reconciledStateRows.length) {
+    const { error: reconciledStateError } = await supabase
+      .from("career_agent_opportunity_state")
+      .upsert(reconciledStateRows, { onConflict: "watch_id,job_fingerprint" });
+    if (reconciledStateError) throw new Error("Unable to reconcile Career Agent opportunity state.");
   }
 
   const observationsNow = new Date().toISOString();
