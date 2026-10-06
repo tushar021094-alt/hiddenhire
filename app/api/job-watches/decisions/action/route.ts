@@ -177,11 +177,21 @@ export async function POST(request: Request) {
     });
   }
 
+  const nextStep = workflow?.type === "application_handoff"
+    ? "open_application"
+    : workflow?.type === "interview_prep"
+      ? "interview_prep"
+      : workflow?.type === "follow_up"
+        ? "follow_up"
+        : requestedAction === "review"
+          ? "review"
+          : "watch";
+
   return NextResponse.json({
     success: true,
     action: requestedAction,
-    nextStep: requestedAction === "apply_now" ? "open_application" : requestedAction === "prepare" ? "interview_prep" : requestedAction === "follow_up" ? "follow_up" : requestedAction === "review" ? "review" : "watch",
-    applicationUrl: requestedAction === "apply_now" ? opportunity.applicationUrl : undefined,
+    nextStep,
+    applicationUrl: nextStep === "open_application" ? opportunity.applicationUrl : undefined,
     decision,
     workflow,
   });
