@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildAttributionInsights } from "../lib/career-learning-attribution";
+import { buildAttributionInsights, applyLearningPolicy, getLearningPolicyAdjustment } from "../lib/career-learning-attribution";
 
 test("keeps attribution recommendations gated by sample size", () => {
   const observations = [
