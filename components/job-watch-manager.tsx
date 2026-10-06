@@ -62,8 +62,8 @@ export default function JobWatchManager(props: Props) {
       if (!response.ok) throw new Error(data?.error || "Unable to load watches.");
       const next = Array.isArray(data.watches) ? data.watches as Watch[] : [];
       setWatches(next);
-      if (next[0]) {
-        const eventResponse = await fetch(`/api/job-watches/${next[0].id}/events`);
+      if (next.length) {
+        const eventResponse = await fetch("/api/job-watches/events");
         const eventData = await eventResponse.json();
         if (eventResponse.ok) setEvents(Array.isArray(eventData.events) ? eventData.events : []);
       } else {
