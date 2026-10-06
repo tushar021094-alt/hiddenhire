@@ -210,13 +210,36 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     }
 
     const memories = buildOpportunityMemory((watchEvents ?? []) as OpportunityMemoryEvent[]);
+    const { data: priorActions } = await supabase
+      .from("career_agent_actions")
+      .select("job_fingerprint,action,task_status,outcome,created_at")
+      .eq("candidate_id", watch.candidate_id)
+      .in("job_fingerprint", fingerprintsForActions)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const priorActionByFingerprint = new Map<string, { action: string; taskStatus: "open" | "completed" | "dismissed"; outcome: string }>();
+    for (const action of priorActions ?? []) {
+      if (!priorActionByFingerprint.has(action.job_fingerprint)) {
+        priorActionByFingerprint.set(action.job_fingerprint, {
+          action: action.action,
+          taskStatus: action.task_status,
+          outcome: action.outcome,
+        });
+      }
+    }
     const actionsToCreate = [];
     for (const opportunity of memories) {
       if (!fingerprintsForActions.includes(opportunity.jobFingerprint)) continue;
       const applicationStatus = applicationByUrl.get(normalizeUrl(opportunity.applicationUrl));
+      const priorAction = priorActionByFingerprint.get(opportunity.jobFingerprint);
       const decision = decideOpportunityAction(opportunity, {
         application: { status: applicationStatus },
         alreadyApplied: Boolean(applicationStatus),
+        priorAction: priorAction ? {
+          action: priorAction.action as "apply_now" | "review" | "prepare" | "follow_up" | "watch",
+          taskStatus: priorAction.taskStatus,
+          outcome: priorAction.outcome,
+        } : undefined,
       });
       if (decision.action === "ignore") continue;
 
