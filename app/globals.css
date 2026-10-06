@@ -335,7 +335,6 @@ nav a:hover { color:rgba(255,255,255,.9); }
 .career-agent-v2 .bg-emerald-400\/10{background:#ecfdf3!important}
 .career-agent-v2 .border-emerald-400\/20{border-color:#bbf7d0!important}
 .career-agent-v2 .bg-blue-500\/\[0\.04\]{background:#f5f7ff!important}
-.career-agent-v2 .shadow-\[0_0_12px_rgba\(34\,211\,238\,.9\)\]{box-shadow:0 0 12px rgba(99,102,241,.35)!important}
 
 .job-results-v2 > div{
   border-color:#e5e7eb!important;
@@ -376,5 +375,4 @@ nav a:hover { color:rgba(255,255,255,.9); }
 .job-results-v2 .bg-cyan-300:hover{background:#4338ca!important}
 .job-results-v2 .bg-emerald-400\/10{background:#ecfdf3!important}
 .job-results-v2 article{border-color:#e7eaf0!important}
-.job-results-v2 .shadow-\[inset_2px_0_0_rgba\(34\,211\,238\,.9\)\]{box-shadow:inset 3px 0 0 #6366f1!important}
 .job-results-v2 .text-slate-950{color:#fff!important}
