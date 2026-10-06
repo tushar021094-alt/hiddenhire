@@ -55,7 +55,7 @@ export default function ProfilePage() {
 
   if (loading) return <main className="min-h-screen px-5 py-10 text-white"><div className="mx-auto max-w-3xl pt-20 text-white/50">Loading your profile…</div></main>;
 
-  return <main className="min-h-screen px-5 py-10 text-white sm:px-8"><div className="mx-auto max-w-3xl pt-10">
+  return <main className="app-v2 min-h-screen px-5 py-10 text-slate-900 sm:px-8"><div className="mx-auto max-w-3xl pt-10">
     <a href="/dashboard" className="text-sm text-cyan-300">← Dashboard</a>
     <div className="mt-6 rounded-2xl border border-white/10 bg-white/[.03] p-6">
       <div className="text-xs font-semibold uppercase tracking-[.2em] text-cyan-300">Career profile</div>
