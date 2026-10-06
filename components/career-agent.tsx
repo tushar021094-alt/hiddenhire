@@ -15,7 +15,7 @@ type ApplicationSummary = {
 
 type Company = { name: string | null } | { name: string | null }[] | null | undefined;
 
-type DecisionItem = { title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
+type DecisionItem = { jobFingerprint: string; title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
 
 type Props = {
   targetRoles: string[];
@@ -99,14 +99,14 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   async function executeDecision(item: DecisionItem) {
     const action = item.decision.action;
     if (action === "ignore") return;
-    const key = item.applicationUrl + action;
+    const key = item.jobFingerprint + action;
     setActionLoading(key);
     setActionMessage(null);
     try {
       const response = await fetch("/api/job-watches/decisions/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobFingerprint: item.applicationUrl, action }),
+        body: JSON.stringify({ jobFingerprint: item.jobFingerprint, action }),
       });
       const payload = await response.json();
       if (response.status === 409 && payload?.decision) {
@@ -200,7 +200,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {actionMessage && <p className="mb-2 rounded-lg border border-cyan-300/10 bg-cyan-300/[0.03] p-2 text-[10px] text-cyan-100/80">{actionMessage}</p>}
           {decisions.slice(0, 6).map((item) => {
-            const key = item.applicationUrl + item.decision.action;
+            const key = item.jobFingerprint + item.decision.action;
             return (
               <div key={item.applicationUrl} className="rounded-lg border border-white/10 bg-black/10 p-3 hover:border-cyan-300/20">
                 <div className="flex items-center justify-between gap-2">
