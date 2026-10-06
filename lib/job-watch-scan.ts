@@ -356,7 +356,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     const { error: reminderError } = await supabase.from("notifications").insert(reminders);
     if (reminderError) throw new Error("Unable to create Career Agent follow-up reminders.");
     const remindedIds = dueFollowUps.map((task) => task.id);
-    const { error: reminderStateError } = await supabase.from("career_agent_actions").update({ last_reminded_at: now }).in("id", remindedIds).eq("candidate_id", watch.candidate_id);
+    const { error: reminderStateError } = await supabase.from("career_agent_actions").update({ last_reminded_at: new Date().toISOString() }).in("id", remindedIds).eq("candidate_id", watch.candidate_id);
     if (reminderStateError) throw new Error("Unable to record Career Agent reminders.");
   }
 
