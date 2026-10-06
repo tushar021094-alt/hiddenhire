@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Watch = {
   id: string;
@@ -53,7 +53,7 @@ export default function JobWatchManager(props: Props) {
   const [working, setWorking] = useState("");
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -74,9 +74,9 @@ export default function JobWatchManager(props: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   async function createWatch() {
     setWorking("create");
