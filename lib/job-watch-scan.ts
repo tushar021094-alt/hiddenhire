@@ -231,7 +231,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         outcome: state.outcome || "not_started",
       });
     }
-    const actionsToCreate = [];
+    const actionsToCreate: Array<{ job_fingerprint: string; action: string; [key: string]: unknown }> = [];
     for (const opportunity of memories) {
       if (!fingerprintsForActions.includes(opportunity.jobFingerprint)) continue;
       const applicationStatus = applicationByUrl.get(normalizeUrl(opportunity.applicationUrl));
