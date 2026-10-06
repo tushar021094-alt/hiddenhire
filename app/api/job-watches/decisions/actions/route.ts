@@ -40,5 +40,7 @@ export async function GET() {
     return { ...action, application_status: applicationStatus, effective_status: effectiveStatus };
   });
 
-  return NextResponse.json({ actions });
+  const openActions = actions.filter((action) => action.effective_status === "open");
+
+  return NextResponse.json({ actions, open_actions: openActions, open_count: openActions.length });
 }
