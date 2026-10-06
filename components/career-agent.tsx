@@ -144,7 +144,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown }) => item.workflow)?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
+    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.task_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
@@ -254,10 +254,10 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Recent agent actions</p>
-          <span className="text-[10px] text-white/30">{actionHistory.length} recorded</span>
+          <span className="text-[10px] text-white/30">{actionHistory.filter((item) => item.task_status === "open").length} open</span>
         </div>
         <div className="mt-3 space-y-2">
-          {actionHistory.slice(0, 5).map((item) => (
+          {actionHistory.filter((item) => item.task_status === "open").slice(0, 5).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()}</p>
