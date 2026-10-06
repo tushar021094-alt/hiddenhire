@@ -135,6 +135,9 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       if (!response.ok) throw new Error(payload?.message || "Action could not be completed.");
       setActionMessage(payload?.nextStep ? "Done — next step: " + String(payload.nextStep).replace("_", " ") + "." : "Action recorded.");
       if (payload?.workflow) setWorkflow(payload.workflow);
+      const historyResponse = await fetch("/api/job-watches/decisions/actions");
+      const historyPayload = await historyResponse.json();
+      if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);
       if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
@@ -257,7 +260,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <span className="text-[10px] text-white/30">{actionHistory.filter((item) => item.effective_status === "open").length} open</span>
         </div>
         <div className="mt-3 space-y-2">
-          {actionHistory.filter((item) => item.task_status === "open").slice(0, 5).map((item) => (
+          {actionHistory.filter((item) => item.effective_status === "open").slice(0, 5).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()}</p>
