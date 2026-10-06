@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildOpportunityMemory, type OpportunityMemoryEvent } from "@/lib/opportunity-memory";
 import { decideOpportunityAction, type CareerDecisionAction } from "@/lib/career-decision";
+import { classifyJobFunction } from "@/lib/match-engine";
 
 const ACTIONS = new Set<CareerDecisionAction>(["apply_now", "review", "prepare", "follow_up", "watch"]);
 
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
     job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
     source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
     is_remote: /remote/i.test(opportunity.location),
+    job_function: classifyJobFunction(opportunity.title),
     workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
