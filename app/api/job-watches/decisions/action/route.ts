@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
     is_remote: /remote/i.test(opportunity.location),
     job_function: classifyJobFunction(opportunity.title),
-    workflow, application_preparation: requestedAction === "apply_now" ? applicationPreparation : null, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
+    workflow: requestedAction === "apply_now" ? { ...workflow, preparation: applicationPreparation } : workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
   if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
