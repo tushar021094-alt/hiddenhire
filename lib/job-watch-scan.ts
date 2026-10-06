@@ -22,6 +22,7 @@ type Watch = {
 type ScanSupabase = ReturnType<typeof import("@/lib/supabase/server")["createClient"]> extends Promise<infer T> ? T : never;
 
 const MAX_MATCHES = 100;
+const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
 const RECENT_DUPLICATE_MS = 86_400_000;
 
 export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, suppliedMatches?: unknown[]) {
@@ -177,7 +178,6 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       .eq("candidate_id", watch.candidate_id)
       .limit(100);
 
-    const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
     const applicationByUrl = new Map<string, string>();
     for (const application of applications ?? []) {
       const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
