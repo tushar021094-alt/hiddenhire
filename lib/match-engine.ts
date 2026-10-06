@@ -1,5 +1,6 @@
 import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
 import { getLocationCluster, isIndiaLocation, isLocationMatch } from './location-utils';
+import { applyScoreCalibration } from './career-score-calibration';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
@@ -399,8 +400,12 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   };
 }
 
-export function sortMatches(profile: CandidateProfile, jobs: Job[]): MatchResult[] {
+export function sortMatches(profile: CandidateProfile, jobs: Job[], calibrationAdjustment = 0): MatchResult[] {
   return jobs
-    .map((job) => calculateJobMatch(profile, job))
+    .map((job) => {
+      const match = calculateJobMatch(profile, job);
+      const score = applyScoreCalibration(match.score, calibrationAdjustment);
+      return { ...match, score, matchTier: getMatchTier(score) };
+    })
     .sort((a, b) => b.score - a.score || b.opportunityScore - a.opportunityScore);
 }
