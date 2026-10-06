@@ -32,7 +32,7 @@ export async function GET() {
 
   const { data: actions, error } = await supabase
     .from("career_agent_actions")
-    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,due_at,created_at")
+    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,due_at,outcome,outcome_at,outcome_source,created_at")
     .eq("candidate_id", user.id)
     .eq("task_status", "open")
     .order("created_at", { ascending: false })
@@ -64,7 +64,7 @@ export async function GET() {
     const overdue = due !== null && due <= now;
     const urgencyBoost = overdue ? 35 : 0;
     const score = rank[item.action] + urgencyBoost + Math.min(15, Math.round(Number(item.decision_score || 0) / 10));
-    return { ...item, application_status: applicationStatus, effective_status: effectiveStatus, overdue, priority_score: score, can_execute: true };
+    return { ...item, application_status: applicationStatus, effective_status: effectiveStatus, overdue, priority_score: score, can_execute: true, outcome: applicationStatus ?? item.outcome, outcome_at: applicationStatus ? new Date().toISOString() : item.outcome_at, outcome_source: applicationStatus ? "application" : item.outcome_source };
   })
     .filter((item) => item.effective_status === "open")
     .sort((a, b) => b.priority_score - a.priority_score)
