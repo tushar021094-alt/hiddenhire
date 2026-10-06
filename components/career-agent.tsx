@@ -107,7 +107,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || "Task update failed.");
-      setActionHistory((current) => current.map((item) => item.id === id ? { ...item, task_status: taskStatus, completed_at: payload.task.completed_at } : item));
+      setActionHistory((current) => current.map((item) => item.id === id ? { ...item, task_status: taskStatus, effective_status: taskStatus, completed_at: payload.task.completed_at } : item));
       setActionMessage(taskStatus === "completed" ? "Task completed." : taskStatus === "dismissed" ? "Task dismissed." : "Task reopened.");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Task update failed.");
@@ -261,7 +261,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()}</p>
-                <p className="truncate text-[9px] text-white/35">{item.job_title || item.job_fingerprint} · {item.company_name || "Company"} · {Math.round(Number(item.decision_score))}% · {item.effective_status}</p>
+                <p className="truncate text-[9px] text-white/35">{item.job_title || item.job_fingerprint} · {item.company_name || "Company"} · {Math.round(Number(item.decision_score))}% · {item.effective_status}{item.application_status ? ` · application: ${item.application_status}` : ""}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2"><a href={item.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-cyan-200/60 hover:text-cyan-100">Open</a>{item.effective_status === "open" ? <button type="button" onClick={() => void updateTask(item.id, "completed")} className="text-[9px] text-emerald-200/70 hover:text-emerald-100">Done</button> : <button type="button" onClick={() => void updateTask(item.id, "open")} className="text-[9px] text-cyan-200/70 hover:text-cyan-100">Resume</button>}<span className="text-[9px] text-white/30">{new Date(item.created_at).toLocaleDateString("en-IN")}</span></div>
             </div>
