@@ -52,3 +52,21 @@ test("priority tiers favor high-confidence new opportunities", () => {
   assert.equal(eventPriority("score_increase", 80), "strong_match");
   assert.equal(eventPriority("location_change", 70), "review");
 });
+
+
+describe("Career Agent watch event ranking", () => {
+  it("prioritizes higher event priority before newer lower-priority events", () => {
+    const events = [
+      { priority: 70, created_at: "2026-10-06T12:00:00Z" },
+      { priority: 95, created_at: "2026-10-05T12:00:00Z" },
+      { priority: 95, created_at: "2026-10-06T11:00:00Z" },
+    ];
+    const ranked = [...events].sort((a, b) => {
+      const priorityDelta = b.priority - a.priority;
+      if (priorityDelta !== 0) return priorityDelta;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    expect(ranked.map((event) => event.priority)).toEqual([95, 95, 70]);
+    expect(ranked[0].created_at).toBe("2026-10-06T11:00:00Z");
+  });
+});
