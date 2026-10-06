@@ -4,6 +4,7 @@ import { buildLearningInsights } from "@/lib/career-learning";
 import { buildAttributionInsights } from "@/lib/career-learning-attribution";
 import { calibrateScore } from "@/lib/career-score-calibration";
 import { buildCareerAgentEffectiveness, buildCareerAgentEffectivenessPolicy } from "@/lib/career-agent-effectiveness";
+import { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
 
@@ -48,6 +49,17 @@ export async function GET() {
     source: action.source_provider || "unknown",
     role: action.job_function || action.job_title || "unknown",
     remote: Boolean(action.is_remote ?? /remote/i.test(action.job_location || "")),
+  })));
+
+  const outcomeIntelligence = buildOutcomeIntelligence((actions ?? []).map((action) => ({
+    action: action.action,
+    score: Number(action.decision_score || 0),
+    outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started",
+    source: action.source_provider || "unknown",
+    role: action.job_function || action.job_title || "unknown",
+    remote: Boolean(action.is_remote ?? /remote/i.test(action.job_location || "")),
+    createdAt: action.created_at,
+    outcomeAt: action.outcome_at,
   })));
 
   const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
