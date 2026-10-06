@@ -25,5 +25,18 @@ export async function PATCH(request: Request) {
     .single();
 
   if (error || !data) return NextResponse.json({ error: "Unable to update this Career Agent task." }, { status: 404 });
+
+  const { error: stateError } = await supabase
+    .from("career_agent_opportunity_state")
+    .update({
+      task_status: taskStatus,
+      last_decision: data.action,
+      last_decision_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("candidate_id", user.id)
+    .eq("job_fingerprint", data.job_fingerprint);
+
+  if (stateError) return NextResponse.json({ error: "Task updated, but opportunity state could not be synchronized." }, { status: 500 });
   return NextResponse.json({ success: true, task: data });
 }
