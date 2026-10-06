@@ -101,5 +101,6 @@ export async function GET() {
     effectivenessPolicy,
     attribution,
     calibration,
+    outcomeIntelligence,
   });
 }
