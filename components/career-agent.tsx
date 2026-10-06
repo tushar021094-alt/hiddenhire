@@ -46,7 +46,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
-  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; completed_at: string | null; created_at: string }>>([]);
+  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -144,7 +144,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.task_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
+    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
@@ -254,16 +254,16 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Recent agent actions</p>
-          <span className="text-[10px] text-white/30">{actionHistory.filter((item) => item.task_status === "open").length} open</span>
+          <span className="text-[10px] text-white/30">{actionHistory.filter((item) => item.effective_status === "open").length} open</span>
         </div>
         <div className="mt-3 space-y-2">
           {actionHistory.filter((item) => item.task_status === "open").slice(0, 5).map((item) => (
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()}</p>
-                <p className="truncate text-[9px] text-white/35">{item.job_title || item.job_fingerprint} · {item.company_name || "Company"} · {Math.round(Number(item.decision_score))}% · {item.task_status}</p>
+                <p className="truncate text-[9px] text-white/35">{item.job_title || item.job_fingerprint} · {item.company_name || "Company"} · {Math.round(Number(item.decision_score))}% · {item.effective_status}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2"><a href={item.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-cyan-200/60 hover:text-cyan-100">Open</a>{item.task_status === "open" ? <button type="button" onClick={() => void updateTask(item.id, "completed")} className="text-[9px] text-emerald-200/70 hover:text-emerald-100">Done</button> : <button type="button" onClick={() => void updateTask(item.id, "open")} className="text-[9px] text-cyan-200/70 hover:text-cyan-100">Resume</button>}<span className="text-[9px] text-white/30">{new Date(item.created_at).toLocaleDateString("en-IN")}</span></div>
+              <div className="flex shrink-0 items-center gap-2"><a href={item.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-cyan-200/60 hover:text-cyan-100">Open</a>{item.effective_status === "open" ? <button type="button" onClick={() => void updateTask(item.id, "completed")} className="text-[9px] text-emerald-200/70 hover:text-emerald-100">Done</button> : <button type="button" onClick={() => void updateTask(item.id, "open")} className="text-[9px] text-cyan-200/70 hover:text-cyan-100">Resume</button>}<span className="text-[9px] text-white/30">{new Date(item.created_at).toLocaleDateString("en-IN")}</span></div>
             </div>
           ))}
           {!actionHistory.length && <p className="text-xs text-white/35">No actions recorded yet.</p>}
