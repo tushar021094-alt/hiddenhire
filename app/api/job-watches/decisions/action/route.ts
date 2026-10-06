@@ -73,10 +73,31 @@ export async function POST(request: Request) {
   });
   if (notificationError) return NextResponse.json({ error: "Action recorded, but notification could not be created." }, { status: 500 });
 
+  const workflow = requestedAction === "follow_up"
+    ? {
+        type: "follow_up",
+        title: `Follow up with ${opportunity.company}`,
+        message: `Hi, I’m following up on my application for the ${opportunity.title} role. I remain very interested in the opportunity and would be happy to provide any additional information. Thank you for your consideration.`,
+        timing: applicationStatus === "shortlisted" ? "Follow up today." : "Follow up now, then wait 3–5 business days before another check-in.",
+      }
+    : requestedAction === "prepare"
+      ? {
+          type: "interview_prep",
+          title: `Prepare for ${opportunity.title}`,
+          checklist: [
+            "Review the role requirements and map your strongest experience to each requirement.",
+            "Prepare a concise 60-second introduction focused on measurable results.",
+            "Prepare 3 STAR examples covering ownership, problem-solving, and measurable impact.",
+            "Prepare 3 role-specific questions to ask the interviewer.",
+          ],
+        }
+      : null;
+
   return NextResponse.json({
     success: true,
     action: requestedAction,
     nextStep: requestedAction === "prepare" ? "interview_prep" : requestedAction === "follow_up" ? "follow_up" : requestedAction === "review" ? "review" : "watch",
     decision,
+    workflow,
   });
 }
