@@ -76,7 +76,10 @@ export default function JobWatchManager(props: Props) {
     }
   }, []);
 
-  useEffect(() => {\n    const timer = window.setTimeout(() => { void load(); }, 0);\n    return () => window.clearTimeout(timer);\n  }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function createWatch() {
     setWorking("create");
