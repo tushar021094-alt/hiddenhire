@@ -406,7 +406,7 @@ export function sortMatches(profile: CandidateProfile, jobs: Job[], calibrationA
     .map((job) => {
       const match = calculateJobMatch(profile, job);
       const score = applyScoreCalibration(match.score, calibrationAdjustment);
-      const learningAttributes = { source: job.source, role: job.jobFunction || classifyJobFunction(job.title), remote: job.remote };
+      const learningAttributes = { source: job.source, role: job.jobFunction || classifyJobFunction(job.title), remote: job.remote, score };
       const learningAdjustment = learningPolicy ? getLearningPolicyAdjustment(learningAttributes, learningPolicy) : 0;
       const learnedScore = applyLearningPolicy(score, learningAttributes, learningPolicy ?? { eligible: false, sampleSize: 0, boosts: [], penalties: [] });
       return { ...match, score: learnedScore, matchTier: getMatchTier(learnedScore), learningAdjustment };
