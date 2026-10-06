@@ -9,6 +9,7 @@ export type CareerAttributionObservation = CareerLearningObservation & {
 const POSITIVE = new Set(["applied", "reviewing", "shortlisted", "interview", "hired"]);
 const STRONG = new Set(["interview", "hired"]);
 const MIN_SAMPLE = 20;
+const MIN_POLICY_SAMPLE = 30;
 
 function scoreBand(score: number) {
   if (score >= 85) return "85-100";
@@ -67,5 +68,40 @@ export function buildAttributionInsights(observations: CareerAttributionObservat
       .filter((item): item is NonNullable<typeof item> => item !== null)
   ).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 5);
 
-  return { dimensions: attribution, recommendations };
+  const policy = {
+    eligible: observations.length >= MIN_POLICY_SAMPLE,
+    sampleSize: observations.length,
+    boosts: recommendations.filter((item) => item.direction === "positive" && item.sampleSize >= MIN_POLICY_SAMPLE).map((item) => ({
+      dimension: item.dimension,
+      group: item.group,
+      points: Math.min(2, Math.max(1, Math.round(item.delta / 10))),
+    })).slice(0, 3),
+    penalties: recommendations.filter((item) => item.direction === "negative" && item.sampleSize >= MIN_POLICY_SAMPLE).map((item) => ({
+      dimension: item.dimension,
+      group: item.group,
+      points: -Math.min(2, Math.max(1, Math.round(Math.abs(item.delta) / 10))),
+    })).slice(0, 3),
+  };
+
+  return { dimensions: attribution, recommendations, policy };
+}
+
+export function applyLearningPolicy(
+  baseScore: number,
+  attributes: { source?: string | null; role?: string | null; remote?: boolean | null },
+  policy: ReturnType<typeof buildAttributionInsights>["policy"],
+) {
+  if (!policy.eligible) return Math.max(0, Math.min(100, Math.round(baseScore)));
+  let adjustment = 0;
+  for (const signal of [...policy.boosts, ...policy.penalties]) {
+    const value = signal.dimension === "remote"
+      ? (attributes.remote ? "remote" : "non_remote")
+      : signal.dimension === "source"
+        ? attributes.source || "unknown"
+        : signal.dimension === "role"
+          ? attributes.role || "unknown"
+          : null;
+    if (value === signal.group) adjustment += signal.points;
+  }
+  return Math.max(0, Math.min(100, Math.round(baseScore + Math.max(-4, Math.min(4, adjustment)))));
 }
