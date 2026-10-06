@@ -55,6 +55,7 @@ export async function POST(request: Request) {
   const { error: actionError } = await supabase.from("career_agent_actions").upsert({
     candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
     decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
+    job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
   if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
