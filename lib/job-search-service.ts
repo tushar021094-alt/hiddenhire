@@ -196,10 +196,6 @@ export async function searchJobs(profile: Record<string, unknown>) {
   const queries = buildDiscoveryQueries(profile, candidateProfile, expandedRoles);
 
   const demoMode = Boolean(profile.demo || profile.demoMode === 'demo');
-  const expandedRoles = buildExpandedRoleQueries(profile as Parameters<typeof buildExpandedRoleQueries>[0]);
-  const candidateProfile = normalizeCandidateProfile(profile, expandedRoles);
-  const queries = buildDiscoveryQueries(profile, candidateProfile, expandedRoles);
-
   if (demoMode) {
     const demoJobs = await new (await import('@/lib/job-source')).SeedJobSource().fetchJobs();
     const demoMatches = sortMatches(candidateProfile, demoJobs);
