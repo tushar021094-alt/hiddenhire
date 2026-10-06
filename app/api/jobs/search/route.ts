@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { searchJobs, validSearchProfile } from '@/lib/job-search-service';
 export { normalizeCandidateProfile, buildDiscoveryQueries, deduplicateJobs } from '@/lib/job-search-service';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit';
+import { getAuthenticatedUser } from '@/lib/supabase/server';
+import { calibrateScore } from '@/lib/career-score-calibration';
 
 const MAX_BODY_BYTES = 64_000;
 
@@ -46,7 +48,33 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(await searchJobs(profile));
+    let calibrationAdjustment = 0;
+    const auth = await getAuthenticatedUser();
+    if (auth.user) {
+      const { data: actions } = await auth.supabase
+        .from("career_agent_actions")
+        .select("source_url,outcome,decision_score")
+        .eq("candidate_id", auth.user.id)
+        .limit(500);
+      const { data: applications } = await auth.supabase
+        .from("applications")
+        .select("status,jobs(application_url)")
+        .eq("candidate_id", auth.user.id)
+        .limit(500);
+      const normalize = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
+      const applicationByUrl = new Map<string, string>();
+      for (const application of applications ?? []) {
+        const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+        const url = normalize(jobs?.application_url);
+        if (url) applicationByUrl.set(url, application.status);
+      }
+      const observations = (actions ?? [])
+        .map((action) => ({ score: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" }))
+        .filter((item) => item.outcome !== "not_started");
+      const calibration = calibrateScore(observations);
+      calibrationAdjustment = calibration.eligible ? calibration.adjustment : 0;
+    }
+    return NextResponse.json(await searchJobs(profile, calibrationAdjustment));
   } catch (error) {
     console.error('Search error', error);
     return NextResponse.json(
