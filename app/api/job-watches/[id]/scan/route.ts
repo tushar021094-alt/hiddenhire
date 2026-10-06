@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildJobFingerprint, classifyWatchEvent, eventPriority, type WatchableMatch } from "@/lib/job-watch";
+import { searchJobs } from "@/lib/job-search-service";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -17,9 +18,23 @@ export async function POST(request: Request, context: Context) {
   if (!watch.enabled) return NextResponse.json({ error: "This job watch is disabled." }, { status: 409 });
 
   const body = await request.json().catch(() => null);
-  const matches = body && typeof body === "object" && Array.isArray((body as { matches?: unknown }).matches)
+  let matches = body && typeof body === "object" && Array.isArray((body as { matches?: unknown }).matches)
     ? (body as { matches: unknown[] }).matches.slice(0, MAX_MATCHES)
     : [];
+
+  if (matches.length === 0) {
+    const searchResult = await searchJobs({
+      targetJobTitle: Array.isArray(watch.target_roles) ? watch.target_roles[0] || "Finance Manager" : "Finance Manager",
+      targetRoles: Array.isArray(watch.target_roles) ? watch.target_roles : [],
+      preferredLocations: Array.isArray(watch.preferred_locations) ? watch.preferred_locations : [],
+      preferredCountries: Array.isArray(watch.preferred_countries) ? watch.preferred_countries : ["India"],
+      skills: Array.isArray(watch.skills) ? watch.skills : [],
+      minimumSalary: Number(watch.minimum_salary ?? 0),
+      preferredCurrency: typeof watch.currency === "string" ? watch.currency : "INR",
+      remoteOnly: Boolean(watch.remote_only),
+    });
+    matches = Array.isArray(searchResult.results) ? searchResult.results.slice(0, MAX_MATCHES) : [];
+  }
 
   const usable = matches.filter((item): item is WatchableMatch =>
     Boolean(item && typeof item === "object" && (item as WatchableMatch).job &&
