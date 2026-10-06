@@ -398,6 +398,29 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         .upsert(actionsToCreate, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
       if (actionError) throw new Error("Unable to create Career Agent tasks.");
 
+      const taskNotifications = actionsToCreate
+        .filter((task) => task.action !== "watch")
+        .map((task) => ({
+          profile_id: watch.candidate_id,
+          type: "career_agent",
+          title: task.action === "apply_now" ? "Application task ready"
+            : task.action === "review" ? "Job review needed"
+            : task.action === "prepare" ? "Interview preparation needed"
+            : "Follow-up task ready",
+          body: `${task.job_title || "Opportunity"} at ${task.company_name || "the company"} — Career Agent recommends ${task.action.replace("_", " ")}.`,
+          data: {
+            watchId: watch.id,
+            jobFingerprint: task.job_fingerprint,
+            action: task.action,
+            sourceUrl: task.source_url,
+            decisionScore: task.decision_score,
+          },
+        }));
+      if (taskNotifications.length) {
+        const { error: taskNotificationError } = await supabase.from("notifications").insert(taskNotifications);
+        if (taskNotificationError) throw new Error("Unable to create Career Agent task notifications.");
+      }
+
       const reactivationFingerprints = actionsToCreate
         .filter((task) => events.some((event) =>
           String(event.job_fingerprint) === task.job_fingerprint &&
