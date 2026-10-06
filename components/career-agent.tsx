@@ -46,7 +46,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
-  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; created_at: string }>>([]);
+  const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number }>>([]);\n  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -98,7 +98,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     }
   }
 
-  async function updateTask(id: string, taskStatus: "open" | "completed" | "dismissed") {
+  async function refreshTodayQueue() { try { const response = await fetch("/api/job-watches/decisions/today"); const payload = await response.json(); if (response.ok && Array.isArray(payload?.items)) setTodayQueue(payload.items); } catch {} }\n\n  async function updateTask(id: string, taskStatus: "open" | "completed" | "dismissed") {
     try {
       const response = await fetch("/api/job-watches/decisions/task", {
         method: "PATCH",
@@ -137,7 +137,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       if (payload?.workflow) setWorkflow(payload.workflow);
       const historyResponse = await fetch("/api/job-watches/decisions/actions");
       const historyPayload = await historyResponse.json();
-      if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);
+      if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);\n      await refreshTodayQueue();
       if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
@@ -147,7 +147,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
+    void refreshTodayQueue();\n    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
@@ -218,7 +218,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       </div>
 
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
-        <div className="flex items-center justify-between">
+        <div className="border-b border-white/10 px-5 py-4 sm:px-6"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Today</p><span className="text-[10px] text-white/30">{todayQueue.length} priority actions</span></div><div className="mt-3 space-y-2">{todayQueue.slice(0, 5).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2"><div className="min-w-0"><p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()} · {item.job_title || "Opportunity"}</p><p className="truncate text-[9px] text-white/35">{item.company_name || "Company"} · {Math.round(Number(item.decision_score))}%{item.overdue ? " · DUE NOW" : ""}</p></div><a href={item.source_url} target="_blank" rel="noreferrer" className="shrink-0 text-[9px] text-cyan-200/70">Open</a></div>))}{!todayQueue.length && <p className="text-xs text-white/35">Nothing needs your attention right now.</p>}</div></div>\n\n<div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Decision Engine</p>
           <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
         </div>
