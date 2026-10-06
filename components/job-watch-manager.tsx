@@ -49,6 +49,7 @@ function eventTone(type: string) {
 export default function JobWatchManager(props: Props) {
   const [watches, setWatches] = useState<Watch[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [memory, setMemory] = useState<Array<{ jobFingerprint: string; title: string; company: string; location: string; applicationUrl: string; latestScore: number; peakScore: number; trend: string; attentionScore: number; whyNow: string[] }>>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState("");
   const [error, setError] = useState("");
@@ -66,8 +67,12 @@ export default function JobWatchManager(props: Props) {
         const eventResponse = await fetch("/api/job-watches/events");
         const eventData = await eventResponse.json();
         if (eventResponse.ok) setEvents(Array.isArray(eventData.events) ? eventData.events : []);
+        const memoryResponse = await fetch("/api/job-watches/memory");
+        const memoryData = await memoryResponse.json();
+        if (memoryResponse.ok) setMemory(Array.isArray(memoryData.opportunities) ? memoryData.opportunities : []);
       } else {
         setEvents([]);
+        setMemory([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load watches.");
@@ -214,6 +219,34 @@ export default function JobWatchManager(props: Props) {
                 <div className="mt-2 text-[9px] text-white/25">{watch.last_scanned_at ? `Last scanned ${new Date(watch.last_scanned_at).toLocaleString("en-IN")}` : "Not scanned yet"}</div>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-xl border border-cyan-300/10 bg-cyan-300/[0.02] p-4 lg:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-300/70">Intelligent Opportunity Memory</div>
+                <div className="mt-1 text-sm font-semibold">What is becoming more relevant</div>
+              </div>
+              <span className="text-[10px] text-white/30">{memory.length} tracked</span>
+            </div>
+            <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {memory.length === 0 ? (
+                <div className="py-5 text-xs text-white/30 md:col-span-2 xl:col-span-3">History will build automatically as your watches detect changes.</div>
+              ) : memory.slice(0, 6).map((item) => (
+                <a key={item.jobFingerprint} href={item.applicationUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/10 bg-black/10 p-3 transition hover:border-cyan-300/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-xs font-semibold">{item.title}</span>
+                    <span className="shrink-0 text-[9px] font-bold text-cyan-200">{item.attentionScore}</span>
+                  </div>
+                  <div className="mt-1 truncate text-[10px] text-white/40">{item.company} · {item.location}</div>
+                  <div className="mt-2 flex items-center gap-2 text-[9px]">
+                    <span className="rounded border border-white/10 px-1.5 py-0.5 text-white/45">{item.trend}</span>
+                    <span className="text-white/35">{item.latestScore}% match · peak {item.peakScore}%</span>
+                  </div>
+                  <div className="mt-2 truncate text-[9px] text-cyan-100/60">WHY NOW · {item.whyNow.join(" · ")}</div>
+                </a>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-black/10 p-4">
