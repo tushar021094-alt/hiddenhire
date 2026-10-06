@@ -1,4 +1,5 @@
 import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildJobFingerprint, classifyWatchEvent, eventPriority } from "@/lib/job-watch";
@@ -67,7 +68,7 @@ describe("Career Agent watch event ranking", () => {
       if (priorityDelta !== 0) return priorityDelta;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-    expect(ranked.map((event) => event.priority)).toEqual([95, 95, 70]);
-    expect(ranked[0].created_at).toBe("2026-10-06T11:00:00Z");
+    assert.deepEqual(ranked.map((event) => event.priority), [95, 95, 70]);
+    assert.equal(ranked[0].created_at, "2026-10-06T11:00:00Z");
   });
 });
