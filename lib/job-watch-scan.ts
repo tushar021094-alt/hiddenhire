@@ -1,5 +1,5 @@
 import type { WatchableMatch } from "@/lib/job-watch";
-import { buildJobFingerprint, classifyWatchEvent, eventPriority } from "@/lib/job-watch";
+import { buildJobFingerprint, classifyWatchEvent, eventPriority, type JobWatchEventType } from "@/lib/job-watch";
 import { searchJobs } from "@/lib/job-search-service";
 
 type Watch = {
@@ -86,7 +86,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       new Date(previous.lastSeenAt).getTime() < new Date(watch.last_scanned_at).getTime()
     );
 
-    const eventType = !previous ? "new" :
+    const eventType: JobWatchEventType = !previous ? "new" :
       wasAbsentSinceLastScan ? "reopened" :
       classifyWatchEvent(previous, match);
 
