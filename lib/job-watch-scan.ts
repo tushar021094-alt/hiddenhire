@@ -129,6 +129,11 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         postedDate: match.job.postedDate ?? null,
         priority: eventPriority(eventType, score),
         watchName: watch.name,
+        description: match.job.description ?? null,
+        requiredSkills: match.job.requiredSkills ?? [],
+        requiredExperience: match.job.requiredExperience ?? null,
+        industry: match.job.industry ?? null,
+        source: match.job.source ?? null,
       },
     });
   }
