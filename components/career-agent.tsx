@@ -43,6 +43,8 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -91,6 +93,33 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       setError(err instanceof Error ? err.message : "Agent scan failed.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function executeDecision(item: DecisionItem) {
+    const action = item.decision.action;
+    if (action === "ignore") return;
+    const key = item.applicationUrl + action;
+    setActionLoading(key);
+    setActionMessage(null);
+    try {
+      const response = await fetch("/api/job-watches/decisions/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobFingerprint: item.applicationUrl, action }),
+      });
+      const payload = await response.json();
+      if (response.status === 409 && payload?.decision) {
+        setDecisions((current) => current.map((entry) => entry.applicationUrl === item.applicationUrl ? { ...entry, decision: payload.decision } : entry));
+        throw new Error("This opportunity changed. The recommendation was refreshed.");
+      }
+      if (!response.ok) throw new Error(payload?.message || "Action could not be completed.");
+      setActionMessage(payload?.nextStep ? "Done — next step: " + String(payload.nextStep).replace("_", " ") + "." : "Action recorded.");
+      if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
+    } finally {
+      setActionLoading(null);
     }
   }
 
@@ -169,17 +198,27 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {decisions.slice(0, 6).map((item) => (
-            <a key={item.applicationUrl} href={item.applicationUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/10 bg-black/10 p-3 hover:border-cyan-300/20">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-xs font-semibold">{item.title}</span>
-                <span className="shrink-0 text-[9px] font-bold text-cyan-200">{item.decision.action.replace("_", " ").toUpperCase()}</span>
+          {actionMessage && <p className="mb-2 rounded-lg border border-cyan-300/10 bg-cyan-300/[0.03] p-2 text-[10px] text-cyan-100/80">{actionMessage}</p>}
+          {decisions.slice(0, 6).map((item) => {
+            const key = item.applicationUrl + item.decision.action;
+            return (
+              <div key={item.applicationUrl} className="rounded-lg border border-white/10 bg-black/10 p-3 hover:border-cyan-300/20">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-semibold">{item.title}</span>
+                  <span className="shrink-0 text-[9px] font-bold text-cyan-200">{item.decision.action.replace("_", " ").toUpperCase()}</span>
+                </div>
+                <div className="mt-1 truncate text-[10px] text-white/40">{item.company} · {item.location} · {item.latestScore}%</div>
+                <div className="mt-2 text-[9px] text-white/50">{item.decision.reason}</div>
+                <div className="mt-2 text-[9px] text-cyan-100/60">Confidence {item.decision.confidence}% · {item.decision.urgency} urgency</div>
+                <div className="mt-3 flex items-center gap-2">
+                  <button type="button" onClick={() => void executeDecision(item)} disabled={actionLoading !== null} className="rounded-md bg-cyan-300/10 px-2.5 py-1.5 text-[10px] font-semibold text-cyan-100 disabled:opacity-50">
+                    {actionLoading === key ? "Working…" : item.decision.action === "apply_now" ? "Apply now →" : item.decision.action.replace("_", " ").replace(/^./, (v) => v.toUpperCase())}
+                  </button>
+                  <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="text-[10px] text-white/40 hover:text-white/70">Open job</a>
+                </div>
               </div>
-              <div className="mt-1 truncate text-[10px] text-white/40">{item.company} · {item.location} · {item.latestScore}%</div>
-              <div className="mt-2 text-[9px] text-white/50">{item.decision.reason}</div>
-              <div className="mt-2 text-[9px] text-cyan-100/60">Confidence {item.decision.confidence}% · {item.decision.urgency} urgency</div>
-            </a>
-          ))}
+            );
+          })}
           {!decisions.length && <p className="py-4 text-xs text-white/35 md:col-span-2 xl:col-span-3">No decision-worthy opportunity yet. The agent will populate this after watch history builds.</p>}
         </div>
       </div>
