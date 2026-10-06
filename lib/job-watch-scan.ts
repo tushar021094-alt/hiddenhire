@@ -177,7 +177,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       .eq("candidate_id", watch.candidate_id)
       .limit(100);
 
-    const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\\/$/, "").toLowerCase() : "";
+    const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
     const applicationByUrl = new Map<string, string>();
     for (const application of applications ?? []) {
       const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
