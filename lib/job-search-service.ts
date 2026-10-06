@@ -181,14 +181,6 @@ export function deduplicateJobs<T extends { company: string; title: string; loca
   });
 }
 
-export async function GET() {
-  return NextResponse.json({
-    ok: true,
-    message: 'Use POST to search jobs with candidate preferences.',
-    sources: registry.sources.map((source) => source.name),
-  });
-}
-
 
 export async function searchJobs(profile: Record<string, unknown>) {
   const expandedRoles = buildExpandedRoleQueries(profile as Parameters<typeof buildExpandedRoleQueries>[0]);
@@ -199,13 +191,13 @@ export async function searchJobs(profile: Record<string, unknown>) {
   if (demoMode) {
     const demoJobs = await new (await import('@/lib/job-source')).SeedJobSource().fetchJobs();
     const demoMatches = sortMatches(candidateProfile, demoJobs);
-    return NextResponse.json({
+    return {
     dataMode: 'demo',
     results: demoMatches,
     count: demoMatches.length,
     message: 'Demo mode enabled.',
     sources: ['seed'],
-    });
+    };
   }
 
   const inventoryQuery = { ...queries[0], targetRole: '', targetJobTitle: '' };
