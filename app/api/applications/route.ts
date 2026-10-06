@@ -165,16 +165,6 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Unable to update the application status." }, { status: 500 });
       }
 
-      if (profile?.role === "employer" || profile?.role === "agency") {
-        await supabase.from("notifications").insert({
-          profile_id: application.candidate_id,
-          type: `application_status_${status}`,
-          title: `Application status updated`,
-          body: `Your application has moved to ${status}.`,
-          data: { applicationId: application.id, jobId: application.job_id, status },
-        });
-      }
-
       return NextResponse.json({ success: true, application });
     }
 
