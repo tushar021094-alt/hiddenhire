@@ -210,22 +210,21 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     }
 
     const memories = buildOpportunityMemory((watchEvents ?? []) as OpportunityMemoryEvent[]);
-    const { data: priorActions } = await supabase
-      .from("career_agent_actions")
-      .select("job_fingerprint,action,task_status,outcome,created_at")
+    const { data: priorStates, error: priorStateError } = await supabase
+      .from("career_agent_opportunity_state")
+      .select("job_fingerprint,last_decision,task_status,outcome")
       .eq("candidate_id", watch.candidate_id)
-      .in("job_fingerprint", fingerprintsForActions)
-      .order("created_at", { ascending: false })
-      .limit(500);
+      .eq("watch_id", watch.id)
+      .in("job_fingerprint", fingerprintsForActions);
+    if (priorStateError) throw new Error("Unable to load Career Agent opportunity state.");
+
     const priorActionByFingerprint = new Map<string, { action: string; taskStatus: "open" | "completed" | "dismissed"; outcome: string }>();
-    for (const action of priorActions ?? []) {
-      if (!priorActionByFingerprint.has(action.job_fingerprint)) {
-        priorActionByFingerprint.set(action.job_fingerprint, {
-          action: action.action,
-          taskStatus: action.task_status,
-          outcome: action.outcome,
-        });
-      }
+    for (const state of priorStates ?? []) {
+      priorActionByFingerprint.set(state.job_fingerprint, {
+        action: state.last_decision || "watch",
+        taskStatus: state.task_status,
+        outcome: state.outcome || "not_started",
+      });
     }
     const actionsToCreate = [];
     for (const opportunity of memories) {
@@ -284,6 +283,48 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         due_at: decision.action === "follow_up" ? new Date(Date.now() + (applicationStatus === "shortlisted" ? 0 : 5 * 86_400_000)).toISOString() : null,
         last_reminded_at: null,
       });
+    }
+
+    const stateNow = new Date().toISOString();
+    const stateRows = memories
+      .filter((opportunity) => fingerprintsForActions.includes(opportunity.jobFingerprint))
+      .map((opportunity) => {
+        const prior = priorActionByFingerprint.get(opportunity.jobFingerprint);
+        const decision = decideOpportunityAction(opportunity, {
+          application: { status: applicationByUrl.get(normalizeUrl(opportunity.applicationUrl)) },
+          alreadyApplied: Boolean(applicationByUrl.get(normalizeUrl(opportunity.applicationUrl))),
+          priorAction: prior ? {
+            action: prior.action as "apply_now" | "review" | "prepare" | "follow_up" | "watch",
+            taskStatus: prior.taskStatus,
+            outcome: prior.outcome,
+          } : undefined,
+        });
+        const latestEvent = (watchEvents ?? [])
+          .filter((event) => event.job_fingerprint === opportunity.jobFingerprint)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        const material = latestEvent && ["reopened", "score_increase", "salary_change", "location_change"].includes(latestEvent.event_type)
+          ? latestEvent.event_type
+          : null;
+        return {
+          watch_id: watch.id,
+          candidate_id: watch.candidate_id,
+          job_fingerprint: opportunity.jobFingerprint,
+          latest_score: opportunity.latestScore,
+          trend: opportunity.trend,
+          last_material_event: material,
+          last_decision: decision.action,
+          task_status: decision.action === "ignore" && prior ? prior.taskStatus : "open",
+          outcome: applicationByUrl.get(normalizeUrl(opportunity.applicationUrl)) ?? prior?.outcome ?? "not_started",
+          last_decision_at: stateNow,
+          last_seen_at: stateNow,
+          updated_at: stateNow,
+        };
+      });
+    if (stateRows.length) {
+      const { error: stateUpsertError } = await supabase
+        .from("career_agent_opportunity_state")
+        .upsert(stateRows, { onConflict: "watch_id,job_fingerprint" });
+      if (stateUpsertError) throw new Error("Unable to persist Career Agent opportunity state.");
     }
 
     if (actionsToCreate.length) {
