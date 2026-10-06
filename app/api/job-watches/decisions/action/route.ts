@@ -72,11 +72,31 @@ export async function POST(request: Request) {
         }
       : null;
 
+  const { data: openActions, error: openActionError } = await supabase
+    .from("career_agent_actions")
+    .select("id,action")
+    .eq("candidate_id", user.id)
+    .eq("job_fingerprint", jobFingerprint)
+    .eq("task_status", "open");
+  if (openActionError) return NextResponse.json({ error: "Unable to reconcile existing Career Agent actions." }, { status: 500 });
+
+  const supersededIds = (openActions ?? [])
+    .filter((item) => item.action !== requestedAction)
+    .map((item) => item.id);
+  if (supersededIds.length) {
+    const { error: supersedeError } = await supabase
+      .from("career_agent_actions")
+      .update({ task_status: "dismissed", completed_at: null, last_evaluated_at: new Date().toISOString() })
+      .in("id", supersededIds)
+      .eq("candidate_id", user.id);
+    if (supersedeError) return NextResponse.json({ error: "Unable to supersede the previous recommendation." }, { status: 500 });
+  }
+
   const { error: actionError } = await supabase.from("career_agent_actions").upsert({
     candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
     decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
     job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
-    workflow,
+    workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
   if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
