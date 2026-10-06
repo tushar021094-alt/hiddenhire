@@ -124,252 +124,138 @@ export default async function DashboardPage() {
     typeof profile?.experience_years === "number" && profile.experience_years > 0,
   ];
   const profileReadiness = Math.round((profileSignals.filter(Boolean).length / profileSignals.length) * 100);
+  const applicationList = Array.isArray(candidateApplications) ? candidateApplications : [];
+  const interviewCount = applicationList.filter((application) => application.status === "interview").length;
+  const activeApplicationCount = applicationList.filter((application) => ["applied", "reviewing", "shortlisted", "interview"].includes(application.status)).length;
+  const firstName = name.split(" ")[0];
+
 
   return (
-    <main className="app-v2 min-h-screen bg-[#f7f9fc] text-slate-900">
-      <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-semibold tracking-tight">
-              Hidden<span className="text-cyan-300">Hire</span>
-            </Link>
-            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
-              {role === "candidate" && <>
-                <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-900">Overview</Link>
-                <Link href="/jobs" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Discover</Link>
-                <Link href="/applications" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Applications</Link>
-                <Link href="/profile" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Profile</Link>
-              </>}
-              {role !== "candidate" && <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-900">Workspace</Link>}
-            </nav>
-          </div>
-          <div className="flex items-center gap-3 text-sm text-white/60">
-            <span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-cyan-200">
-              {role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : role === "candidate" ? "Candidate" : "Admin"}
-            </span>
-            <span className="hidden lg:block">{user.email}</span>
+    <main className="hh-dashboard">
+      <div className="hh-shell">
+        <header className="hh-topbar">
+          <Link href="/" className="hh-brand" aria-label="HiddenHire home">
+            <span className="hh-brand-mark"><i /><i /><i /></span>
+            <span>Hidden<span>Hire</span></span>
+          </Link>
+          <div className="hh-command"><span className="hh-command-icon">⌕</span><span>Search jobs, companies, skills or anything...</span><kbd>⌘ K</kbd></div>
+          <div className="hh-top-actions">
+            <button className="hh-icon-button" aria-label="Notifications">♧<b /></button>
+            <div className="hh-user">
+              <div className="hh-avatar">{firstName.slice(0, 1).toUpperCase()}</div>
+              <div className="hh-user-copy"><strong>{name}</strong><span>{role === "candidate" ? "Job Seeker" : role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : "Admin"}</span></div>
+              <span className="hh-chevron">⌄</span>
+            </div>
           </div>
         </header>
 
-        <section className="relative overflow-hidden py-14 lg:py-20">
-          <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="pointer-events-none absolute right-0 top-10 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="hh-layout">
+          <aside className="hh-sidebar">
+            <nav aria-label="Dashboard navigation">
+              {role === "candidate" ? <>
+                <Link href="/dashboard" className="hh-nav-item is-active"><span>⌂</span>Dashboard</Link>
+                <Link href="/jobs" className="hh-nav-item"><span>⌘</span>Job Discovery</Link>
+                <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
+                <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
+                <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
+                <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
+              </> : <Link href="/dashboard" className="hh-nav-item is-active"><span>⌂</span>Workspace</Link>}
+              <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
+              <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
+            </nav>
 
-          <div className="relative max-w-4xl">
-            <p className="mb-4 text-sm font-medium uppercase tracking-[0.22em] text-cyan-300">{copy.eyebrow}</p>
-            <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
-              Hi {name.split(" ")[0]},<br />
-              <span className="text-cyan-300">{copy.title}</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">{copy.subtitle}</p>
-          </div>
-        </section>
+            {isRecruiter && <div className="hh-side-section">
+              <small>FOR RECRUITERS</small>
+              <Link href="/recruiter" className="hh-nav-item"><span>⚑</span>Post a Job</Link>
+              <Link href="/recruiter" className="hh-nav-item"><span>♙</span>Find Talent</Link>
+              <Link href="/recruiter" className="hh-nav-item"><span>▦</span>Recruiter Dashboard</Link>
+            </div>}
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {copy.cards.map(([title, description]) => (
-            <article key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/20">
-              <div className="mb-8 h-2 w-16 rounded-full bg-cyan-300/70" />
-              <h2 className="text-xl font-semibold">{title}</h2>
-              <p className="mt-3 text-sm leading-6 text-white/55">{description}</p>
-            </article>
-          ))}
-        </section>
+            {role === "candidate" && <div className="hh-pro-card">
+              <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
+              <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
+              <Link href="/profile">Explore Pro <span>→</span></Link>
+            </div>}
+            <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
+          </aside>
 
-        {role === "candidate" && (
-          <CareerAgent
-            targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []}
-            preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []}
-            location={profile?.location ?? null}
-            skills={skills}
-            yearsOfExperience={Number(profile?.experience_years ?? 0)}
-            minimumSalary={Number(profile?.min_salary ?? 0)}
-            remoteOnly={Boolean(profile?.remote_only)}
-            applications={Array.isArray(candidateApplications) ? candidateApplications : []}
-          />
-        )}
-
-        {role === "candidate" && (
-          <JobWatchManager
-            targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []}
-            preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []}
-            skills={skills}
-            minimumSalary={Number(profile?.min_salary ?? 0)}
-            currency="INR"
-            remoteOnly={Boolean(profile?.remote_only)}
-          />
-        )}
-
-        {isRecruiter ? (
-          <section className="mt-6 space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Total jobs</p>
-                <p className="mt-3 text-3xl font-semibold">{recruiterJobCount}</p>
-                <p className="mt-2 text-sm text-white/45">Jobs created by your account</p>
-              </article>
-
-              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Pending review</p>
-                <p className="mt-3 text-3xl font-semibold">{recruiterPendingCount}</p>
-                <p className="mt-2 text-sm text-white/45">Jobs awaiting approval</p>
-              </article>
-
-              <article className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Published</p>
-                <p className="mt-3 text-3xl font-semibold">{recruiterPublishedCount}</p>
-                <p className="mt-2 text-sm text-white/45">Live jobs on HiddenHire</p>
-              </article>
+          <section className="hh-content">
+            <div className="hh-hero">
+              <div className="hh-hero-art" aria-hidden="true"><div className="hh-stars" /><div className="hh-planet" /><div className="hh-city"><i /><i /><i /><i /><i /></div></div>
+              <div className="hh-hero-copy">
+                <p className="hh-eyebrow">{copy.eyebrow} <span className="hh-live-dot" /> LIVE</p>
+                <h1>Good morning, {firstName}.<br /><span>Your next opportunity is closer than you think.</span></h1>
+                <p>{copy.subtitle}</p>
+                <div className="hh-hero-pills"><span>✦ AI-powered matching</span><span>◎ Global opportunities</span><span>◈ Personalized insights</span></div>
+              </div>
+              <div className="hh-agent-card">
+                <div className="hh-agent-icon">✦</div>
+                <div className="hh-agent-title"><strong>{role === "candidate" ? "Your AI Career Agent" : copy.eyebrow}</strong><span>{role === "candidate" ? "ONLINE" : "READY"}</span></div>
+                <p>{role === "candidate" ? "Continuously analyzing opportunities and your career signal." : copy.subtitle}</p>
+                <ul><li><b>✓</b> Profile signal analyzed</li><li><b>✓</b> Matching preferences loaded</li><li><b>•</b> Finding your best opportunities</li></ul>
+                <Link href={role === "candidate" ? "/jobs" : isRecruiter ? "/recruiter" : "/dashboard"}>{role === "candidate" ? "View matched jobs" : copy.primary} <span>→</span></Link>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                    Recruiter workspace
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold">
-                    Your jobs
-                  </h2>
-                  <p className="mt-2 text-sm text-white/55">
-                    Create jobs, review matching candidates, and manage your hiring workflow.
-                  </p>
+            {role === "candidate" ? <>
+              <div className="hh-stat-grid">
+                <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">◎</span><div><small>Applications</small><strong>{applicationCount ?? 0}</strong><em>{activeApplicationCount} active</em></div><i className="hh-sparkline" /></article>
+                <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">▤</span><div><small>Interviews</small><strong>{interviewCount}</strong><em>Tracked in your pipeline</em></div><i className="hh-sparkline" /></article>
+                <article className="hh-stat-card stat-pink"><span className="hh-stat-icon">✦</span><div><small>Profile strength</small><strong>{profileReadiness}%</strong><em>{profileReadiness < 100 ? "Room to improve" : "Profile ready"}</em></div><i className="hh-sparkline" /></article>
+                <article className="hh-stat-card stat-gold"><span className="hh-stat-icon">◉</span><div><small>Skills tracked</small><strong>{skills.length}</strong><em>{skills.length ? "Matching signal active" : "Add skills to improve"}</em></div><i className="hh-sparkline" /></article>
+              </div>
+
+              <div className="hh-main-grid">
+                <section className="hh-panel hh-jobs-panel">
+                  <div className="hh-panel-heading"><div><small>OPPORTUNITY STREAM</small><h2>Top matches for you</h2></div><Link href="/jobs">View all <span>→</span></Link></div>
+                  <div className="hh-tabs"><span className="is-active">For You</span><span>Recent</span><span>Remote</span><span>High Salary</span></div>
+                  <div className="hh-job-list">
+                    {applicationList.length > 0 ? applicationList.slice(0, 4).map((application) => {
+                      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+                      const company = job && Array.isArray(job.companies) ? job.companies[0] : job?.companies;
+                      return <article key={application.id} className="hh-job-row">
+                        <div className="hh-company-mark">{(company?.name || "H").slice(0, 1).toUpperCase()}</div>
+                        <div className="hh-job-info"><strong>{job?.title || "Application"}</strong><span>{company?.name || "HiddenHire opportunity"} · {application.status.replace("_", " ")}</span><div><i>Tracked</i><i>{new Date(application.created_at).toLocaleDateString()}</i></div></div>
+                        <span className="hh-match-badge">Active</span><Link href="/applications" className="hh-job-action">Open</Link>
+                      </article>;
+                    }) : <div className="hh-empty-job"><div className="hh-empty-icon">✦</div><div><strong>Your opportunity stream is ready.</strong><p>Complete your profile and discover roles ranked around your real career signal.</p></div><Link href="/jobs" className="hh-job-action">Discover jobs</Link></div>}
+                  </div>
+                </section>
+
+                <aside className="hh-right-stack">
+                  <section className="hh-panel hh-plan-card">
+                    <div className="hh-panel-heading"><div><small>CAREER AGENT</small><h2>Today's plan</h2></div><span>LIVE</span></div>
+                    <div className="hh-plan-item"><b>✦</b><div><strong>Review your highest matches</strong><small>Let the agent prioritize what deserves attention.</small></div><span>›</span></div>
+                    <div className="hh-plan-item"><b>✓</b><div><strong>Keep applications moving</strong><small>Track responses and prepare next steps.</small></div><span>›</span></div>
+                    <div className="hh-plan-item"><b>↗</b><div><strong>{profileReadiness < 100 ? "Strengthen your profile" : "Review your career signal"}</strong><small>{profileReadiness < 100 ? "Small improvements can increase match quality." : "Your profile is ready for active discovery."}</small></div><span>›</span></div>
+                  </section>
+
+                  <section className="hh-panel hh-profile-card">
+                    <div className="hh-panel-heading"><div><small>PROFILE SIGNAL</small><h2>Career readiness</h2></div></div>
+                    <div className="hh-ring" style={{"--readiness": profileReadiness + "%"} as React.CSSProperties}><span>{profileReadiness}%</span></div>
+                    <p>{profileReadiness < 100 ? "Complete the remaining profile signals to improve matching precision." : "Your core profile signals are complete."}</p>
+                    <Link href="/profile">Improve profile <span>→</span></Link>
+                  </section>
+                </aside>
+              </div>
+
+              <div id="career-agent" className="hh-agent-section"><CareerAgent targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} location={profile?.location ?? null} skills={skills} yearsOfExperience={Number(profile?.experience_years ?? 0)} minimumSalary={Number(profile?.min_salary ?? 0)} remoteOnly={Boolean(profile?.remote_only)} applications={applicationList} /></div>
+              <div id="learning" className="hh-watch-section"><JobWatchManager targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} skills={skills} minimumSalary={Number(profile?.min_salary ?? 0)} currency="INR" remoteOnly={Boolean(profile?.remote_only)} /></div>
+            </> : (
+              <section className="hh-recruiter-workspace">
+                <div className="hh-stat-grid">
+                  <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">▦</span><div><small>Total jobs</small><strong>{recruiterJobCount}</strong><em>Created by your account</em></div></article>
+                  <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">◷</span><div><small>Pending review</small><strong>{recruiterPendingCount}</strong><em>Awaiting approval</em></div></article>
+                  <article className="hh-stat-card stat-pink"><span className="hh-stat-icon">✓</span><div><small>Published</small><strong>{recruiterPublishedCount}</strong><em>Live on HiddenHire</em></div></article>
                 </div>
-
-                <Link
-                  href="/recruiter"
-                  className="rounded-xl bg-cyan-300 px-5 py-3 text-center text-sm font-semibold text-slate-950"
-                >
-                  Post a job
-                </Link>
-              </div>
-
-              <div className="mt-6 overflow-hidden rounded-xl border border-white/10">
-                {recruiterJobList.length === 0 ? (
-                  <div className="p-6 text-sm text-white/50">
-                    You have not created any jobs yet.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-white/10">
-                    {recruiterJobList.map((job) => (
-                      <div
-                        key={job.id}
-                        className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <h3 className="font-medium">{job.title}</h3>
-                          <p className="mt-1 text-sm text-white/45">
-                            {job.city || job.region || "India"}
-                            {job.remote ? " · Remote" : ""}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/65">
-                            {job.status.replace("_", " ")}
-                          </span>
-
-                          <Link
-                            href={`/recruiter/jobs/${job.id}`}
-                            className="text-sm font-medium text-cyan-300 hover:text-cyan-200"
-                          >
-                            Manage
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                <section className="hh-panel hh-recruiter-list">
+                  <div className="hh-panel-heading"><div><small>RECRUITER WORKSPACE</small><h2>Your jobs</h2></div><Link href="/recruiter">Post a job <span>→</span></Link></div>
+                  {recruiterJobList.length === 0 ? <div className="hh-empty-job"><div className="hh-empty-icon">✦</div><div><strong>No jobs created yet.</strong><p>Create your first role and let HiddenHire build the matching pipeline.</p></div><Link href="/recruiter" className="hh-job-action">Post a job</Link></div> : recruiterJobList.map((job) => <div key={job.id} className="hh-recruiter-row"><div><strong>{job.title}</strong><span>{job.city || job.region || "India"}{job.remote ? " · Remote" : ""}</span></div><span className="hh-status-pill">{job.status.replace("_", " ")}</span><Link href={"/recruiter/jobs/" + job.id}>Manage →</Link></div>)}
+                </section>
+              </section>
+            )}
           </section>
-        ) : (
-          <section className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_.6fr]">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">AI workspace</p>
-                  <h2 className="mt-2 text-2xl font-semibold">{copy.primary}</h2>
-                </div>
-                <span className="rounded-full border border-cyan-300/20 px-3 py-1 text-xs text-cyan-200">Ready</span>
-              </div>
-
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55">
-                Your next dashboard modules will appear here as we connect real profiles, jobs, applications and matching data to Supabase.
-              </p>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Profile readiness</p>
-                  <p className="mt-2 text-2xl font-semibold text-cyan-200">{profileReadiness}%</p>
-                  <p className="mt-1 text-xs text-white/45">Completeness signal</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Applications</p>
-                  <p className="mt-2 text-2xl font-semibold">{applicationCount ?? 0}</p>
-                  <p className="mt-1 text-xs text-white/45">Tracked in HiddenHire</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">Next move</p>
-                  <p className="mt-2 text-sm font-semibold text-emerald-200">{profileReadiness < 100 ? "Strengthen profile" : "Review matches"}</p>
-                  <p className="mt-1 text-xs text-white/45">Career agent recommendation</p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href={role === "candidate" ? "/onboarding" : "/recruiter"}
-                  className="rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
-                >
-                  {copy.primary}
-                </Link>
-
-                <Link
-  href={
-    role === "admin"
-      ? "/admin/moderation"
-      : role === "candidate"
-        ? "/jobs"
-        : "/recruiter"
-  }
-  className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white"
->
-  {copy.secondary}
-</Link>
-              </div>
-            </div>
-
-            <aside className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/40">Profile signal</p>
-
-              <div className="mt-5 space-y-4 text-sm">
-                <div className="flex justify-between gap-4">
-                  <span className="text-white/45">Experience</span>
-                  <span>{profile?.experience_years ?? 0} yrs</span>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-white/45">Location</span>
-                  <span>{profile?.location || "Not set"}</span>
-                </div>
-
-                <div>
-                  <span className="text-white/45">Skills</span>
-
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(skills.length ? skills.slice(0, 8) : ["Add skills"]).map((skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-white/70"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </aside>
-          </section>
-        )}
+        </div>
       </div>
     </main>
   );
