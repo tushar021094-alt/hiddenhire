@@ -231,7 +231,12 @@ export default function JobWatchManager(props: Props) {
                     <span className={`rounded-md border px-2 py-1 text-[9px] font-semibold ${eventTone(event.event_type)}`}>{eventLabel(event.event_type)}</span>
                     <span className="text-[9px] text-white/25">{new Date(event.created_at).toLocaleDateString("en-IN")}</span>
                   </div>
-                  <div className="mt-2 truncate text-xs font-semibold">{String(event.payload.title || "Opportunity")}</div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0 truncate text-xs font-semibold">{String(event.payload.title || "Opportunity")}</div>
+                    {typeof event.payload.priority === "number" && event.payload.priority >= 90 && (
+                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-cyan-200">Priority</span>
+                    )}
+                  </div>
                   <div className="mt-1 truncate text-[10px] text-white/40">{String(event.payload.company || "Company")} · {String(event.payload.location || "Location")}</div>
                   <div className="mt-2 flex gap-2 text-[10px] text-white/50">
                     <span>{event.previous_score === null ? "New" : `${event.previous_score} → ${event.current_score}`}</span>
