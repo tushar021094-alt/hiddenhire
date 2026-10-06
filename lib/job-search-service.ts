@@ -182,7 +182,7 @@ export function deduplicateJobs<T extends { company: string; title: string; loca
 }
 
 
-export async function searchJobs(profile: Record<string, unknown>) {
+export async function searchJobs(profile: Record<string, unknown>, calibrationAdjustment = 0) {
   const expandedRoles = buildExpandedRoleQueries(profile as Parameters<typeof buildExpandedRoleQueries>[0]);
   const candidateProfile = normalizeCandidateProfile(profile, expandedRoles);
   const queries = buildDiscoveryQueries(profile, candidateProfile, expandedRoles);
@@ -225,7 +225,7 @@ export async function searchJobs(profile: Record<string, unknown>) {
 const roleMatched = deduped.filter((job) =>
   isJobEligible(searchIntent, job),
 );
-  const ranked = sortMatches(candidateProfile, roleMatched);
+  const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment);
   const returned = ranked.slice(0, 20);
   const sourceMetrics = collected.metrics;
 
