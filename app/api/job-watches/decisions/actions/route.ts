@@ -13,5 +13,32 @@ export async function GET() {
     .limit(50);
 
   if (error) return NextResponse.json({ error: "Unable to load Career Agent action history." }, { status: 500 });
-  return NextResponse.json({ actions: data ?? [] });
+
+  const { data: applications } = await supabase
+    .from("applications")
+    .select("status,jobs(application_url)")
+    .eq("candidate_id", user.id)
+    .limit(100);
+
+  const normalize = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
+  const applicationByUrl = new Map<string, string>();
+  for (const application of applications ?? []) {
+    const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+    const url = normalize(jobs?.application_url);
+    if (url) applicationByUrl.set(url, application.status);
+  }
+
+  const actions = (data ?? []).map((action) => {
+    const applicationStatus = applicationByUrl.get(normalize(action.source_url)) ?? null;
+    let effectiveStatus = action.task_status;
+    if (action.action === "follow_up" && applicationStatus && ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) {
+      effectiveStatus = "completed";
+    }
+    if (action.action === "prepare" && applicationStatus && ["rejected", "withdrawn", "hired"].includes(applicationStatus)) {
+      effectiveStatus = "dismissed";
+    }
+    return { ...action, application_status: applicationStatus, effective_status: effectiveStatus };
+  });
+
+  return NextResponse.json({ actions });
 }
