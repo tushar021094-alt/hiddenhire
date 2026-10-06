@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { buildLearningInsights } from "@/lib/career-learning";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
 
@@ -31,6 +32,9 @@ export async function GET() {
     const url = normalize(jobs?.application_url);
     if (url) applicationByUrl.set(url, application.status);
   }
+
+  const learningObservations = (actions ?? []).filter((action) => OUTCOMES.includes((applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started") as typeof OUTCOMES[number])).map((action) => ({ action: action.action, decisionScore: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" }));
+  const learning = buildLearningInsights(learningObservations);
 
   const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
   const actionCounts: Record<string, number> = {};
@@ -66,5 +70,6 @@ export async function GET() {
     outcomes: outcomeCounts,
     actions_by_type: actionCounts,
     conversion_by_action: conversionByAction,
+    learning,
   });
 }
