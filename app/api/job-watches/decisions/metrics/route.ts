@@ -1,0 +1,70 @@
+import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
+
+const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
+
+export async function GET() {
+  const { supabase, user, error: authError } = await getAuthenticatedUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
+  }
+
+  const { data: actions, error } = await supabase
+    .from("career_agent_actions")
+    .select("id,action,source_url,task_status,outcome,outcome_at,created_at")
+    .eq("candidate_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) return NextResponse.json({ error: "Unable to load Career Agent outcome metrics." }, { status: 500 });
+
+  const { data: applications } = await supabase
+    .from("applications")
+    .select("status,jobs(application_url)")
+    .eq("candidate_id", user.id)
+    .limit(500);
+
+  const normalize = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
+  const applicationByUrl = new Map<string, string>();
+  for (const application of applications ?? []) {
+    const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+    const url = normalize(jobs?.application_url);
+    if (url) applicationByUrl.set(url, application.status);
+  }
+
+  const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
+  const actionCounts: Record<string, number> = {};
+  const conversionByAction: Record<string, { actions: number; applied: number; interviews: number; hired: number }> = {};
+
+  for (const action of actions ?? []) {
+    const applicationStatus = applicationByUrl.get(normalize(action.source_url));
+    const outcome = applicationStatus || action.outcome || "not_started";
+    outcomeCounts[outcome] = (outcomeCounts[outcome] || 0) + 1;
+    actionCounts[action.action] = (actionCounts[action.action] || 0) + 1;
+    const bucket = conversionByAction[action.action] ||= { actions: 0, applied: 0, interviews: 0, hired: 0 };
+    bucket.actions += 1;
+    if (["applied","reviewing","shortlisted","interview","hired"].includes(outcome)) bucket.applied += 1;
+    if (["interview","hired"].includes(outcome)) bucket.interviews += 1;
+    if (outcome === "hired") bucket.hired += 1;
+  }
+
+  const total = actions?.length ?? 0;
+  const applicationsCreated = [...applicationByUrl.values()].length;
+  const interviews = [...applicationByUrl.values()].filter((status) => status === "interview" || status === "hired").length;
+  const hires = [...applicationByUrl.values()].filter((status) => status === "hired").length;
+
+  return NextResponse.json({
+    totals: {
+      actions: total,
+      applications: applicationsCreated,
+      interviews,
+      hires,
+      application_conversion_rate: total ? Math.round((applicationsCreated / total) * 100) : 0,
+      interview_conversion_rate: applicationsCreated ? Math.round((interviews / applicationsCreated) * 100) : 0,
+      hire_conversion_rate: applicationsCreated ? Math.round((hires / applicationsCreated) * 100) : 0,
+    },
+    outcomes: outcomeCounts,
+    actions_by_type: actionCounts,
+    conversion_by_action: conversionByAction,
+  });
+}
