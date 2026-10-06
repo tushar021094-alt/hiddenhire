@@ -47,3 +47,17 @@ test("reopened rejected opportunity can be reviewed again", () => {
 test("shortlisted opportunity becomes follow up", () => {
   assert.equal(decideOpportunityAction(opportunity, { application: { status: "shortlisted" } }).action, "follow_up");
 });
+
+test("completed task stays ignored without a material signal", () => {
+  const stable = { ...opportunity, trend: "stable" as const };
+  assert.equal(decideOpportunityAction(stable, { priorAction: { action: "review", taskStatus: "completed", outcome: "not_started" } }).action, "ignore");
+});
+
+test("completed task can reactivate after a material change", () => {
+  assert.equal(decideOpportunityAction(opportunity, { priorAction: { action: "review", taskStatus: "completed", outcome: "not_started" } }).action, "apply_now");
+});
+
+test("dismissed task stays ignored without a material signal", () => {
+  const stable = { ...opportunity, trend: "stable" as const };
+  assert.equal(decideOpportunityAction(stable, { priorAction: { action: "watch", taskStatus: "dismissed", outcome: "not_started" } }).action, "ignore");
+});
