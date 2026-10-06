@@ -129,7 +129,7 @@ export default async function RecruiterJobPage({
       : "Not specified";
 
   return (
-    <main className="min-h-screen bg-[#08090d] px-5 py-10 text-white">
+    <main className="app-v2 recruiter-detail-v2 min-h-screen bg-[#08090d] px-5 py-10 text-white">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
