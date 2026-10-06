@@ -33,14 +33,16 @@ export function buildApplicationPreparation(input: ApplicationPreparationInput) 
   const summaryBase = clean(input.candidate.headline) || ((experienceYears ?? "Experienced") + "-year professional targeting " + role + " opportunities.");
   const focusSkills = (matchedSkills.length ? matchedSkills : candidateSkills).slice(0, 6);
   const professionalSummary = summaryBase.replace(/[.]+$/, "") + ". For " + role + " at " + company + ", emphasize " + (focusSkills.join(", ") || "the skills most relevant to the job description") + " and quantify your strongest relevant results without adding claims that are not supported by your experience.";
-  const coverLetter = "Dear Hiring Team,
-
-I am interested in the " + role + " opportunity at " + company + ". My background aligns with the role through my experience in " + (focusSkills.join(", ") || "relevant professional responsibilities") + ".
-
-I would welcome the opportunity to discuss how my experience can contribute to the team. I have tailored my application to the requirements of this role and can provide additional context on relevant projects, responsibilities, and measurable results.
-
-Regards,
-Candidate";
+  const coverLetter = [
+    "Dear Hiring Team,",
+    "",
+    "I am interested in the " + role + " opportunity at " + company + ". My background aligns with the role through my experience in " + (focusSkills.join(", ") || "relevant professional responsibilities") + ".",
+    "",
+    "I would welcome the opportunity to discuss how my experience can contribute to the team. I have tailored my application to the requirements of this role and can provide additional context on relevant projects, responsibilities, and measurable results.",
+    "",
+    "Regards,",
+    "Candidate",
+  ].join("\n");
   return {
     role, company, location: clean(input.location, "Location not specified"), source: clean(input.job.source), matchedSkills, missingSkills, experienceFit, professionalSummary, coverLetter,
     requirementChecklist: [
