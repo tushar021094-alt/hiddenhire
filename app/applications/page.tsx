@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Application = {
@@ -37,6 +37,16 @@ const statusLabels: Record<string, string> = {
   withdrawn: "Withdrawn",
 };
 
+const statusTone: Record<string, string> = {
+  applied: "is-blue",
+  reviewing: "is-indigo",
+  shortlisted: "is-violet",
+  interview: "is-amber",
+  hired: "is-green",
+  rejected: "is-red",
+  withdrawn: "is-gray",
+};
+
 type Company = { name: string | null } | { name: string | null }[] | null | undefined;
 
 function companyName(company: Company) {
@@ -50,6 +60,10 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function isActive(status: string) {
+  return !["rejected", "withdrawn", "hired"].includes(status);
 }
 
 export default function ApplicationsPage() {
@@ -105,149 +119,159 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     let cancelled = false;
-
     async function initialise() {
-      if (cancelled) return;
-      await loadApplications();
+      if (!cancelled) await loadApplications();
     }
-
     void initialise();
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const counts = useMemo(
+    () => ({
+      total: applications.length,
+      active: applications.filter((a) => isActive(a.status)).length,
+      interviews: applications.filter((a) => a.status === "interview").length,
+      offers: applications.filter((a) => a.status === "hired").length,
+    }),
+    [applications],
+  );
+
+  const filtered = applications.filter((application) => {
+    if (filter === "active") return isActive(application.status);
+    if (filter === "interviews") return application.status === "interview";
+    if (filter === "offers") return application.status === "hired";
+    return true;
+  });
+
   return (
-    <main className="app-v2 min-h-screen bg-[#f7f9fc] text-slate-900">
-      <div className="mx-auto max-w-5xl px-6 py-6 lg:px-10">
-        <header className="flex items-center justify-between border-b border-white/10 pb-5">
-          <Link href="/dashboard" className="text-xl font-semibold tracking-tight">
-            Hidden<span className="text-cyan-300">Hire</span>
-          </Link>
-          <Link
-            href="/jobs"
-            className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:border-cyan-300/30 hover:text-cyan-200"
-          >
-            Find jobs
-          </Link>
+    <main className="app-v2 applications-v2 min-h-screen text-slate-900">
+      <div className="workspace-shell">
+        <header className="workspace-header">
+          <div className="workspace-brand-row">
+            <Link href="/dashboard" className="workspace-brand">
+              Hidden<span>Hire</span>
+            </Link>
+            <nav className="workspace-nav" aria-label="Candidate navigation">
+              <Link href="/dashboard">Overview</Link>
+              <Link href="/jobs">Discover</Link>
+              <Link href="/applications" className="is-active">Applications</Link>
+              <Link href="/profile">Profile</Link>
+            </nav>
+          </div>
+          <Link href="/jobs" className="workspace-header-action">Find jobs <span>↗</span></Link>
         </header>
 
-        <section className="py-12">
-          <p className="text-sm uppercase tracking-[0.22em] text-cyan-300">Candidate workspace</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">My applications</h1>
-          <p className="mt-4 max-w-2xl text-white/55">
-            Track every HiddenHire application and see when a recruiter moves it forward.
-          </p>
+        <section className="workspace-hero applications-hero">
+          <div>
+            <span className="workspace-eyebrow">Candidate workspace</span>
+            <h1>Applications, without the spreadsheet.</h1>
+            <p>Keep your pipeline visible, understand where each opportunity stands, and move quickly when a recruiter responds.</p>
+          </div>
+          <div className="hero-action-card">
+            <span>Next best move</span>
+            <strong>{counts.active ? "Review your active pipeline" : "Find your next strong match"}</strong>
+            <Link href={counts.active ? "/applications" : "/jobs"}>{counts.active ? "Open pipeline →" : "Explore matches →"}</Link>
+          </div>
         </section>
 
-        {loading && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-white/60">
-            Loading your applications…
-          </div>
-        )}
+        {loading && <div className="workspace-state">Loading your application pipeline…</div>}
 
         {!loading && error && (
-          <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-6 text-red-200">{error}</div>
+          <div className="workspace-state workspace-state-error">{error}</div>
         )}
 
-        {!loading && !error && applications.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8">
-            <h2 className="text-xl font-semibold">No applications yet</h2>
-            <p className="mt-2 text-sm leading-6 text-white/55">
-              Your applications will appear here after you apply to a native HiddenHire job.
-            </p>
-            <Link
-              href="/jobs"
-              className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
-            >
-              Explore matched jobs →
-            </Link>
-          </div>
-        )}
-
-        {!loading && !error && applications.length > 0 && (
+        {!loading && !error && (
           <>
-            <section className="mb-5 grid gap-3 sm:grid-cols-4">
+            <section className="application-metrics" aria-label="Application summary">
               {[
-                ['Total', applications.length],
-                ['Active', applications.filter((a) => !['rejected', 'withdrawn', 'hired'].includes(a.status)).length],
-                ['Interviews', applications.filter((a) => a.status === 'interview').length],
-                ['Offers', applications.filter((a) => a.status === 'hired').length],
-              ].map(([label, value]) => (
-                <button key={label} type="button" onClick={() => setFilter(label === 'Total' ? 'all' : label.toString().toLowerCase())} className={`rounded-xl border p-4 text-left transition ${filter === (label === 'Total' ? 'all' : label.toString().toLowerCase()) ? 'border-cyan-300/30 bg-cyan-300/5' : 'border-white/10 bg-white/[0.025]'}`}>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/40">{label}</p>
-                  <p className="mt-2 text-2xl font-semibold">{value}</p>
+                ["all", "Total applications", counts.total, "Everything you have submitted"],
+                ["active", "Active", counts.active, "Still moving through a process"],
+                ["interviews", "Interviews", counts.interviews, "Roles that reached interview"],
+                ["offers", "Offers", counts.offers, "Successful outcomes"],
+              ].map(([key, label, value, hint]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(String(key))}
+                  className={`application-metric ${filter === key ? "is-selected" : ""}`}
+                >
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                  <small>{hint}</small>
                 </button>
               ))}
             </section>
-            <section className="space-y-4">
-            {applications.filter((application) => {
-              if (filter === 'all') return true;
-              if (filter === 'active') return !['rejected', 'withdrawn', 'hired'].includes(application.status);
-              if (filter === 'interviews') return application.status === 'interview';
-              if (filter === 'offers') return application.status === 'hired';
-              return true;
-            }).map((application) => {
-              const job = application.jobs;
-              const location = job?.remote
-                ? "Remote"
-                : job?.city || job?.region || job?.location || job?.country || "Location flexible";
-              const salary =
-                job?.salary_min || job?.salary_max
-                  ? `${job.currency || "INR"} ${job.salary_min?.toLocaleString() || "—"}–${job.salary_max?.toLocaleString() || "—"}`
-                  : null;
 
-              return (
-                <article
-                  key={application.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.035] p-6"
-                >
-                  <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-cyan-300/80">
-                        {statusLabels[application.status] || application.status}
-                      </p>
-                      <h2 className="mt-2 text-xl font-semibold">
-                        {job?.title || "Untitled role"}
-                      </h2>
-                      <p className="mt-1 text-sm text-white/55">{companyName(job?.companies)}</p>
-                    </div>
-                    <span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1.5 text-xs font-medium text-cyan-200">
-                      {statusLabels[application.status] || application.status}
-                    </span>
-                  </div>
+            {applications.length === 0 ? (
+              <section className="application-empty">
+                <div className="empty-orb">↗</div>
+                <div>
+                  <span className="workspace-eyebrow">Pipeline is empty</span>
+                  <h2>Your next opportunity starts with a strong match.</h2>
+                  <p>Your applications will appear here after you apply to a native HiddenHire job.</p>
+                  <Link href="/jobs" className="workspace-primary-button">Explore matched jobs →</Link>
+                </div>
+              </section>
+            ) : filtered.length === 0 ? (
+              <section className="workspace-state">
+                No applications match this view. Choose another pipeline filter above.
+              </section>
+            ) : (
+              <section className="application-list" aria-label="Applications">
+                {filtered.map((application) => {
+                  const job = application.jobs;
+                  const location = job?.remote
+                    ? "Remote"
+                    : job?.city || job?.region || job?.location || job?.country || "Location flexible";
+                  const salary =
+                    job?.salary_min || job?.salary_max
+                      ? `${job.currency || "INR"} ${job.salary_min?.toLocaleString() || "—"}–${job.salary_max?.toLocaleString() || "—"}`
+                      : null;
+                  const tone = statusTone[application.status] || "is-gray";
 
-                  <div className="mt-5 flex flex-wrap gap-2 text-xs text-white/55">
-                    <span className="rounded-full bg-white/5 px-2.5 py-1">{location}</span>
-                    {salary && <span className="rounded-full bg-white/5 px-2.5 py-1">{salary}</span>}
-                    <span className="rounded-full bg-white/5 px-2.5 py-1">
-                      Applied {formatDate(application.created_at)}
-                    </span>
-                  </div>
+                  return (
+                    <article key={application.id} className="application-card">
+                      <div className="application-card-main">
+                        <div className="application-card-title">
+                          <div className={`application-status ${tone}`}>
+                            <span />
+                            {statusLabels[application.status] || application.status}
+                          </div>
+                          <h2>{job?.title || "Untitled role"}</h2>
+                          <p>{companyName(job?.companies)}</p>
+                        </div>
 
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <Link
-                      href="/jobs"
-                      className="inline-flex rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/75 hover:border-cyan-300/30 hover:text-cyan-200"
-                    >
-                      Back to matches
-                    </Link>
-                    {application.status !== "withdrawn" &&
-                      application.status !== "rejected" &&
-                      application.status !== "hired" && (
-                        <button
-                          type="button"
-                          onClick={() => withdraw(application.id)}
-                          className="inline-flex rounded-xl border border-red-300/15 px-4 py-2.5 text-sm text-red-200/70 hover:border-red-300/30 hover:text-red-100"
-                        >
-                          Withdraw
-                        </button>
-                      )}
-                  </div>
-                </article>
-              );
-            })}
-            </section>
+                        <div className="application-meta">
+                          <span>{location}</span>
+                          {salary && <span>{salary}</span>}
+                          <span>Applied {formatDate(application.created_at)}</span>
+                        </div>
+                      </div>
+
+                      <div className="application-card-side">
+                        <span className={`application-status-pill ${tone}`}>
+                          {statusLabels[application.status] || application.status}
+                        </span>
+                        <div className="application-actions">
+                          <Link href="/jobs" className="workspace-secondary-button">View matches</Link>
+                          {isActive(application.status) && (
+                            <button
+                              type="button"
+                              onClick={() => withdraw(application.id)}
+                              className="workspace-danger-button"
+                            >
+                              Withdraw
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+            )}
           </>
         )}
       </div>
