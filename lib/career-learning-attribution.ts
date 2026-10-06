@@ -109,7 +109,7 @@ export function getLearningPolicyAdjustment(
 
 export function applyLearningPolicy(
   baseScore: number,
-  attributes: { source?: string | null; role?: string | null; remote?: boolean | null },
+  attributes: { source?: string | null; role?: string | null; remote?: boolean | null; score?: number | null },
   policy: ReturnType<typeof buildAttributionInsights>["policy"],
 ) {
   return Math.max(0, Math.min(100, Math.round(baseScore + getLearningPolicyAdjustment(attributes, policy))));
