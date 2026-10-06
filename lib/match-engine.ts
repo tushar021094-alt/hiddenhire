@@ -1,6 +1,7 @@
 import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
 import { getLocationCluster, isIndiaLocation, isLocationMatch } from './location-utils';
 import { applyScoreCalibration } from './career-score-calibration';
+import { applyLearningPolicy, type CareerAttributionObservation } from './career-learning-attribution';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
