@@ -211,8 +211,8 @@ export default async function DashboardPage() {
                   <div className="hh-tabs"><span className="is-active">For You</span><span>Recent</span><span>Remote</span><span>High Salary</span></div>
                   <div className="hh-job-list">
                     {applicationList.length > 0 ? applicationList.slice(0, 4).map((application) => {
-                      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
-                      const company = job && Array.isArray(job.companies) ? job.companies[0] : job?.companies;
+                      const job = (Array.isArray(application.jobs) ? application.jobs[0] : application.jobs) as { title?: string; companies?: { name?: string } | { name?: string }[] } | null;
+                      const company = Array.isArray(job?.companies) ? job.companies[0] : job?.companies;
                       return <article key={application.id} className="hh-job-row">
                         <div className="hh-company-mark">{(company?.name || "H").slice(0, 1).toUpperCase()}</div>
                         <div className="hh-job-info"><strong>{job?.title || "Application"}</strong><span>{company?.name || "HiddenHire opportunity"} · {application.status.replace("_", " ")}</span><div><i>Tracked</i><i>{new Date(application.created_at).toLocaleDateString()}</i></div></div>
