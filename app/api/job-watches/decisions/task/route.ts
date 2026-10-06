@@ -18,7 +18,7 @@ export async function PATCH(request: Request) {
 
   const { data, error } = await supabase
     .from("career_agent_actions")
-    .update({ task_status: taskStatus, completed_at: taskStatus === "completed" ? new Date().toISOString() : null })
+    .update({ task_status: taskStatus, completed_at: taskStatus === "completed" ? new Date().toISOString() : null, due_at: taskStatus === "open" ? undefined : null })
     .eq("id", id)
     .eq("candidate_id", user.id)
     .select("id,job_fingerprint,action,task_status,completed_at")
