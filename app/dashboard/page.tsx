@@ -128,15 +128,26 @@ export default async function DashboardPage() {
   return (
     <main className="app-v2 min-h-screen bg-[#f7f9fc] text-slate-900">
       <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
-        <header className="flex items-center justify-between border-b border-white/10 pb-5">
-          <Link href="/" className="text-xl font-semibold tracking-tight">
-            Hidden<span className="text-cyan-300">Hire</span>
-          </Link>
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="text-xl font-semibold tracking-tight">
+              Hidden<span className="text-cyan-300">Hire</span>
+            </Link>
+            <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
+              {role === "candidate" && <>
+                <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-900">Overview</Link>
+                <Link href="/jobs" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Discover</Link>
+                <Link href="/applications" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Applications</Link>
+                <Link href="/profile" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900">Profile</Link>
+              </>}
+              {role !== "candidate" && <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-900">Workspace</Link>}
+            </nav>
+          </div>
           <div className="flex items-center gap-3 text-sm text-white/60">
             <span className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-cyan-200">
               {role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : role === "candidate" ? "Candidate" : "Admin"}
             </span>
-            <span>{user.email}</span>
+            <span className="hidden lg:block">{user.email}</span>
           </div>
         </header>
 
