@@ -46,7 +46,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
-  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; created_at: string }>>([]);
+  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -128,7 +128,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) setActionHistory(data.actions); }).catch(() => undefined);
+    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown }) => item.workflow)?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
