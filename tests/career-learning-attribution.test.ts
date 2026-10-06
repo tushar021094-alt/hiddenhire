@@ -38,3 +38,13 @@ test("policy adjustment is bounded", () => {
   assert.equal(applyLearningPolicy(99, { source: "strong-source", role: "Finance", remote: false }, result.policy) <= 100, true);
   assert.equal(applyLearningPolicy(1, { source: "other-source", role: "Sales", remote: true }, result.policy) >= 0, true);
 });
+
+test("policy trace matches the applied bounded adjustment", () => {
+  const observations = [
+    ...Array.from({ length: 30 }, () => ({ action: "apply_now", decisionScore: 90, outcome: "hired", source: "strong-source", role: "Finance", remote: false })),
+    ...Array.from({ length: 30 }, () => ({ action: "apply_now", decisionScore: 70, outcome: "rejected", source: "other-source", role: "Sales", remote: true })),
+  ];
+  const result = buildAttributionInsights(observations);
+  const adjustment = getLearningPolicyAdjustment({ source: "strong-source", role: "Finance", remote: false }, result.policy);
+  assert.equal(applyLearningPolicy(80, { source: "strong-source", role: "Finance", remote: false }, result.policy), 80 + adjustment);
+});
