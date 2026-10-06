@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     if (auth.user) {
       const { data: actions } = await auth.supabase
         .from("career_agent_actions")
-        .select("source_url,outcome,decision_score,source_provider,job_function,job_title,is_remote")
+        .select("action,source_url,outcome,decision_score,source_provider,job_function,job_title,is_remote")
         .eq("candidate_id", auth.user.id)
         .limit(500);
       const { data: applications } = await auth.supabase
