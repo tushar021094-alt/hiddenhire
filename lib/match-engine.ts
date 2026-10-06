@@ -1,7 +1,7 @@
 import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
 import { getLocationCluster, isIndiaLocation, isLocationMatch } from './location-utils';
 import { applyScoreCalibration } from './career-score-calibration';
-import { applyLearningPolicy, type CareerAttributionObservation } from './career-learning-attribution';
+import { applyLearningPolicy } from './career-learning-attribution';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
@@ -401,12 +401,13 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
   };
 }
 
-export function sortMatches(profile: CandidateProfile, jobs: Job[], calibrationAdjustment = 0): MatchResult[] {
+export function sortMatches(profile: CandidateProfile, jobs: Job[], calibrationAdjustment = 0, learningPolicy?: ReturnType<typeof import('./career-learning-attribution').buildAttributionInsights>['policy']): MatchResult[] {
   return jobs
     .map((job) => {
       const match = calculateJobMatch(profile, job);
       const score = applyScoreCalibration(match.score, calibrationAdjustment);
-      return { ...match, score, matchTier: getMatchTier(score) };
+      const learnedScore = learningPolicy ? applyLearningPolicy(score, { source: job.source, role: job.jobFunction || classifyJobFunction(job.title), remote: job.remote }, learningPolicy) : score;
+      return { ...match, score: learnedScore, matchTier: getMatchTier(learnedScore) };
     })
     .sort((a, b) => b.score - a.score || b.opportunityScore - a.opportunityScore);
 }
