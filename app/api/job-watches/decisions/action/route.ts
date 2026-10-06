@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildOpportunityMemory, type OpportunityMemoryEvent } from "@/lib/opportunity-memory";
 import { decideOpportunityAction, type CareerDecisionAction } from "@/lib/career-decision";
 import { classifyJobFunction } from "@/lib/match-engine";
+import { buildApplicationPreparation } from "@/lib/application-preparation";
 
 const ACTIONS = new Set<CareerDecisionAction>(["apply_now", "review", "prepare", "follow_up", "watch"]);
 
@@ -101,19 +102,43 @@ export async function POST(request: Request) {
     if (supersedeError) return NextResponse.json({ error: "Unable to supersede the previous recommendation." }, { status: 500 });
   }
 
-  const applicationPreparation = {
-    role: opportunity.title,
-    company: opportunity.company,
-    location: opportunity.location,
-    source: opportunity.applicationUrl,
-    checklist: [
-      "Tailor your resume headline and top achievements to the role.",
-      "Prepare a concise role-specific professional summary.",
-      "Select 3 measurable achievements that match the job requirements.",
-      "Prepare a short explanation for each major requirement you meet.",
-      "Review the employer and role before submitting.",
-    ],
-  };
+  let applicationPreparation: ReturnType<typeof buildApplicationPreparation> | null = null;
+  if (requestedAction === "apply_now") {
+    const latestEventPayload = (events[0]?.payload && typeof events[0].payload === "object" && !Array.isArray(events[0].payload))
+      ? events[0].payload as Record<string, unknown>
+      : {};
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("skills,experience_years,country")
+      .eq("id", user.id)
+      .maybeSingle();
+    const { data: career } = await supabase
+      .from("candidate_profiles")
+      .select("target_roles,headline")
+      .eq("profile_id", user.id)
+      .maybeSingle();
+    applicationPreparation = buildApplicationPreparation({
+      targetRole: opportunity.title,
+      company: opportunity.company,
+      location: opportunity.location,
+      candidate: {
+        headline: career?.headline,
+        targetRole: career?.target_roles?.[0],
+        experienceYears: profile?.experience_years,
+        skills: Array.isArray(profile?.skills) ? profile.skills.filter((value): value is string => typeof value === "string") : [],
+        country: profile?.country,
+      },
+      job: {
+        description: typeof latestEventPayload.description === "string" ? latestEventPayload.description : null,
+        requiredSkills: Array.isArray(latestEventPayload.requiredSkills)
+          ? latestEventPayload.requiredSkills.filter((value): value is string => typeof value === "string")
+          : [],
+        requiredExperience: typeof latestEventPayload.requiredExperience === "number" ? latestEventPayload.requiredExperience : null,
+        industry: typeof latestEventPayload.industry === "string" ? latestEventPayload.industry : null,
+        source: typeof latestEventPayload.source === "string" ? latestEventPayload.source : null,
+      },
+    });
+  }
 
   const { error: actionError } = await supabase.from("career_agent_actions").upsert({
     candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
