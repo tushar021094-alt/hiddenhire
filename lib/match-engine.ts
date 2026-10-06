@@ -1,7 +1,7 @@
 import type { CandidateProfile, FinanceSubfunction, Job, MatchResult, MatchTier } from './job-types';
 import { getLocationCluster, isIndiaLocation, isLocationMatch } from './location-utils';
 import { applyScoreCalibration } from './career-score-calibration';
-import { applyLearningPolicy } from './career-learning-attribution';
+import { applyLearningPolicy, getLearningPolicyAdjustment } from './career-learning-attribution';
 
 const normalizeSkill = (value: string) => value.toLowerCase().trim();
 
@@ -406,8 +406,10 @@ export function sortMatches(profile: CandidateProfile, jobs: Job[], calibrationA
     .map((job) => {
       const match = calculateJobMatch(profile, job);
       const score = applyScoreCalibration(match.score, calibrationAdjustment);
-      const learnedScore = learningPolicy ? applyLearningPolicy(score, { source: job.source, role: job.jobFunction || classifyJobFunction(job.title), remote: job.remote }, learningPolicy) : score;
-      return { ...match, score: learnedScore, matchTier: getMatchTier(learnedScore) };
+      const learningAttributes = { source: job.source, role: job.jobFunction || classifyJobFunction(job.title), remote: job.remote };
+      const learningAdjustment = learningPolicy ? getLearningPolicyAdjustment(learningAttributes, learningPolicy) : 0;
+      const learnedScore = applyLearningPolicy(score, learningAttributes, learningPolicy ?? { eligible: false, sampleSize: 0, boosts: [], penalties: [] });
+      return { ...match, score: learnedScore, matchTier: getMatchTier(learnedScore), learningAdjustment };
     })
     .sort((a, b) => b.score - a.score || b.opportunityScore - a.opportunityScore);
 }
