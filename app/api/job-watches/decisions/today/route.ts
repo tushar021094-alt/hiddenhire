@@ -64,7 +64,7 @@ export async function GET() {
     const overdue = due !== null && due <= now;
     const urgencyBoost = overdue ? 35 : 0;
     const score = rank[item.action] + urgencyBoost + Math.min(15, Math.round(Number(item.decision_score || 0) / 10));
-    return { ...item, application_status: applicationStatus, effective_status: effectiveStatus, overdue, priority_score: score };
+    return { ...item, application_status: applicationStatus, effective_status: effectiveStatus, overdue, priority_score: score, can_execute: true };
   })
     .filter((item) => item.effective_status === "open")
     .sort((a, b) => b.priority_score - a.priority_score)
