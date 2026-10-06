@@ -29,9 +29,21 @@ test("already applied opportunity becomes follow up", () => {
 });
 
 test("active interview takes priority over application action", () => {
-  assert.equal(decideOpportunityAction(opportunity, { hasInterview: true }).action, "prepare");
+  assert.equal(decideOpportunityAction(opportunity, { application: { status: "interview" } }).action, "prepare");
 });
 
 test("moderate match becomes watch", () => {
   assert.equal(decideOpportunityAction({ ...opportunity, latestScore: 68, trend: "stable" }).action, "watch");
+});
+
+test("rejected opportunity stays out of the action queue", () => {
+  assert.equal(decideOpportunityAction({ ...opportunity, trend: "stable" }, { application: { status: "rejected" } }).action, "ignore");
+});
+
+test("reopened rejected opportunity can be reviewed again", () => {
+  assert.equal(decideOpportunityAction({ ...opportunity, trend: "reopened" }, { application: { status: "rejected" } }).action, "review");
+});
+
+test("shortlisted opportunity becomes follow up", () => {
+  assert.equal(decideOpportunityAction(opportunity, { application: { status: "shortlisted" } }).action, "follow_up");
 });
