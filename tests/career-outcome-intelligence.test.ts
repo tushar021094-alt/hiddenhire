@@ -1,1 +1,15 @@
-import { describe, expect, it } from "vitest";\nimport { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";\n\ndescribe("career outcome intelligence", () => {\n  it("calculates funnel and evidence breakdowns", () => {\n    const result = buildOutcomeIntelligence([\n      { action:"apply_now", score:90, outcome:"interview", source:"greenhouse", role:"Finance", remote:false, createdAt:"2026-01-01T00:00:00Z", outcomeAt:"2026-01-04T00:00:00Z" },\n      { action:"review", score:70, outcome:"rejected", source:"lever", role:"Sales", remote:true, createdAt:"2026-01-01T00:00:00Z", outcomeAt:"2026-01-02T00:00:00Z" },\n    ]);\n    expect(result.summary.resolved).toBe(2);\n    expect(result.summary.positiveRate).toBe(50);\n    expect(result.summary.interviewOrHireRate).toBe(50);\n    expect(result.summary.medianOutcomeDays).toBe(2);\n    expect(result.breakdowns.find((x) => x.dimension === "score_band")?.results[0].group).toBe("85-100");\n  });\n});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { buildOutcomeIntelligence } from "../lib/career-outcome-intelligence";
+
+test("calculates funnel and evidence breakdowns", () => {
+  const result = buildOutcomeIntelligence([
+    { action:"apply_now", score:90, outcome:"interview", source:"greenhouse", role:"Finance", remote:false, createdAt:"2026-01-01T00:00:00Z", outcomeAt:"2026-01-04T00:00:00Z" },
+    { action:"review", score:70, outcome:"rejected", source:"lever", role:"Sales", remote:true, createdAt:"2026-01-01T00:00:00Z", outcomeAt:"2026-01-02T00:00:00Z" },
+  ]);
+  assert.equal(result.summary.resolved, 2);
+  assert.equal(result.summary.positiveRate, 50);
+  assert.equal(result.summary.interviewOrHireRate, 50);
+  assert.equal(result.summary.medianOutcomeDays, 2);
+  assert.equal(result.breakdowns.find((x) => x.dimension === "score_band")?.results[0].group, "85-100");
+});
