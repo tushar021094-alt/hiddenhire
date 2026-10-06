@@ -448,6 +448,10 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       const { error: outcomeError } = await supabase.from("career_agent_actions").update({ outcome: "not_started", outcome_at: null, outcome_source: null }).eq("id", task.id).eq("candidate_id", watch.candidate_id);
       if (outcomeError) throw new Error("Unable to reconcile Career Agent outcomes.");
     }
+    if (task.action === "apply_now" && applicationStatus) {
+      completedTaskIds.push(task.id);
+      continue;
+    }
     if (task.action === "follow_up" && applicationStatus &&
       ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) {
       completedTaskIds.push(task.id);
