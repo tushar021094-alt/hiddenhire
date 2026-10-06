@@ -2,6 +2,7 @@ import type { WatchableMatch } from "@/lib/job-watch";
 import { buildJobFingerprint, classifyWatchEvent, eventPriority, type JobWatchEventType } from "@/lib/job-watch";
 import { buildOpportunityMemory, type OpportunityMemoryEvent } from "@/lib/opportunity-memory";
 import { decideOpportunityAction } from "@/lib/career-decision";
+import { classifyJobFunction } from "@/lib/match-engine";
 import { searchJobs } from "@/lib/job-search-service";
 
 type Watch = {
@@ -250,6 +251,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         job_location: opportunity.location,
         source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
         is_remote: /remote/i.test(opportunity.location),
+            job_function: classifyJobFunction(opportunity.title),
         workflow,
         task_status: "open",
         completed_at: null,
