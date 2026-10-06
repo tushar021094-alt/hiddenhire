@@ -21,7 +21,7 @@ type LearningMetrics = {
   totals: { actions: number; applications: number; interviews: number; hires: number; application_conversion_rate: number; interview_conversion_rate: number; hire_conversion_rate: number };
   learning: Array<{ action: string; sampleSize: number; eligible: boolean; recommendation: "hold" | "increase" | "decrease"; scoreAdjustment: number; reason: string }>;
   calibration: { eligible: boolean; sampleSize: number; adjustment: number; overallPositiveRate?: number; highScorePositiveRate?: number; lowScorePositiveRate?: number; reason: string };
-  attribution: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>;
+  attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }> };
 };
 
 type Props = {
@@ -312,6 +312,19 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Calibration</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.calibration.eligible ? (learningMetrics.calibration.adjustment > 0 ? "+" : "") + learningMetrics.calibration.adjustment : "HOLD"}</p><p className="text-[9px] text-white/35">{learningMetrics?.calibration.sampleSize ?? 0}/50 outcomes</p></div>
         </div>
         {learningMetrics && <p className="mt-3 text-[9px] leading-4 text-white/40">{learningMetrics.calibration.reason}</p>}
+        {!!learningMetrics?.attribution.recommendations.length && (
+          <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">Learning signals</p>
+            <div className="mt-2 space-y-1.5">
+              {learningMetrics.attribution.recommendations.slice(0, 3).map((item) => (
+                <div key={`${item.dimension}-${item.group}`} className="flex items-center justify-between gap-3 text-[10px]">
+                  <span className="text-white/60">{item.dimension.replace("_", " ")}: <span className="text-white/85">{item.group}</span></span>
+                  <span className={item.direction === "positive" ? "text-emerald-300" : "text-rose-300"}>{item.delta > 0 ? "+" : ""}{item.delta} pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-px bg-white/10 sm:grid-cols-4">
