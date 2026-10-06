@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     follow_up: { title: "Application follow-up", body: `Your application for ${opportunity.title} at ${opportunity.company} is ready for follow-up.` },
     watch: { title: "Opportunity added to watch", body: `Keep watching ${opportunity.title} at ${opportunity.company} for a stronger signal.` },
   };
-  const note = notificationText[requestedAction];
+  const note = notificationText[requestedAction as Exclude<CareerDecisionAction, "apply_now" | "ignore">];
   const { error: notificationError } = await supabase.from("notifications").insert({
     profile_id: user.id, type: `career_agent_${requestedAction}`, title: note.title, body: note.body,
     data: { jobFingerprint, applicationUrl: opportunity.applicationUrl, action: requestedAction },
