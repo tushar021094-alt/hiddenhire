@@ -160,8 +160,31 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       };
     });
 
-    const { error: notificationError } = await supabase.from("notifications").insert(notifications);
-    if (notificationError) throw new Error("Unable to create job watch notifications.");
+    const priorityRank = (value: unknown) => value === "apply_now" ? 3 : value === "strong_match" ? 2 : value === "review" ? 1 : 0;
+    notifications.sort((a, b) => priorityRank(b.data.priority) - priorityRank(a.data.priority));
+
+    const recentKeys = new Set<string>();
+    const { data: recentNotifications, error: recentNotificationError } = await supabase
+      .from("notifications")
+      .select("data")
+      .eq("profile_id", watch.candidate_id)
+      .eq("type", "job_watch")
+      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .limit(200);
+    if (recentNotificationError) throw new Error("Unable to check recent job watch notifications.");
+    for (const notification of recentNotifications ?? []) {
+      const data = notification.data as Record<string, unknown> | null;
+      if (data?.jobFingerprint && data?.eventType) recentKeys.add(String(data.jobFingerprint) + ":" + String(data.eventType));
+    }
+
+    const notificationsToInsert = notifications.filter((notification) => {
+      const key = String(notification.data.jobFingerprint) + ":" + String(notification.data.eventType);
+      return !recentKeys.has(key);
+    });
+    if (notificationsToInsert.length) {
+      const { error: notificationError } = await supabase.from("notifications").insert(notificationsToInsert);
+      if (notificationError) throw new Error("Unable to create job watch notifications.");
+    }
 
     const { data: watchEvents, error: historyError } = await supabase
       .from("job_watch_events")
