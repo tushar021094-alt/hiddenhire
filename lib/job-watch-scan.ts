@@ -68,6 +68,20 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     });
   }
 
+  const recentCutoff = new Date(Date.now() - RECENT_DUPLICATE_MS).toISOString();
+  const { data: recentEvents, error: recentEventsError } = uniqueFingerprints.length
+    ? await supabase.from("job_watch_events")
+        .select("job_fingerprint,event_type")
+        .eq("watch_id", watch.id)
+        .in("job_fingerprint", uniqueFingerprints)
+        .gte("created_at", recentCutoff)
+    : { data: [], error: null };
+  if (recentEventsError) throw new Error("Unable to inspect recent watch events.");
+
+  const recentEventKeys = new Set(
+    (recentEvents ?? []).map((event) => `${event.job_fingerprint}|${event.event_type}`)
+  );
+
   const events: Array<Record<string, unknown>> = [];
   const seen = new Set<string>();
   const threshold = Number(watch.min_match_score ?? 70);
@@ -92,12 +106,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
 
     if (previous && eventType === "reopened" && !wasAbsentSinceLastScan) continue;
 
-    const { data: recentDuplicates, error: duplicateError } = await supabase
-      .from("job_watch_events").select("id")
-      .eq("watch_id", watch.id).eq("job_fingerprint", fingerprint).eq("event_type", eventType)
-      .gte("created_at", new Date(Date.now() - RECENT_DUPLICATE_MS).toISOString()).limit(1);
-    if (duplicateError) throw new Error("Unable to inspect recent watch events.");
-    if (recentDuplicates?.length) continue;
+    if (recentEventKeys.has(`${fingerprint}|${eventType}`)) continue;
 
     events.push({
       watch_id: watch.id,
