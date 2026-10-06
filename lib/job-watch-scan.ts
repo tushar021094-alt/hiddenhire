@@ -343,6 +343,23 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     if (url) applicationByUrl.set(url, application.status);
   }
 
+  const nowMs = Date.now();
+  const dueFollowUps = (openTasks ?? []).filter((task) => task.action === "follow_up" && task.due_at && new Date(task.due_at).getTime() <= nowMs && (!task.last_reminded_at || nowMs - new Date(task.last_reminded_at).getTime() >= RECENT_DUPLICATE_MS));
+  if (dueFollowUps.length) {
+    const reminders = dueFollowUps.map((task) => ({
+      profile_id: watch.candidate_id,
+      type: "career_agent",
+      title: "Follow-up is due",
+      body: `Follow up on ${task.job_title || "your application"} at ${task.company_name || "the company"}.`,
+      data: { jobFingerprint: task.job_fingerprint, action: "follow_up", sourceUrl: task.source_url, priority: "high" },
+    }));
+    const { error: reminderError } = await supabase.from("notifications").insert(reminders);
+    if (reminderError) throw new Error("Unable to create Career Agent follow-up reminders.");
+    const remindedIds = dueFollowUps.map((task) => task.id);
+    const { error: reminderStateError } = await supabase.from("career_agent_actions").update({ last_reminded_at: now }).in("id", remindedIds).eq("candidate_id", watch.candidate_id);
+    if (reminderStateError) throw new Error("Unable to record Career Agent reminders.");
+  }
+
   const staleTaskIds: string[] = [];
   const completedTaskIds: string[] = [];
   for (const task of openTasks ?? []) {
