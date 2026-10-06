@@ -59,7 +59,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null>(null);
-  const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; queue_reason?: string; outcome?: string | null }>>([]);
+  const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; queue_reason?: string; outcome?: string | null; job_fingerprint: string }>>([]);
   const [learningMetrics, setLearningMetrics] = useState<LearningMetrics | null>(null);
   const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
 
@@ -176,7 +176,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   useEffect(() => {
     void refreshTodayQueue();
     void refreshLearningMetrics();
-    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
+    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string; effective_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
