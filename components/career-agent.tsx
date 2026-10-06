@@ -26,6 +26,7 @@ type LearningMetrics = {
   effectiveness: { sampleSize: number; completed: number; dismissed: number; completionRate: number; dismissalRate: number; actions: Array<{ action: string; sampleSize: number; completed: number; dismissed: number; completionRate: number; dismissalRate: number; resolvedOutcomes: number; positiveOutcomeRate: number; interviewOrHireRate: number }> };
   effectivenessPolicy: { eligible: boolean; sampleSize: number; recommendations: Array<{ action: string; direction: "positive" | "negative"; delta: number; reason: string }> };
   outcomeIntelligence?: { summary: { resolved: number; positive: number; interviews: number; hires: number; rejected: number; withdrawn: number; positiveRate: number; interviewOrHireRate: number; hireRate: number; medianOutcomeDays: number | null }; breakdowns: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; hireRate: number }> }> };
+  strategy?: { eligible: boolean; sampleSize: number; headline: string; recommendations: string[]; bottlenecks: string[] };
   attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }> };
 };
 
@@ -257,6 +258,19 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] text-white/35">Median outcome</p><p className="mt-1 text-lg font-semibold">{learningMetrics.outcomeIntelligence.summary.medianOutcomeDays === null ? "—" : learningMetrics.outcomeIntelligence.summary.medianOutcomeDays + "d"}</p></div>
           </div>}
         </div>
+        {learningMetrics?.strategy && <div className="mb-4 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-cyan-200/80">Today&apos;s strategy</p>
+              <p className="mt-1 text-xs font-semibold text-white/85">{learningMetrics.strategy.headline}</p>
+            </div>
+            <span className="shrink-0 text-[9px] text-white/35">{learningMetrics.strategy.sampleSize} resolved</span>
+          </div>
+          {!learningMetrics.strategy.eligible && <p className="mt-2 text-[9px] leading-4 text-white/40">Evidence gate: 30 resolved outcomes are required before targeted strategy changes are recommended.</p>}
+          {learningMetrics.strategy.bottlenecks.length > 0 && <div className="mt-2"><p className="text-[9px] font-semibold uppercase tracking-wider text-amber-200/70">Bottlenecks</p><div className="mt-1 space-y-1">{learningMetrics.strategy.bottlenecks.slice(0, 3).map((item) => <p key={item} className="text-[9px] leading-4 text-white/55">• {item}</p>)}</div></div>}
+          {learningMetrics.strategy.recommendations.length > 0 && <div className="mt-2"><p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">Recommendations</p><div className="mt-1 space-y-1">{learningMetrics.strategy.recommendations.slice(0, 3).map((item) => <p key={item} className="text-[9px] leading-4 text-white/55">• {item}</p>)}</div></div>}
+        </div>}
+
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Decision Engine</p>
           <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
