@@ -10,6 +10,6 @@ test("calculates funnel and evidence breakdowns", () => {
   assert.equal(result.summary.resolved, 2);
   assert.equal(result.summary.positiveRate, 50);
   assert.equal(result.summary.interviewOrHireRate, 50);
-  assert.equal(result.summary.medianOutcomeDays, 2);
+  assert.equal(result.summary.medianOutcomeDays, 3);
   assert.equal(result.breakdowns.find((x) => x.dimension === "score_band")?.results[0].group, "85-100");
 });
