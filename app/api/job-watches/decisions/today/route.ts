@@ -17,35 +17,7 @@ type Action = {
   application_status: string | null;
   due_at: string | null;
   created_at: string;
-};
-
-mport { NextResponse } from "next/server";
-import { getAuthenticatedUser } from "@/lib/supabase/server";
-import { optimizeCareerQueue } from "@/lib/career-agent-queue";
-
-type Action = {
-  id: string;
-  job_fingerprint: string;
-  action: string;
-  decision_score: number;
-  source_url: string;
-  job_title: string | null;
-  company_name: string | null;
-  job_location: string | null;
-  workflow: Record<string, unknown> | null;
-  task_status: "open" | "completed" | "dismissed";
-  effective_status: "open" | "completed" | "dismissed";
-  application_status: string | null;
-  due_at: string | null;
-  created_at: string;
-};
-
-const rank: Record<string, number> = {
-  prepare: 100,
-  follow_up: 90,
-  apply_now: 85,
-  review: 70,
-  watch: 40,
+  [key: string]: unknown;
 };
 
 export async function GET() {
@@ -77,7 +49,7 @@ export async function GET() {
   }
 
   const now = Date.now();
-  const today = (actions ?? []).map((item) => {
+  const today: Action[] = (actions ?? []).map((item) => {
     const applicationStatus = applicationByUrl.get(normalize(item.source_url)) ?? null;
     let effectiveStatus: Action["effective_status"] = item.task_status;
     if (item.action === "follow_up" && applicationStatus && ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) effectiveStatus = "completed";
@@ -93,6 +65,11 @@ export async function GET() {
     };
   });
 
+  const openCount = today.filter((item) => item.effective_status === "open").length;
   const optimized = optimizeCareerQueue(today, now, 12);
-  return NextResponse.json({ items: optimized, count: optimized.length, suppressed: Math.max(0, today.filter((item) => item.effective_status === "open").length - optimized.length) });
+  return NextResponse.json({
+    items: optimized,
+    count: optimized.length,
+    suppressed: Math.max(0, openCount - optimized.length),
+  });
 }
