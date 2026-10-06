@@ -13,14 +13,28 @@ export type CareerApplicationContext = {
   status?: string;
 };
 
+export type CareerActionHistoryContext = {
+  action?: CareerDecisionAction;
+  taskStatus?: "open" | "completed" | "dismissed";
+  outcome?: string;
+};
+
 export function decideOpportunityAction(
   opportunity: OpportunityMemory,
-  context: { application?: CareerApplicationContext; alreadyApplied?: boolean; hasInterview?: boolean } = {},
+  context: { application?: CareerApplicationContext; alreadyApplied?: boolean; hasInterview?: boolean; priorAction?: CareerActionHistoryContext } = {},
 ): CareerDecision {
   const score = opportunity.latestScore;
   const trend = opportunity.trend;
   const applicationStatus = context.application?.status;
   const hasInterview = context.hasInterview || applicationStatus === "interview";
+  const priorAction = context.priorAction;
+  const hasMaterialReactivation = ["reopened", "improving", "changed"].includes(trend);
+  if (priorAction?.taskStatus === "completed" && !hasMaterialReactivation) {
+    return { action: "ignore", confidence: 93, reason: "This Career Agent task was already completed and the opportunity has no new material signal.", urgency: "low" };
+  }
+  if (priorAction?.taskStatus === "dismissed" && !hasMaterialReactivation) {
+    return { action: "ignore", confidence: 91, reason: "This opportunity was previously dismissed and has not materially changed.", urgency: "low" };
+  }
 
   if (hasInterview) {
     return { action: "prepare", confidence: 98, reason: "You already have an active interview for this opportunity.", urgency: "high" };
