@@ -99,7 +99,9 @@ export function getLearningPolicyAdjustment(
         ? attributes.source || "unknown"
         : signal.dimension === "role"
           ? attributes.role || "unknown"
-          : null;
+          : signal.dimension === "score_band"
+            ? scoreBand(Number(attributes.score ?? 0))
+            : null;
     if (value === signal.group) adjustment += signal.points;
   }
   return Math.max(-4, Math.min(4, adjustment));
