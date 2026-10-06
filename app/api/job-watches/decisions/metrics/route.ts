@@ -13,7 +13,7 @@ export async function GET() {
 
   const { data: actions, error } = await supabase
     .from("career_agent_actions")
-    .select("id,action,source_url,job_title,job_location,task_status,outcome,outcome_at,created_at,decision_score")
+    .select("id,action,source_url,job_title,job_location,source_provider,job_function,is_remote,task_status,outcome,outcome_at,created_at,decision_score")
     .eq("candidate_id", user.id)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -40,9 +40,9 @@ export async function GET() {
     action: action.action,
     decisionScore: Number(action.decision_score || 0),
     outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started",
-    source: (() => { try { return new URL(action.source_url).hostname.replace(/^www\\./, ""); } catch { return "unknown"; } })(),
-    role: action.job_title || "unknown",
-    remote: /remote/i.test(action.job_location || ""),
+    source: action.source_provider || "unknown",
+    role: action.job_function || action.job_title || "unknown",
+    remote: Boolean(action.is_remote ?? /remote/i.test(action.job_location || "")),
   })));
 
   const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
