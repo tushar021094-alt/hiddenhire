@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { MatchResult } from "@/lib/job-types";
+import type { CareerDecisionAction } from "@/lib/career-decision";
 
 type ApplicationSummary = {
   id: string;
@@ -13,6 +14,8 @@ type ApplicationSummary = {
 };
 
 type Company = { name: string | null } | { name: string | null }[] | null | undefined;
+
+type DecisionItem = { title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
 
 type Props = {
   targetRoles: string[];
@@ -39,6 +42,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [loading, setLoading] = useState(true);
   const [lastScan, setLastScan] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [decisions, setDecisions] = useState<DecisionItem[]>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -80,6 +84,9 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       if (!response.ok) throw new Error(payload?.message || "Agent scan failed.");
       setMatches(Array.isArray(payload?.results) ? payload.results : []);
       setLastScan(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+      const decisionResponse = await fetch("/api/job-watches/decisions");
+      const decisionData = await decisionResponse.json();
+      if (decisionResponse.ok) setDecisions(Array.isArray(decisionData.decisions) ? decisionData.decisions : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Agent scan failed.");
     } finally {
@@ -114,6 +121,9 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
         if (!cancelled) {
           setMatches(Array.isArray(payload?.results) ? payload.results : []);
           setLastScan(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
+          const decisionResponse = await fetch("/api/job-watches/decisions");
+          const decisionData = await decisionResponse.json();
+          if (decisionResponse.ok) setDecisions(Array.isArray(decisionData.decisions) ? decisionData.decisions : []);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Agent scan failed.");
@@ -150,6 +160,27 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <button type="button" onClick={() => void scan()} disabled={loading} className="rounded-lg border border-cyan-300/20 bg-cyan-300/5 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50">
             {loading ? "Scanning…" : "Scan opportunities"}
           </button>
+        </div>
+      </div>
+
+      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Decision Engine</p>
+          <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {decisions.slice(0, 6).map((item) => (
+            <a key={item.applicationUrl} href={item.applicationUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-white/10 bg-black/10 p-3 hover:border-cyan-300/20">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-xs font-semibold">{item.title}</span>
+                <span className="shrink-0 text-[9px] font-bold text-cyan-200">{item.decision.action.replace("_", " ").toUpperCase()}</span>
+              </div>
+              <div className="mt-1 truncate text-[10px] text-white/40">{item.company} · {item.location} · {item.latestScore}%</div>
+              <div className="mt-2 text-[9px] text-white/50">{item.decision.reason}</div>
+              <div className="mt-2 text-[9px] text-cyan-100/60">Confidence {item.decision.confidence}% · {item.decision.urgency} urgency</div>
+            </a>
+          ))}
+          {!decisions.length && <p className="py-4 text-xs text-white/35 md:col-span-2 xl:col-span-3">No decision-worthy opportunity yet. The agent will populate this after watch history builds.</p>}
         </div>
       </div>
 
