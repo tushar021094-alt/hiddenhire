@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
     const { data: watches, error } = await supabase
       .from("job_watches")
-      .select("id,name,target_roles,preferred_locations,preferred_countries,skills,minimum_salary,currency,remote_only,min_match_score")
+      .select("id,name,candidate_id,target_roles,preferred_locations,preferred_countries,skills,minimum_salary,currency,remote_only,min_match_score,last_scanned_at")
       .eq("enabled", true)
       .order("last_scanned_at", { ascending: true, nullsFirst: true })
       .limit(20);
