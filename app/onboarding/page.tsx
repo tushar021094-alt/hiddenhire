@@ -189,7 +189,7 @@ export default function CandidateOnboardingPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#05080c] px-6 py-10 text-white lg:px-10">
+    <main className="app-v2 onboarding-v2 min-h-screen">
       <div className="mx-auto max-w-5xl">
         <header className="mb-10 flex items-center justify-between border-b border-white/10 pb-5">
           <Link href="/" className="text-xl font-semibold tracking-tight">
