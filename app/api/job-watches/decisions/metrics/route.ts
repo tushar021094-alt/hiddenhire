@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildLearningInsights } from "@/lib/career-learning";
+import { buildAttributionInsights } from "@/lib/career-learning-attribution";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
 
@@ -35,6 +36,14 @@ export async function GET() {
 
   const learningObservations = (actions ?? []).filter((action) => OUTCOMES.includes((applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started") as typeof OUTCOMES[number])).map((action) => ({ action: action.action, decisionScore: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" }));
   const learning = buildLearningInsights(learningObservations);
+  const attribution = buildAttributionInsights((actions ?? []).map((action) => ({
+    action: action.action,
+    decisionScore: Number(action.decision_score || 0),
+    outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started",
+    source: "unknown",
+    role: "unknown",
+    remote: false,
+  })));
 
   const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
   const actionCounts: Record<string, number> = {};
@@ -71,5 +80,6 @@ export async function GET() {
     actions_by_type: actionCounts,
     conversion_by_action: conversionByAction,
     learning,
+    attribution,
   });
 }
