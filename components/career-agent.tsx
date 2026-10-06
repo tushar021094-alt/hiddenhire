@@ -45,6 +45,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
   const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
@@ -103,6 +104,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     const key = item.jobFingerprint + action;
     setActionLoading(key);
     setActionMessage(null);
+    setWorkflow(null);
     try {
       const response = await fetch("/api/job-watches/decisions/action", {
         method: "POST",
@@ -116,6 +118,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       }
       if (!response.ok) throw new Error(payload?.message || "Action could not be completed.");
       setActionMessage(payload?.nextStep ? "Done — next step: " + String(payload.nextStep).replace("_", " ") + "." : "Action recorded.");
+      if (payload?.workflow) setWorkflow(payload.workflow);
       if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
@@ -201,6 +204,12 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {workflow && <div className="md:col-span-2 xl:col-span-3 rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] p-3">
+            <p className="text-[10px] font-semibold text-cyan-100">{workflow.title}</p>
+            {workflow.message && <p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.message}</p>}
+            {workflow.timing && <p className="mt-2 text-[9px] text-cyan-100/60">{workflow.timing}</p>}
+            {workflow.checklist && <ul className="mt-2 space-y-1 text-[10px] leading-5 text-white/60">{workflow.checklist.map((item) => <li key={item}>• {item}</li>)}</ul>}
+          </div>}
           {actionMessage && <p className="mb-2 rounded-lg border border-cyan-300/10 bg-cyan-300/[0.03] p-2 text-[10px] text-cyan-100/80">{actionMessage}</p>}
           {decisions.slice(0, 6).map((item) => {
             const key = item.jobFingerprint + item.decision.action;
