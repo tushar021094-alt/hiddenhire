@@ -17,13 +17,16 @@ type Company = { name: string | null } | { name: string | null }[] | null | unde
 
 type DecisionItem = { jobFingerprint: string; title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
 
-type ApplicationPreparation = { professionalSummary?: string; coverLetter?: string; matchedSkills?: string[]; missingSkills?: string[]; experienceFit?: string; requirementChecklist?: string[]; jobDescriptionSnapshot?: string };\n\ntype LearningMetrics = {
+type ApplicationPreparation = { professionalSummary?: string; coverLetter?: string; matchedSkills?: string[]; missingSkills?: string[]; experienceFit?: string; requirementChecklist?: string[]; jobDescriptionSnapshot?: string };
+
+type LearningMetrics = {
   totals: { actions: number; applications: number; interviews: number; hires: number; application_conversion_rate: number; interview_conversion_rate: number; hire_conversion_rate: number };
   learning: Array<{ action: string; sampleSize: number; eligible: boolean; recommendation: "hold" | "increase" | "decrease"; scoreAdjustment: number; reason: string }>;
   calibration: { eligible: boolean; sampleSize: number; adjustment: number; overallPositiveRate?: number; highScorePositiveRate?: number; lowScorePositiveRate?: number; reason: string };
   effectiveness: { sampleSize: number; completed: number; dismissed: number; completionRate: number; dismissalRate: number; actions: Array<{ action: string; sampleSize: number; completed: number; dismissed: number; completionRate: number; dismissalRate: number; resolvedOutcomes: number; positiveOutcomeRate: number; interviewOrHireRate: number }> };
   effectivenessPolicy: { eligible: boolean; sampleSize: number; recommendations: Array<{ action: string; direction: "positive" | "negative"; delta: number; reason: string }> };
-  outcomeIntelligence?: { summary: { resolved: number; positive: number; interviews: number; hires: number; rejected: number; withdrawn: number; positiveRate: number; interviewOrHireRate: number; hireRate: number; medianOutcomeDays: number | null }; breakdowns: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; hireRate: number }> }> };\n  attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }> };
+  outcomeIntelligence?: { summary: { resolved: number; positive: number; interviews: number; hires: number; rejected: number; withdrawn: number; positiveRate: number; interviewOrHireRate: number; hireRate: number; medianOutcomeDays: number | null }; breakdowns: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; hireRate: number }> }> };
+  attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }> };
 };
 
 type Props = {
@@ -263,7 +266,9 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             <p className="text-[10px] font-semibold text-cyan-100">{workflow.title}</p>
             {workflow.message && <p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.message}</p>}
             {workflow.timing && <p className="mt-2 text-[9px] text-cyan-100/60">{workflow.timing}</p>}
-            {workflow.checklist && <ul className="mt-2 space-y-1 text-[10px] leading-5 text-white/60">{workflow.checklist.map((item) => <li key={item}>• {item}</li>)}</ul>}\n            {workflow.preparation?.professionalSummary && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Tailored summary</p><p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.preparation.professionalSummary}</p></div>}\n            {workflow.preparation?.coverLetter && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Cover letter draft</p><p className="mt-2 whitespace-pre-line text-[10px] leading-5 text-white/65">{workflow.preparation.coverLetter}</p></div>}
+            {workflow.checklist && <ul className="mt-2 space-y-1 text-[10px] leading-5 text-white/60">{workflow.checklist.map((item) => <li key={item}>• {item}</li>)}</ul>}
+            {workflow.preparation?.professionalSummary && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Tailored summary</p><p className="mt-2 text-[10px] leading-5 text-white/65">{workflow.preparation.professionalSummary}</p></div>}
+            {workflow.preparation?.coverLetter && <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-cyan-200/70">Cover letter draft</p><p className="mt-2 whitespace-pre-line text-[10px] leading-5 text-white/65">{workflow.preparation.coverLetter}</p></div>}
           </div>}
           {actionMessage && <p className="mb-2 rounded-lg border border-cyan-300/10 bg-cyan-300/[0.03] p-2 text-[10px] text-cyan-100/80">{actionMessage}</p>}
           {decisions.slice(0, 6).map((item) => {
