@@ -1,5 +1,7 @@
 import type { WatchableMatch } from "@/lib/job-watch";
 import { buildJobFingerprint, classifyWatchEvent, eventPriority, type JobWatchEventType } from "@/lib/job-watch";
+import { buildOpportunityMemory, type OpportunityMemoryEvent } from "@/lib/opportunity-memory";
+import { decideOpportunityAction } from "@/lib/career-decision";
 import { searchJobs } from "@/lib/job-search-service";
 
 type Watch = {
@@ -159,6 +161,82 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
 
     const { error: notificationError } = await supabase.from("notifications").insert(notifications);
     if (notificationError) throw new Error("Unable to create job watch notifications.");
+
+    const { data: watchEvents, error: historyError } = await supabase
+      .from("job_watch_events")
+      .select("id,watch_id,job_fingerprint,event_type,previous_score,current_score,payload,created_at")
+      .eq("watch_id", watch.id)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (historyError) throw new Error("Unable to build Career Agent decisions.");
+
+    const fingerprintsForActions = [...new Set(events.map((event) => String(event.job_fingerprint)))];
+    const { data: applications } = await supabase
+      .from("applications")
+      .select("status,jobs(application_url)")
+      .eq("candidate_id", watch.candidate_id)
+      .limit(100);
+
+    const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\\/$/, "").toLowerCase() : "";
+    const applicationByUrl = new Map<string, string>();
+    for (const application of applications ?? []) {
+      const jobs = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+      const url = normalizeUrl(jobs?.application_url);
+      if (url) applicationByUrl.set(url, application.status);
+    }
+
+    const memories = buildOpportunityMemory((watchEvents ?? []) as OpportunityMemoryEvent[]);
+    const actionsToCreate = [];
+    for (const opportunity of memories) {
+      if (!fingerprintsForActions.includes(opportunity.jobFingerprint)) continue;
+      const applicationStatus = applicationByUrl.get(normalizeUrl(opportunity.applicationUrl));
+      const decision = decideOpportunityAction(opportunity, {
+        application: { status: applicationStatus },
+        alreadyApplied: Boolean(applicationStatus),
+      });
+      if (decision.action === "ignore" || decision.action === "apply_now") continue;
+
+      const workflow = decision.action === "follow_up"
+        ? {
+            type: "follow_up",
+            title: `Follow up with ${opportunity.company}`,
+            message: `Hi, I’m following up on my application for the ${opportunity.title} role. I remain very interested in the opportunity and would be happy to provide any additional information. Thank you for your consideration.`,
+            timing: applicationStatus === "shortlisted" ? "Follow up today." : "Follow up now, then wait 3–5 business days before another check-in.",
+          }
+        : decision.action === "prepare"
+          ? {
+              type: "interview_prep",
+              title: `Prepare for ${opportunity.title}`,
+              checklist: [
+                "Review the role requirements and map your strongest experience to each requirement.",
+                "Prepare a concise 60-second introduction focused on measurable results.",
+                "Prepare 3 STAR examples covering ownership, problem-solving, and measurable impact.",
+                "Prepare 3 role-specific questions to ask the interviewer.",
+              ],
+            }
+          : null;
+
+      actionsToCreate.push({
+        candidate_id: watch.candidate_id,
+        job_fingerprint: opportunity.jobFingerprint,
+        action: decision.action,
+        decision_score: opportunity.latestScore,
+        source_url: opportunity.applicationUrl,
+        job_title: opportunity.title,
+        company_name: opportunity.company,
+        job_location: opportunity.location,
+        workflow,
+        task_status: "open",
+        completed_at: null,
+      });
+    }
+
+    if (actionsToCreate.length) {
+      const { error: actionError } = await supabase
+        .from("career_agent_actions")
+        .upsert(actionsToCreate, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
+      if (actionError) throw new Error("Unable to create Career Agent tasks.");
+    }
   }
 
   const now = new Date().toISOString();
