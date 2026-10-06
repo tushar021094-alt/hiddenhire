@@ -96,6 +96,8 @@ export async function POST(request: Request) {
     candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
     decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
     job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
+    source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
+    is_remote: /remote/i.test(opportunity.location),
     workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
