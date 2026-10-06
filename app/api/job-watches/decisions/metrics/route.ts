@@ -78,7 +78,7 @@ export async function GET() {
         const bottlenecks: string[] = [];
         if (positiveRate < 40) bottlenecks.push("Positive outcomes are below 40%; tighten role targeting and application selection.");
         if (interviewOrHireRate < 10) bottlenecks.push("Interview/hire outcomes are below 10%; improve application quality and role fit.");
-        if (rejectionRate > Math.max(interviewOrHireRate * 2, 10)) bottlenecks.push("Rejections materially exceed interviews/h hires; reduce low-fit applications.");
+        if (rejectionRate > Math.max(interviewOrHireRate * 2, 10)) bottlenecks.push("Rejections materially exceed interviews/hire; reduce low-fit applications.");
         const recommendations = attribution.recommendations
           .filter((item) => item.direction === "positive" && item.sampleSize >= 30)
           .slice(0, 3)
