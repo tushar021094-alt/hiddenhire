@@ -221,6 +221,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       cancelled = true;
     };
   }, [targetRoles, preferredLocations, location, skills, yearsOfExperience, minimumSalary, remoteOnly]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const highMatches = matches.filter((item) => item.score >= 70).slice(0, 3);
   const nextAction =
