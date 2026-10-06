@@ -1,5 +1,27 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { optimizeCareerQueue } from "@/lib/career-agent-queue";
+
+type Action = {
+  id: string;
+  job_fingerprint: string;
+  action: string;
+  decision_score: number;
+  source_url: string;
+  job_title: string | null;
+  company_name: string | null;
+  job_location: string | null;
+  workflow: Record<string, unknown> | null;
+  task_status: "open" | "completed" | "dismissed";
+  effective_status: "open" | "completed" | "dismissed";
+  application_status: string | null;
+  due_at: string | null;
+  created_at: string;
+};
+
+mport { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { optimizeCareerQueue } from "@/lib/career-agent-queue";
 
 type Action = {
   id: string;
@@ -60,15 +82,17 @@ export async function GET() {
     let effectiveStatus: Action["effective_status"] = item.task_status;
     if (item.action === "follow_up" && applicationStatus && ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) effectiveStatus = "completed";
     if (item.action === "prepare" && applicationStatus && ["rejected", "withdrawn", "hired"].includes(applicationStatus)) effectiveStatus = "dismissed";
-    const due = item.due_at ? new Date(item.due_at).getTime() : null;
-    const overdue = due !== null && due <= now;
-    const urgencyBoost = overdue ? 35 : 0;
-    const score = rank[item.action] + urgencyBoost + Math.min(15, Math.round(Number(item.decision_score || 0) / 10));
-    return { ...item, application_status: applicationStatus, effective_status: effectiveStatus, overdue, priority_score: score, can_execute: true, outcome: applicationStatus ?? item.outcome, outcome_at: applicationStatus ? new Date().toISOString() : item.outcome_at, outcome_source: applicationStatus ? "application" : item.outcome_source };
-  })
-    .filter((item) => item.effective_status === "open")
-    .sort((a, b) => b.priority_score - a.priority_score)
-    .slice(0, 20);
+    return {
+      ...item,
+      application_status: applicationStatus,
+      effective_status: effectiveStatus,
+      overdue: item.due_at !== null && new Date(item.due_at).getTime() <= now,
+      outcome: applicationStatus ?? item.outcome,
+      outcome_at: applicationStatus ? new Date().toISOString() : item.outcome_at,
+      outcome_source: applicationStatus ? "application" : item.outcome_source,
+    };
+  });
 
-  return NextResponse.json({ items: today, count: today.length });
+  const optimized = optimizeCareerQueue(today, now, 12);
+  return NextResponse.json({ items: optimized, count: optimized.length, suppressed: Math.max(0, today.filter((item) => item.effective_status === "open").length - optimized.length) });
 }
