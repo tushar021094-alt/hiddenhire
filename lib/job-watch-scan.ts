@@ -194,7 +194,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         application: { status: applicationStatus },
         alreadyApplied: Boolean(applicationStatus),
       });
-      if (decision.action === "ignore" || decision.action === "apply_now") continue;
+      if (decision.action === "ignore") continue;
 
       const workflow = decision.action === "follow_up"
         ? {
