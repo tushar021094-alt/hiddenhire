@@ -247,25 +247,54 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       });
       if (decision.action === "ignore") continue;
 
-      const workflow = decision.action === "follow_up"
+      const workflow = decision.action === "apply_now"
         ? {
-            type: "follow_up",
-            title: `Follow up with ${opportunity.company}`,
-            message: `Hi, I’m following up on my application for the ${opportunity.title} role. I remain very interested in the opportunity and would be happy to provide any additional information. Thank you for your consideration.`,
-            timing: applicationStatus === "shortlisted" ? "Follow up today." : "Follow up now, then wait 3–5 business days before another check-in.",
+            type: "application_handoff",
+            title: `Apply to ${opportunity.title}`,
+            message: "Open the verified application page, review the role, submit the application yourself, then return to HiddenHire so the outcome can be tracked.",
+            checklist: [
+              "Review the job description and confirm the role is still a fit.",
+              "Use your tailored resume and supporting materials.",
+              "Submit on the employer or provider site.",
+              "Return to HiddenHire and keep the application status updated.",
+            ],
           }
-        : decision.action === "prepare"
+        : decision.action === "review"
           ? {
-              type: "interview_prep",
-              title: `Prepare for ${opportunity.title}`,
+              type: "review",
+              title: `Review ${opportunity.title}`,
               checklist: [
-                "Review the role requirements and map your strongest experience to each requirement.",
-                "Prepare a concise 60-second introduction focused on measurable results.",
-                "Prepare 3 STAR examples covering ownership, problem-solving, and measurable impact.",
-                "Prepare 3 role-specific questions to ask the interviewer.",
+                "Review the job description and compensation.",
+                "Confirm the location and work-mode fit.",
+                "Check the strongest matching requirements.",
+                "Choose Apply Now or dismiss the opportunity.",
               ],
             }
-          : null;
+          : decision.action === "follow_up"
+            ? {
+                type: "follow_up",
+                title: `Follow up with ${opportunity.company}`,
+                message: `Hi, I’m following up on my application for the ${opportunity.title} role. I remain very interested in the opportunity and would be happy to provide any additional information. Thank you for your consideration.`,
+                timing: applicationStatus === "shortlisted" ? "Follow up today." : "Follow up now, then wait 3–5 business days before another check-in.",
+              }
+            : decision.action === "prepare"
+              ? {
+                  type: "interview_prep",
+                  title: `Prepare for ${opportunity.title}`,
+                  checklist: [
+                    "Review the role requirements and map your strongest experience to each requirement.",
+                    "Prepare a concise 60-second introduction focused on measurable results.",
+                    "Prepare 3 STAR examples covering ownership, problem-solving, and measurable impact.",
+                    "Prepare 3 role-specific questions to ask the interviewer.",
+                  ],
+                }
+              : decision.action === "watch"
+                ? {
+                    type: "watch",
+                    title: `Watch ${opportunity.title}`,
+                    message: "Keep this opportunity in the monitored pipeline and wait for a stronger score, reopening, compensation, or location signal.",
+                  }
+                : null;
 
       actionsToCreate.push({
         candidate_id: watch.candidate_id,
@@ -285,7 +314,13 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         outcome: applicationStatus ?? "not_started",
         outcome_at: applicationStatus ? new Date().toISOString() : null,
         outcome_source: applicationStatus ? "application" : null,
-        due_at: decision.action === "follow_up" ? new Date(Date.now() + (applicationStatus === "shortlisted" ? 0 : 5 * 86_400_000)).toISOString() : null,
+        due_at: decision.action === "follow_up"
+          ? new Date(Date.now() + (applicationStatus === "shortlisted" ? 0 : 5 * 86_400_000)).toISOString()
+          : decision.action === "review" && decision.urgency === "high"
+            ? new Date(Date.now() + 86_400_000).toISOString()
+            : decision.action === "apply_now" || decision.action === "prepare"
+              ? new Date().toISOString()
+              : null,
         last_reminded_at: null,
       });
     }
