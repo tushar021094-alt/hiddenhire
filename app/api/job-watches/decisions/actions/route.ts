@@ -7,7 +7,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("career_agent_actions")
-    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,created_at")
+    .select("id,job_fingerprint,action,decision_score,source_url,job_title,company_name,job_location,workflow,task_status,completed_at,due_at,last_reminded_at,created_at")
     .eq("candidate_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
