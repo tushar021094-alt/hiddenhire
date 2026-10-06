@@ -5,6 +5,7 @@ import { buildAttributionInsights } from "@/lib/career-learning-attribution";
 import { calibrateScore } from "@/lib/career-score-calibration";
 import { buildCareerAgentEffectiveness, buildCareerAgentEffectivenessPolicy } from "@/lib/career-agent-effectiveness";
 import { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";
+import { buildCareerStrategy } from "@/lib/career-strategy";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
 
@@ -62,36 +63,13 @@ export async function GET() {
     outcomeAt: action.outcome_at,
   })));
 
-  const resolved = outcomeIntelligence.summary.resolved;
-  const strategy = resolved < 30
-    ? {
-        eligible: false,
-        sampleSize: resolved,
-        headline: "Keep collecting outcome data before changing your approach.",
-        recommendations: ["Use the existing queue and application workflows while HiddenHire gathers more outcome evidence."],
-        bottlenecks: [],
-      }
-    : (() => {
-        const positiveRate = outcomeIntelligence.summary.positiveRate;
-        const interviewOrHireRate = outcomeIntelligence.summary.interviewOrHireRate;
-        const rejectionRate = Math.round((outcomeIntelligence.summary.rejected / Math.max(resolved, 1)) * 100);
-        const bottlenecks: string[] = [];
-        if (positiveRate < 40) bottlenecks.push("Positive outcomes are below 40%; tighten role targeting and application selection.");
-        if (interviewOrHireRate < 10) bottlenecks.push("Interview/hire outcomes are below 10%; improve application quality and role fit.");
-        if (rejectionRate > Math.max(interviewOrHireRate * 2, 10)) bottlenecks.push("Rejections materially exceed interviews/hire; reduce low-fit applications.");
-        const recommendations = attribution.recommendations
-          .filter((item) => item.direction === "positive" && item.sampleSize >= 30)
-          .slice(0, 3)
-          .map((item) => "Prioritize " + item.group + " " + item.dimension + " opportunities; historical positive-outcome rate is +" + item.delta + " points versus baseline.");
-        if (recommendations.length === 0) recommendations.push("Keep the current ranking policy; no segment has enough evidence to justify a targeted shift.");
-        return {
-          eligible: true,
-          sampleSize: resolved,
-          headline: bottlenecks.length ? bottlenecks[0] : "Current targeting is converting within the available evidence.",
-          recommendations,
-          bottlenecks,
-        };
-      })();
+  const strategy = buildCareerStrategy({
+    resolved: outcomeIntelligence.summary.resolved,
+    positiveRate: outcomeIntelligence.summary.positiveRate,
+    interviewOrHireRate: outcomeIntelligence.summary.interviewOrHireRate,
+    rejected: outcomeIntelligence.summary.rejected,
+    attributionRecommendations: attribution.recommendations,
+  });
 
   const outcomeCounts = Object.fromEntries(OUTCOMES.map((outcome) => [outcome, 0])) as Record<string, number>;
   const actionCounts: Record<string, number> = {};
