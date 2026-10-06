@@ -251,6 +251,9 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         workflow,
         task_status: "open",
         completed_at: null,
+        outcome: applicationStatus ?? "not_started",
+        outcome_at: applicationStatus ? new Date().toISOString() : null,
+        outcome_source: applicationStatus ? "application" : null,
         due_at: decision.action === "follow_up" ? new Date(Date.now() + (applicationStatus === "shortlisted" ? 0 : 5 * 86_400_000)).toISOString() : null,
         last_reminded_at: null,
       });
@@ -323,7 +326,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
   const now = new Date().toISOString();
   const { data: openTasks, error: taskError } = await supabase
     .from("career_agent_actions")
-    .select("id,job_fingerprint,action,source_url,task_status")
+    .select("id,job_fingerprint,action,source_url,task_status,outcome,outcome_at,outcome_source")
     .eq("candidate_id", watch.candidate_id)
     .eq("task_status", "open")
     .limit(200);
@@ -364,6 +367,14 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
   const completedTaskIds: string[] = [];
   for (const task of openTasks ?? []) {
     const applicationStatus = applicationByUrl.get(normalizeUrl(task.source_url));
+    if (applicationStatus) {
+      const { error: outcomeError } = await supabase.from("career_agent_actions").update({ outcome: applicationStatus, outcome_at: now, outcome_source: "application" }).eq("id", task.id).eq("candidate_id", watch.candidate_id);
+      if (outcomeError) throw new Error("Unable to reconcile Career Agent outcomes.");
+    }
+    if (!applicationStatus) {
+      const { error: outcomeError } = await supabase.from("career_agent_actions").update({ outcome: "not_started", outcome_at: null, outcome_source: null }).eq("id", task.id).eq("candidate_id", watch.candidate_id);
+      if (outcomeError) throw new Error("Unable to reconcile Career Agent outcomes.");
+    }
     if (task.action === "follow_up" && applicationStatus &&
       ["reviewing", "shortlisted", "interview", "hired", "rejected", "withdrawn"].includes(applicationStatus)) {
       completedTaskIds.push(task.id);
@@ -401,11 +412,11 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     if (error) throw new Error("Unable to timestamp Career Agent task evaluation.");
   }
 
-  const now = new Date().toISOString();
+  const observationsNow = new Date().toISOString();
   const observationsToUpsert = usable.map((match) => ({
     watch_id: watch.id,
     job_fingerprint: buildJobFingerprint(match.job),
-    last_seen_at: now,
+    last_seen_at: observationsNow,
     score: Number(match.score ?? 0),
     salary_min: match.job.salaryMin ?? null,
     salary_max: match.job.salaryMax ?? null,
@@ -417,7 +428,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       remote: Boolean(match.job.remote),
       postedDate: match.job.postedDate ?? null,
     },
-    updated_at: now,
+    updated_at: observationsNow,
   }));
 
   if (observationsToUpsert.length) {
@@ -427,7 +438,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
   }
 
   const { error: touchError } = await supabase.from("job_watches")
-    .update({ last_scanned_at: now, updated_at: now }).eq("id", watch.id);
+    .update({ last_scanned_at: observationsNow, updated_at: observationsNow }).eq("id", watch.id);
   if (touchError) throw new Error("Unable to update watch scan timestamp.");
 
   return { watchId: watch.id, watchName: watch.name, scanned: usable.length, threshold, eventsCreated: events.length, events };
