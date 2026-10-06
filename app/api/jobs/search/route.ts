@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { searchJobs, validSearchProfile } from '@/lib/job-search-service';
+export { normalizeCandidateProfile, buildDiscoveryQueries, deduplicateJobs } from '@/lib/job-search-service';
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/rate-limit';
 
 const MAX_BODY_BYTES = 64_000;
