@@ -101,6 +101,20 @@ export async function POST(request: Request) {
     if (supersedeError) return NextResponse.json({ error: "Unable to supersede the previous recommendation." }, { status: 500 });
   }
 
+  const applicationPreparation = {
+    role: opportunity.title,
+    company: opportunity.company,
+    location: opportunity.location,
+    source: opportunity.applicationUrl,
+    checklist: [
+      "Tailor your resume headline and top achievements to the role.",
+      "Prepare a concise role-specific professional summary.",
+      "Select 3 measurable achievements that match the job requirements.",
+      "Prepare a short explanation for each major requirement you meet.",
+      "Review the employer and role before submitting.",
+    ],
+  };
+
   const { error: actionError } = await supabase.from("career_agent_actions").upsert({
     candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
     decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
@@ -108,7 +122,7 @@ export async function POST(request: Request) {
     source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
     is_remote: /remote/i.test(opportunity.location),
     job_function: classifyJobFunction(opportunity.title),
-    workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
+    workflow, application_preparation: requestedAction === "apply_now" ? applicationPreparation : null, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 
   if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
