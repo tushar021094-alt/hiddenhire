@@ -251,6 +251,8 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
         workflow,
         task_status: "open",
         completed_at: null,
+        due_at: decision.action === "follow_up" ? new Date(Date.now() + (applicationStatus === "shortlisted" ? 0 : 5 * 86_400_000)).toISOString() : null,
+        last_reminded_at: null,
       });
     }
 
