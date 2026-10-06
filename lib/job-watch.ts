@@ -11,7 +11,12 @@ export type WatchableMatch = {
     salaryMax?: number | null;
     applicationUrl: string;
     remote?: boolean;
-    postedDate?: string;\n    description?: string | null;\n    requiredSkills?: string[];\n    requiredExperience?: number | null;\n    industry?: string | null;\n    source?: string | null;
+    postedDate?: string;
+    description?: string | null;
+    requiredSkills?: string[];
+    requiredExperience?: number | null;
+    industry?: string | null;
+    source?: string | null;
   };
 };
 
