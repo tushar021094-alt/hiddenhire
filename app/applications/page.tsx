@@ -118,7 +118,7 @@ export default function ApplicationsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#05080c] text-white">
+    <main className="app-v2 min-h-screen bg-[#f7f9fc] text-slate-900">
       <div className="mx-auto max-w-5xl px-6 py-6 lg:px-10">
         <header className="flex items-center justify-between border-b border-white/10 pb-5">
           <Link href="/dashboard" className="text-xl font-semibold tracking-tight">
