@@ -17,6 +17,13 @@ type Company = { name: string | null } | { name: string | null }[] | null | unde
 
 type DecisionItem = { jobFingerprint: string; title: string; company: string; location: string; applicationUrl: string; latestScore: number; decision: { action: CareerDecisionAction; confidence: number; reason: string; urgency: "high" | "medium" | "low" } };
 
+type LearningMetrics = {
+  totals: { actions: number; applications: number; interviews: number; hires: number; application_conversion_rate: number; interview_conversion_rate: number; hire_conversion_rate: number };
+  learning: Array<{ action: string; sampleSize: number; eligible: boolean; recommendation: "hold" | "increase" | "decrease"; scoreAdjustment: number; reason: string }>;
+  calibration: { eligible: boolean; sampleSize: number; adjustment: number; overallPositiveRate?: number; highScorePositiveRate?: number; lowScorePositiveRate?: number; reason: string };
+  attribution: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>;
+};
+
 type Props = {
   targetRoles: string[];
   preferredLocations: string[];
@@ -46,7 +53,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null>(null);
-  const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; outcome?: string | null }>>([]);\n  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
+  const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; outcome?: string | null }>>([]);\n  const [learningMetrics, setLearningMetrics] = useState<LearningMetrics | null>(null);\n  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[] } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -98,7 +105,13 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     }
   }
 
-  async function refreshTodayQueue() { try { const response = await fetch("/api/job-watches/decisions/today"); const payload = await response.json(); if (response.ok && Array.isArray(payload?.items)) setTodayQueue(payload.items); } catch {} }\n\n  async function updateTask(id: string, taskStatus: "open" | "completed" | "dismissed") {
+  async function refreshTodayQueue() { try { const response = await fetch("/api/job-watches/decisions/today"); const payload = await response.json(); if (response.ok && Array.isArray(payload?.items)) setTodayQueue(payload.items); } catch {} }\n\n  async function refreshLearningMetrics() {
+    try {
+      const response = await fetch("/api/job-watches/decisions/metrics");
+      const payload = await response.json();
+      if (response.ok) setLearningMetrics(payload);
+    } catch {}
+  }\n\n  async function updateTask(id: string, taskStatus: "open" | "completed" | "dismissed") {
     try {
       const response = await fetch("/api/job-watches/decisions/task", {
         method: "PATCH",
@@ -137,7 +150,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       if (payload?.workflow) setWorkflow(payload.workflow);
       const historyResponse = await fetch("/api/job-watches/decisions/actions");
       const historyPayload = await historyResponse.json();
-      if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);\n      await refreshTodayQueue();
+      if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);\n      await refreshTodayQueue();\n      await refreshLearningMetrics();
       if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
@@ -147,7 +160,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   }
 
   useEffect(() => {
-    void refreshTodayQueue();\n    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
+    void refreshTodayQueue();\n    void refreshLearningMetrics();\n    void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
 
@@ -272,6 +285,23 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           {!actionHistory.length && <p className="text-xs text-white/35">No actions recorded yet.</p>}
         </div>
       </div>
+      <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Agent Intelligence</p>
+            <p className="mt-1 text-[10px] text-white/40">Outcome feedback is measured before it is allowed to change ranking.</p>
+          </div>
+          {learningMetrics && <span className="text-[10px] text-white/30">{learningMetrics.totals.actions} tracked actions</span>}
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-4">
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Applications</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.applications ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.application_conversion_rate ?? 0}% conversion</p></div>
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Interviews</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.interviews ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.interview_conversion_rate ?? 0}% of applications</p></div>
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Hires</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.hires ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.hire_conversion_rate ?? 0}% of applications</p></div>
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Calibration</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.calibration.eligible ? (learningMetrics.calibration.adjustment > 0 ? "+" : "") + learningMetrics.calibration.adjustment : "HOLD"}</p><p className="text-[9px] text-white/35">{learningMetrics?.calibration.sampleSize ?? 0}/50 outcomes</p></div>
+        </div>
+        {learningMetrics && <p className="mt-3 text-[9px] leading-4 text-white/40">{learningMetrics.calibration.reason}</p>}
+      </div>
+
       <div className="grid gap-px bg-white/10 sm:grid-cols-4">
         <div className="bg-[#071017] p-4">
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/35">High matches</p>
