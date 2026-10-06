@@ -1,3 +1,4 @@
+import { describe, it } from "node:test";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildJobFingerprint, classifyWatchEvent, eventPriority } from "@/lib/job-watch";
