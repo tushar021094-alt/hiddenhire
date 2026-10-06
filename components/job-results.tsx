@@ -282,7 +282,7 @@ export function JobResults({ profile }: JobResultsProps) {
 
   if (loading) {
     return (
-      <section className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6">
+      <section className="job-results-v2 mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6">
         <div className="rounded-2xl border border-cyan-500/20 bg-slate-950/70 p-8 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
           <p className="mt-3 text-sm font-medium text-slate-100">Scanning live sources and ranking opportunities…</p>
@@ -303,7 +303,7 @@ export function JobResults({ profile }: JobResultsProps) {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-3 pb-20 pt-5 sm:px-6">
+    <section className="job-results-v2 mx-auto max-w-7xl px-3 pb-20 pt-5 sm:px-6">
       <div className="rounded-2xl border border-white/10 bg-slate-950/70 shadow-2xl shadow-cyan-950/10">
         <div className="border-b border-white/10 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
