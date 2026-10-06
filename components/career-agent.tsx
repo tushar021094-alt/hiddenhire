@@ -173,7 +173,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     }
   }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- refreshes server-backed Career Agent state on mount
+  /* eslint-disable react-hooks/set-state-in-effect -- server-backed queue refresh intentionally updates local state on mount */
   useEffect(() => {
     void refreshTodayQueue();
     void refreshLearningMetrics();
