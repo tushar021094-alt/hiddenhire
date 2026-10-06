@@ -52,27 +52,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, action: requestedAction, nextStep: "open_application", applicationUrl: opportunity.applicationUrl, decision });
   }
 
-  const { error: actionError } = await supabase.from("career_agent_actions").upsert({
-    candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
-    decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
-    job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
-  }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
-
-  if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
-
-  const notificationText: Record<Exclude<CareerDecisionAction, "apply_now" | "ignore">, { title: string; body: string }> = {
-    review: { title: "Opportunity ready for review", body: `${opportunity.title} at ${opportunity.company} is a strong match worth reviewing.` },
-    prepare: { title: "Interview preparation", body: `Prepare for your active interview opportunity: ${opportunity.title} at ${opportunity.company}.` },
-    follow_up: { title: "Application follow-up", body: `Your application for ${opportunity.title} at ${opportunity.company} is ready for follow-up.` },
-    watch: { title: "Opportunity added to watch", body: `Keep watching ${opportunity.title} at ${opportunity.company} for a stronger signal.` },
-  };
-  const note = notificationText[requestedAction as Exclude<CareerDecisionAction, "apply_now" | "ignore">];
-  const { error: notificationError } = await supabase.from("notifications").insert({
-    profile_id: user.id, type: `career_agent_${requestedAction}`, title: note.title, body: note.body,
-    data: { jobFingerprint, applicationUrl: opportunity.applicationUrl, action: requestedAction },
-  });
-  if (notificationError) return NextResponse.json({ error: "Action recorded, but notification could not be created." }, { status: 500 });
-
   const workflow = requestedAction === "follow_up"
     ? {
         type: "follow_up",
@@ -92,6 +71,28 @@ export async function POST(request: Request) {
           ],
         }
       : null;
+
+  const { error: actionError } = await supabase.from("career_agent_actions").upsert({
+    candidate_id: user.id, job_fingerprint: jobFingerprint, action: requestedAction,
+    decision_score: opportunity.latestScore, source_url: opportunity.applicationUrl,
+    job_title: opportunity.title, company_name: opportunity.company, job_location: opportunity.location,
+    workflow,
+  }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
+
+  if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
+
+  const notificationText: Record<Exclude<CareerDecisionAction, "apply_now" | "ignore">, { title: string; body: string }> = {
+    review: { title: "Opportunity ready for review", body: `${opportunity.title} at ${opportunity.company} is a strong match worth reviewing.` },
+    prepare: { title: "Interview preparation", body: `Prepare for your active interview opportunity: ${opportunity.title} at ${opportunity.company}.` },
+    follow_up: { title: "Application follow-up", body: `Your application for ${opportunity.title} at ${opportunity.company} is ready for follow-up.` },
+    watch: { title: "Opportunity added to watch", body: `Keep watching ${opportunity.title} at ${opportunity.company} for a stronger signal.` },
+  };
+  const note = notificationText[requestedAction as Exclude<CareerDecisionAction, "apply_now" | "ignore">];
+  const { error: notificationError } = await supabase.from("notifications").insert({
+    profile_id: user.id, type: `career_agent_${requestedAction}`, title: note.title, body: note.body,
+    data: { jobFingerprint, applicationUrl: opportunity.applicationUrl, action: requestedAction },
+  });
+  if (notificationError) return NextResponse.json({ error: "Action recorded, but notification could not be created." }, { status: 500 });
 
   return NextResponse.json({
     success: true,
