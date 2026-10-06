@@ -49,11 +49,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "This recommendation has changed. Refresh the Career Agent before taking this action.", currentDecision: decision }, { status: 409 });
   }
 
-  if (requestedAction === "apply_now") {
-    return NextResponse.json({ success: true, action: requestedAction, nextStep: "open_application", applicationUrl: opportunity.applicationUrl, decision });
-  }
-
-  const workflow = requestedAction === "follow_up"
+  const workflow = requestedAction === "apply_now"
+    ? {
+        type: "application_handoff",
+        title: `Apply to ${opportunity.title}`,
+        message: "Open the verified application page, review the role details, submit the application yourself, then return to HiddenHire so the outcome can be tracked.",
+        checklist: [
+          "Review the job description and confirm the role still matches your target.",
+          "Use your tailored resume and supporting materials.",
+          "Submit the application on the employer or application-provider site.",
+          "Return to HiddenHire and keep the application status updated.",
+        ],
+      }
+    : requestedAction === "follow_up"
     ? {
         type: "follow_up",
         title: `Follow up with ${opportunity.company}`,
@@ -105,23 +113,36 @@ export async function POST(request: Request) {
 
   if (actionError) return NextResponse.json({ error: "Unable to record this action." }, { status: 500 });
 
-  const notificationText: Record<Exclude<CareerDecisionAction, "apply_now" | "ignore">, { title: string; body: string }> = {
+  const notificationText: Record<Exclude<CareerDecisionAction, "ignore">, { title: string; body: string }> = {
+    apply_now: { title: "Application ready", body: `Apply to ${opportunity.title} at ${opportunity.company}; HiddenHire will track the outcome after submission.` },
     review: { title: "Opportunity ready for review", body: `${opportunity.title} at ${opportunity.company} is a strong match worth reviewing.` },
     prepare: { title: "Interview preparation", body: `Prepare for your active interview opportunity: ${opportunity.title} at ${opportunity.company}.` },
     follow_up: { title: "Application follow-up", body: `Your application for ${opportunity.title} at ${opportunity.company} is ready for follow-up.` },
     watch: { title: "Opportunity added to watch", body: `Keep watching ${opportunity.title} at ${opportunity.company} for a stronger signal.` },
   };
-  const note = notificationText[requestedAction as Exclude<CareerDecisionAction, "apply_now" | "ignore">];
+  const note = notificationText[requestedAction as Exclude<CareerDecisionAction, "ignore">];
   const { error: notificationError } = await supabase.from("notifications").insert({
     profile_id: user.id, type: `career_agent_${requestedAction}`, title: note.title, body: note.body,
     data: { jobFingerprint, applicationUrl: opportunity.applicationUrl, action: requestedAction },
   });
   if (notificationError) return NextResponse.json({ error: "Action recorded, but notification could not be created." }, { status: 500 });
 
+  if (requestedAction === "apply_now") {
+    return NextResponse.json({
+      success: true,
+      action: requestedAction,
+      nextStep: "open_application",
+      applicationUrl: opportunity.applicationUrl,
+      decision,
+      workflow,
+    });
+  }
+
   return NextResponse.json({
     success: true,
     action: requestedAction,
-    nextStep: requestedAction === "prepare" ? "interview_prep" : requestedAction === "follow_up" ? "follow_up" : requestedAction === "review" ? "review" : "watch",
+    nextStep: requestedAction === "apply_now" ? "open_application" : requestedAction === "prepare" ? "interview_prep" : requestedAction === "follow_up" ? "follow_up" : requestedAction === "review" ? "review" : "watch",
+    applicationUrl: requestedAction === "apply_now" ? opportunity.applicationUrl : undefined,
     decision,
     workflow,
   });
