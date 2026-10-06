@@ -225,7 +225,7 @@ export async function searchJobs(profile: Record<string, unknown>, calibrationAd
 const roleMatched = deduped.filter((job) =>
   isJobEligible(searchIntent, job),
 );
-  const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment);
+  const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment, learningPolicy);
   const returned = ranked.slice(0, 20);
   const sourceMetrics = collected.metrics;
 
