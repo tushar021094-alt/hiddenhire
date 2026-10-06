@@ -92,7 +92,8 @@ const router = useRouter();
     }
   }
 
-  return (\n    <main className="auth-v2 register-v2 min-h-screen overflow-hidden">
+  return (
+    <main className="auth-v2 register-v2 min-h-screen overflow-hidden">
       <div className="hero-glow" />
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
