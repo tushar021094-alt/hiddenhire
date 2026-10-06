@@ -45,7 +45,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [decisions, setDecisions] = useState<DecisionItem[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; created_at: string }>>([]);
+  const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
     () => applications.filter((item) => !["rejected", "withdrawn", "hired"].includes(item.status)),
@@ -236,9 +236,9 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
             <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()}</p>
-                <p className="truncate text-[9px] text-white/35">{item.job_fingerprint} · {Math.round(Number(item.decision_score))}% score</p>
+                <p className="truncate text-[9px] text-white/35">{item.job_title || item.job_fingerprint} · {item.company_name || "Company"} · {Math.round(Number(item.decision_score))}%</p>
               </div>
-              <span className="shrink-0 text-[9px] text-white/30">{new Date(item.created_at).toLocaleDateString("en-IN")}</span>
+              <div className="flex shrink-0 items-center gap-2"><a href={item.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-cyan-200/60 hover:text-cyan-100">Open</a><span className="text-[9px] text-white/30">{new Date(item.created_at).toLocaleDateString("en-IN")}</span></div>
             </div>
           ))}
           {!actionHistory.length && <p className="text-xs text-white/35">No actions recorded yet.</p>}
