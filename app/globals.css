@@ -1641,3 +1641,48 @@ body{
 .hh-upgrade-error{margin:0;color:#fda4af;font-size:10px;line-height:1.5}
 
 .hh-upgrade-info{color:#8190a8!important}
+
+
+/* UX fix — keep public career search controls dark and consistent with the HiddenHire shell */
+.landing-v2 .search-panel input:not(.input-suffix input),
+.landing-v2 .search-panel select,
+.landing-v2 .multi-trigger,
+.landing-v2 .input-suffix{
+  background:#0a1224!important;
+  border-color:rgba(148,163,184,.18)!important;
+  color:#edf2fb!important;
+  color-scheme:dark!important;
+}
+.landing-v2 .search-panel input:not(.input-suffix input)::placeholder{
+  color:#64748b!important;
+}
+.landing-v2 .search-panel select option{
+  background:#0a1224!important;
+  color:#edf2fb!important;
+}
+.landing-v2 .search-panel select:hover,
+.landing-v2 .multi-trigger:hover:not(:disabled),
+.landing-v2 .search-panel input:not(.input-suffix input):hover{
+  background:#0d172c!important;
+  border-color:rgba(103,232,249,.28)!important;
+}
+.landing-v2 .input-suffix input{
+  background:transparent!important;
+  color:#edf2fb!important;
+}
+.landing-v2 .currency-select{
+  background:#0a1224!important;
+  color:#67e8f9!important;
+  border-left-color:rgba(148,163,184,.14)!important;
+}
+.landing-v2 .multi-menu{
+  background:#090f1d!important;
+  border-color:rgba(148,163,184,.18)!important;
+}
+.landing-v2 .multi-search{
+  background:#0a1224!important;
+  color:#edf2fb!important;
+}
+.landing-v2 .multi-options{
+  background:#070d19!important;
+}
