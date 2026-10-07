@@ -6,6 +6,7 @@ import type { MatchResult } from "@/lib/job-types";
 import type { CareerDecisionAction } from "@/lib/career-decision";
 import CareerIntelligence from "@/components/career-intelligence";
 import ProactiveCareerPlan from "@/components/proactive-career-plan";
+import CareerSimulation from "@/components/career-simulation";
 
 type ApplicationSummary = {
   id: string;
@@ -240,6 +241,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   return (
     <>
       <CareerIntelligence {...careerIntelligenceProps} />
+      <CareerSimulation {...careerIntelligenceProps} />
       <section className="career-agent-v2 mt-6 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/[0.06] via-white/[0.025] to-blue-500/[0.04]">
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
