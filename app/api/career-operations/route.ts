@@ -84,8 +84,8 @@ export async function GET() {
 
   const operationApplications: CareerOperationApplication[] = (applications ?? []).map((application) => {
     const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
-    const companies = job?.companies;
-    const company = Array.isArray(companies) ? companies[0]?.name : companies?.name;
+    const companies = (job as { companies?: unknown } | null | undefined)?.companies;
+    const company = Array.isArray(companies) ? String((companies[0] as { name?: string | null } | undefined)?.name ?? "") : String((companies as { name?: string | null } | null | undefined)?.name ?? "");
     return {
       id: application.id,
       status: application.status,
