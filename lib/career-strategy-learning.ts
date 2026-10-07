@@ -1,0 +1,1 @@
+export type StrategyOutcome = { strategyId: string; outcome: string };
