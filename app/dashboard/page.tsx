@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CareerAgent from "@/components/career-agent";
 import JobWatchManager from "@/components/job-watch-manager";
+import DashboardHeader from "@/components/dashboard-header";
 
 type Profile = {
   full_name: string | null;
@@ -133,21 +134,11 @@ export default async function DashboardPage() {
   return (
     <main className="hh-dashboard">
       <div className="hh-shell">
-        <header className="hh-topbar">
-          <Link href="/" className="hh-brand" aria-label="HiddenHire home">
-            <span className="hh-brand-mark"><i /><i /><i /></span>
-            <span>Hidden<span>Hire</span></span>
-          </Link>
-          <div className="hh-command"><span className="hh-command-icon">⌕</span><span>Search jobs, companies, skills or anything...</span><kbd>⌘ K</kbd></div>
-          <div className="hh-top-actions">
-            <button className="hh-icon-button" aria-label="Notifications">♧<b /></button>
-            <div className="hh-user">
-              <div className="hh-avatar">{firstName.slice(0, 1).toUpperCase()}</div>
-              <div className="hh-user-copy"><strong>{name}</strong><span>{role === "candidate" ? "Job Seeker" : role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : "Admin"}</span></div>
-              <span className="hh-chevron">⌄</span>
-            </div>
-          </div>
-        </header>
+        <DashboardHeader
+          name={name}
+          firstName={firstName}
+          roleLabel={role === "candidate" ? "Job Seeker" : role === "agency" ? "Recruiter" : role === "employer" ? "Employer" : "Admin"}
+        />
 
         <div className="hh-layout">
           <aside className="hh-sidebar">
