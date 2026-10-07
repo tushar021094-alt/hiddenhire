@@ -32,6 +32,8 @@ export function generateCareerStrategyCandidates(
   matches: MatchResult[],
   currentMinimumSalary: number,
   remoteOnly: boolean,
+  currentSkills: string[] = [],
+  currentLocations: string[] = [],
 ): CareerStrategyCandidate[] {
   const existingSkills = new Set(currentSkills.map((skill) => skill.trim().toLowerCase()));
   const locationsInProfile = new Set(currentLocations.map((location) => location.trim().toLowerCase()));
