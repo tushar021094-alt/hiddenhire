@@ -1639,3 +1639,5 @@ body{
 .hh-upgrade-action .hh-plan-button{width:100%;border:0;cursor:pointer;font:inherit}
 .hh-upgrade-action .hh-plan-button:disabled{opacity:.65;cursor:wait}
 .hh-upgrade-error{margin:0;color:#fda4af;font-size:10px;line-height:1.5}
+
+.hh-upgrade-info{color:#8190a8!important}
