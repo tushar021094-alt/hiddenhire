@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import type { MatchResult } from "@/lib/job-types";
 import { buildProactiveCareerPlan } from "@/lib/proactive-career-agent";
-type Props = { matches: MatchResult[]; applications: Array<{ status: string; created_at: string }> };
+type Props = { matches: MatchResult[]; applications: Array<{ status: string; created_at: string; title?: string | null; company?: string | null }> };
 const labels = { prepare: "PREPARE", follow_up: "FOLLOW UP", apply_now: "APPLY NOW", review: "REVIEW", watch: "WATCH", improve_profile: "PROFILE" } as const;
 export default function ProactiveCareerPlan({ matches, applications }: Props) {
   const plan = useMemo(() => buildProactiveCareerPlan(matches, applications), [matches, applications]);
