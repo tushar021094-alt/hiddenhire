@@ -1563,3 +1563,56 @@ body{
 .hh-dashboard .career-agent-v2 .rounded-lg{
   border-radius:12px;
 }
+
+/* Phase 11 — candidate workspace dark unification */
+.app-v2.profile-v2,.app-v2.applications-v2{color:#edf2fb!important;min-height:100vh!important;background:radial-gradient(circle at 12% 8%,rgba(79,70,229,.09),transparent 28%),radial-gradient(circle at 86% 14%,rgba(6,182,212,.06),transparent 24%),#060b18!important}
+.app-v2.profile-v2 .workspace-shell,.app-v2.applications-v2 .workspace-shell{width:min(1480px,calc(100% - 48px))!important;padding-bottom:80px!important}
+.app-v2.profile-v2 .workspace-header,.app-v2.applications-v2 .workspace-header{min-height:76px!important;border-color:rgba(148,163,184,.12)!important;background:rgba(6,11,24,.78)!important;color:#eef3fb!important;box-shadow:0 12px 40px rgba(0,0,0,.12)}
+.app-v2.profile-v2 .workspace-brand,.app-v2.applications-v2 .workspace-brand{color:#f5f7ff!important}
+.app-v2.profile-v2 .workspace-brand span,.app-v2.applications-v2 .workspace-brand span{color:#8b5cf6!important}
+.app-v2.profile-v2 .workspace-nav a,.app-v2.applications-v2 .workspace-nav a{color:#8290a8!important}
+.app-v2.profile-v2 .workspace-nav a:hover,.app-v2.applications-v2 .workspace-nav a:hover{color:#e8edf6!important;background:rgba(124,58,237,.08)}
+.app-v2.profile-v2 .workspace-nav a.is-active,.app-v2.applications-v2 .workspace-nav a.is-active{color:#e9e5ff!important;background:linear-gradient(135deg,rgba(79,70,229,.20),rgba(124,58,237,.12))!important;border-color:rgba(139,92,246,.24)!important}
+.app-v2.profile-v2 .workspace-header-action,.app-v2.applications-v2 .workspace-header-action{color:#cbd5e1!important;background:rgba(12,20,40,.82)!important;border-color:rgba(148,163,184,.16)!important}
+.app-v2.profile-v2 .workspace-header-action:hover,.app-v2.applications-v2 .workspace-header-action:hover{color:#fff!important;border-color:rgba(139,92,246,.35)!important;background:rgba(124,58,237,.12)!important}
+.app-v2.profile-v2 .workspace-hero,.app-v2.applications-v2 .workspace-hero{color:#edf2fb!important}
+.app-v2.profile-v2 .workspace-hero h1,.app-v2.applications-v2 .workspace-hero h1{color:#f5f7ff!important}
+.app-v2.profile-v2 .workspace-hero p,.app-v2.applications-v2 .workspace-hero p{color:#9aa9bf!important}
+.app-v2.profile-v2 .workspace-eyebrow,.app-v2.applications-v2 .workspace-eyebrow{color:#a5f3fc!important}
+.app-v2.profile-v2 .profile-signal-card,.app-v2.applications-v2 .hero-action-card{border-color:rgba(99,102,241,.22)!important;background:linear-gradient(145deg,rgba(13,22,44,.94),rgba(8,14,29,.98))!important;box-shadow:0 20px 60px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035)!important}
+.app-v2.profile-v2 .profile-signal-card span,.app-v2.applications-v2 .hero-action-card span{color:#8190a8!important}
+.app-v2.profile-v2 .profile-signal-card strong,.app-v2.applications-v2 .hero-action-card strong{color:#f2f5fb!important}
+.app-v2.profile-v2 .profile-signal-card small,.app-v2.applications-v2 .hero-action-card a{color:#a5b4c8!important}
+.app-v2.profile-v2 .profile-form-card{border-color:rgba(99,102,241,.18)!important;background:linear-gradient(145deg,rgba(11,19,38,.94),rgba(7,12,26,.98))!important;box-shadow:0 18px 60px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.025)!important}
+.app-v2.profile-v2 .profile-section-heading{border-color:rgba(148,163,184,.10)!important}
+.app-v2.profile-v2 .profile-section-heading>div>span{color:#67e8f9!important}
+.app-v2.profile-v2 .profile-section-heading h2{color:#f0f4fb!important}
+.app-v2.profile-v2 .profile-field>span{color:#e2e8f0!important}
+.app-v2.profile-v2 .profile-field>small{color:#7f8ea6!important}
+.app-v2.profile-v2 .profile-field input,.app-v2.profile-v2 .profile-field select{border-color:rgba(148,163,184,.17)!important;background:#0a1224!important;color:#edf2fb!important}
+.app-v2.profile-v2 .profile-field input::placeholder{color:#64748b!important}
+.app-v2.profile-v2 .profile-field input:focus,.app-v2.profile-v2 .profile-field select:focus{border-color:rgba(103,232,249,.42)!important;box-shadow:0 0 0 4px rgba(34,211,238,.07)!important}
+.app-v2.profile-v2 .profile-input-suffix{background:#0a1224!important;border-color:rgba(148,163,184,.17)!important}
+.app-v2.profile-v2 .profile-input-suffix input{border:0!important;background:transparent!important}
+.app-v2.profile-v2 .profile-input-suffix span{color:#8190a8!important}
+.app-v2.profile-v2 .profile-preference-toggle{border-color:rgba(148,163,184,.14)!important;background:rgba(12,20,39,.72)!important}
+.app-v2.profile-v2 .profile-preference-toggle strong{color:#e8edf5!important}
+.app-v2.profile-v2 .profile-preference-toggle small{color:#8190a8!important}
+.app-v2.profile-v2 .profile-live-badge{color:#a5f3fc!important;border-color:rgba(103,232,249,.20)!important;background:rgba(34,211,238,.06)!important}
+.app-v2.profile-v2 .workspace-primary-button{background:linear-gradient(135deg,#06b6d4,#7c3aed)!important;border-color:transparent!important;color:#fff!important;box-shadow:0 12px 28px rgba(124,58,237,.18)!important}
+.app-v2.profile-v2 .workspace-secondary-button{color:#cbd5e1!important;background:#0b1427!important;border-color:rgba(148,163,184,.16)!important}
+.app-v2.profile-v2 .profile-message{background:#0b1427!important;border-color:rgba(103,232,249,.16)!important;color:#bfeff5!important}
+.app-v2.applications-v2 .application-metrics .application-metric{border-color:rgba(148,163,184,.14)!important;background:linear-gradient(145deg,rgba(12,20,39,.92),rgba(7,12,26,.98))!important;color:#edf2fb!important;box-shadow:inset 0 1px rgba(255,255,255,.025)!important}
+.app-v2.applications-v2 .application-metric:hover,.app-v2.applications-v2 .application-metric.is-selected{border-color:rgba(139,92,246,.34)!important;background:linear-gradient(145deg,rgba(28,24,60,.88),rgba(10,17,34,.98))!important}
+.app-v2.applications-v2 .application-metric span{color:#91a0b8!important}
+.app-v2.applications-v2 .application-metric strong{color:#f5f7ff!important}
+.app-v2.applications-v2 .application-metric small{color:#71809a!important}
+.app-v2.applications-v2 .application-card,.app-v2.applications-v2 .application-empty,.app-v2.applications-v2 .workspace-state{border-color:rgba(148,163,184,.14)!important;background:linear-gradient(145deg,rgba(11,19,38,.94),rgba(7,12,26,.98))!important;color:#edf2fb!important;box-shadow:0 18px 60px rgba(0,0,0,.16)!important}
+.app-v2.applications-v2 .application-card-title h2,.app-v2.applications-v2 .application-empty h2{color:#f1f5fb!important}
+.app-v2.applications-v2 .application-card-title p,.app-v2.applications-v2 .application-empty p{color:#8fa0b8!important}
+.app-v2.applications-v2 .application-meta span{color:#8b9ab0!important;border-color:rgba(148,163,184,.13)!important;background:#0a1224!important}
+.app-v2.applications-v2 .application-status-pill{background:rgba(124,58,237,.12)!important;border-color:rgba(139,92,246,.22)!important;color:#c4b5fd!important}
+.app-v2.applications-v2 .application-actions .workspace-secondary-button{color:#dbe5f2!important;background:#0b1427!important;border-color:rgba(148,163,184,.16)!important}
+.app-v2.applications-v2 .workspace-danger-button{background:rgba(239,68,68,.07)!important;border-color:rgba(248,113,113,.24)!important;color:#fda4af!important}
+.app-v2.applications-v2 .empty-orb{background:rgba(124,58,237,.13)!important;border-color:rgba(139,92,246,.22)!important;color:#c4b5fd!important}
+.app-v2.applications-v2 .workspace-state-error{color:#fda4af!important;border-color:rgba(248,113,113,.20)!important}
