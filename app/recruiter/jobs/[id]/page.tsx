@@ -18,6 +18,9 @@ type ApplicationRow = {
   status: string;
   created_at: string;
   updated_at: string;
+  candidate_reminder_count: number;
+  last_candidate_reminder_at: string | null;
+  recruiter_response_due_at: string | null;
 };
 
 type CandidateRow = {
@@ -90,7 +93,7 @@ export default async function RecruiterJobPage({
 
     supabase
       .from("applications")
-      .select("id, candidate_id, status, created_at, updated_at")
+      .select("id, candidate_id, status, created_at, updated_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at")
       .eq("job_id", job.id)
       .order("created_at", { ascending: false }),
 
@@ -382,10 +385,18 @@ export default async function RecruiterJobPage({
                         </p>
                       </div>
 
-                      <ApplicationStatusControl
-  applicationId={application.id}
-  currentStatus={application.status}
-/>
+                      <div className="flex flex-col items-end gap-2">
+                        {application.recruiter_response_due_at && ["applied", "reviewing", "shortlisted"].includes(application.status) && (
+                          <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[11px] font-medium text-amber-200">
+                            ACTION REQUIRED · Candidate requested an update
+                          </span>
+                        )}
+                        <ApplicationStatusControl
+                          applicationId={application.id}
+                          currentStatus={application.status}
+                          responseDueAt={application.recruiter_response_due_at}
+                        />
+                      </div>
                     </div>
                   );
                 })}
