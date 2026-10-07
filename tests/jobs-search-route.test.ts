@@ -49,3 +49,14 @@ test('expanded discovery query fields override conflicting request values', () =
     indiaOnly: true,
   });
 });
+
+test('rejects live job search when the candidate is not authenticated', async () => {
+  const response = await POST(new Request('http://localhost/api/jobs/search', {
+    method: 'POST',
+    body: JSON.stringify({ targetRole: 'Finance Manager' }),
+  }));
+  const payload = await response.json();
+
+  assert.equal(response.status, 401);
+  assert.equal(payload.code, 'AUTH_REQUIRED');
+});
