@@ -40,7 +40,7 @@ export default function CareerOperations({ refreshKey = 0 }: Props) {
     <section className="hh-panel hh-operations-panel" id="operations">
       <div className="hh-panel-heading">
         <div>
-          <small>CAREER OPERATIONS · PHASE 20</small>
+          <small>CAREER OPERATIONS · PHASE 21</small>
           <h2>What needs to happen next</h2>
         </div>
         <span className="hh-operations-status">{loading ? "SYNCING" : "AUTOMATED"}</span>
@@ -79,7 +79,7 @@ export default function CareerOperations({ refreshKey = 0 }: Props) {
                 {operation.route === "/profile" ? (
                   <Link href="/profile">Improve →</Link>
                 ) : operation.route === "/applications" ? (
-                  <Link href="/applications">{operation.requiresApproval ? "Open →" : "Prepare →"}</Link>
+                  <Link href="/dashboard#execution">{operation.requiresApproval ? "Execute →" : "Prepare →"}</Link>
                 ) : (
                   <Link href="/jobs">Review →</Link>
                 )}
