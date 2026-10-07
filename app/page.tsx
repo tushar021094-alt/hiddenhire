@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { MatchResult } from "@/lib/types";
 import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
+import { createClient } from "@/lib/supabase/client";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -21,6 +22,8 @@ export default function Home() {
   const [jobCountry,setJobCountry]=useState("India"), [selectedStates,setSelectedStates]=useState<string[]>([]), [selectedCities,setSelectedCities]=useState<string[]>([]), [showFilters,setShowFilters]=useState(true);
   const [results,setResults]=useState<MatchResult[]>([]), [loading,setLoading]=useState(false), [searched,setSearched]=useState(false);
   const [mode,setMode]=useState<"live"|"demo"|null>(null), [eligibleCount,setEligibleCount]=useState(0), [sourceCount,setSourceCount]=useState(0), [locationEligibleCount,setLocationEligibleCount]=useState(0), [salaryEligibleCount,setSalaryEligibleCount]=useState(0), [error,setError]=useState("");
+  const [authState,setAuthState]=useState<"checking"|"authenticated"|"signed_out">("checking");
+  const [authRequired,setAuthRequired]=useState(false);
   const states=useMemo(()=>statesFor(jobCountry),[jobCountry]);
   const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
@@ -50,8 +53,28 @@ export default function Home() {
   useEffect(()=>{ setSelectedCities(current=>current.filter(city=>cities.includes(city))); },[cities]);
   const currency=useMemo(()=>CURRENCIES.find(c=>c.code===salaryCurrency),[salaryCurrency]);
 
+  useEffect(()=>{
+    const supabase=createClient();
+    let active=true;
+    supabase.auth.getUser().then(({data})=>{
+      if(active) setAuthState(data.user ? "authenticated" : "signed_out");
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{
+      if(active) setAuthState(session?.user ? "authenticated" : "signed_out");
+    });
+    return ()=>{active=false;subscription.unsubscribe();};
+  },[]);
+
   async function findJobs(event:FormEvent) {
     event.preventDefault();
+    if(authState !== "authenticated"){
+      setAuthRequired(true);
+      setSearched(true);
+      setResults([]);
+      setError("");
+      return;
+    }
+    setAuthRequired(false);
     if(!role.trim()){
       setSearched(true);
       setResults([]);
@@ -64,7 +87,14 @@ export default function Home() {
         role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
         minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,states:selectedStates,cities:selectedCities
       })});
-      const data=await response.json(); if(!response.ok) throw new Error(data.error ?? "Search failed");
+      const data=await response.json();
+      if(response.status===401){
+        setAuthRequired(true);
+        setResults([]);
+        setError("");
+        return;
+      }
+      if(!response.ok) throw new Error(data.error ?? "Search failed");
       setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0); setSourceCount(data.sourceCount ?? 0); setLocationEligibleCount(data.locationEligibleCount ?? 0); setSalaryEligibleCount(data.salaryEligibleCount ?? 0);
     } catch(err) { setResults([]);setMode(null);setEligibleCount(0);setError(err instanceof Error?err.message:"Search failed"); }
     finally { setLoading(false); }
@@ -112,7 +142,7 @@ export default function Home() {
 
         <div className="mt-6 flex flex-col gap-4 border-t border-white/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
           <label className="toggle-row"><input type="checkbox" checked={remoteOnly} onChange={e=>setRemoteOnly(e.target.checked)}/><span className="toggle"/><span><strong>Remote only</strong><small>{market==="india"?"Remote roles explicitly workable from India":"Remote roles only"} · city/state filters are cleared</small></span></label>
-          <button disabled={loading} className="primary-button">{loading?"Finding your matches…":"Find my matches"} <span>→</span></button>
+          <button disabled={loading || authState==="checking"} className="primary-button">{authState==="checking"?"Checking access…":loading?"Finding your matches…":authState==="authenticated"?"Find my matches":"Sign in to find matches"} <span>→</span></button>
         </div>
       </form>
       <div className="mx-auto mt-5 grid max-w-6xl grid-cols-2 gap-3 text-xs text-white/35 sm:grid-cols-4"><div className="trust-item"><strong>Live employer sources</strong><span>Career pages & job feeds</span></div><div className="trust-item"><strong>Explainable matching</strong><span>See why a role fits</span></div><div className="trust-item"><strong>Compensation aware</strong><span>CTC + currency filters</span></div><div className="trust-item"><strong>Direct applications</strong><span>Always preserve the source</span></div></div>
@@ -123,7 +153,8 @@ export default function Home() {
         <div><div className="section-kicker">AI-MATCHED OPPORTUNITIES</div><h2 className="mt-1 text-2xl font-semibold tracking-tight">Roles ranked around your profile</h2><p className="mt-2 max-w-xl text-sm text-white/35">Every result is filtered for role relevance first, then ranked against your experience, skills, location and compensation.</p></div>
         {!loading&&!error&&<div className="flex items-center gap-3 text-xs text-white/40"><span className={mode==="live"?"live-badge":"demo-badge"}>{mode==="live"?"● LIVE SOURCES":"● DEMO FALLBACK"}</span><span>{eligibleCount} match{eligibleCount===1?"":"es"}</span>{sourceCount>0&&<span className="hidden sm:inline">{sourceCount.toLocaleString()} scanned</span>}</div>}
       </div>
-      {loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
+      {authRequired?<div className="empty-card"><div className="empty-icon">↗</div><h3>Sign in to search live jobs</h3><p>HiddenHire keeps the career search public, but live opportunity results are available only to authenticated candidates.</p><div className="empty-actions"><Link href="/login" className="secondary-button">Sign in</Link><Link href="/register" className="secondary-button">Create account</Link></div></div>
+       :loading?<div className="loading-card">Searching employer sources and applying your filters<span className="loading-dots">...</span></div>
        :error?<div className="empty-card"><div className="empty-icon">!</div><h3>Search unavailable</h3><p>{error}</p></div>
        :results.length===0?<div className="empty-card"><div className="empty-icon">⌕</div><h3>{locationEligibleCount===0 ? "Your location filters are too narrow" : salaryEligibleCount===0 ? "No roles meet your CTC range" : "No exact matches found"}</h3><p>We checked {sourceCount.toLocaleString()} live source roles. {locationEligibleCount.toLocaleString()} passed location filters and {salaryEligibleCount.toLocaleString()} also passed compensation filters.</p><div className="empty-actions">{(selectedStates.length||selectedCities.length)&&<button type="button" className="secondary-button" onClick={()=>{setSelectedStates([]);setSelectedCities([]);}}>Clear locations</button>}{remoteOnly&&<button type="button" className="secondary-button" onClick={()=>setRemoteOnly(false)}>Allow non-remote roles</button>}<button type="button" className="secondary-button" onClick={()=>{setSalary("");setMaxSalary("");}}>Remove CTC limits</button></div></div>
        :<div className="grid gap-5 lg:grid-cols-2">{results.map(job=><JobCard key={job.id} job={job}/>)}</div>}
