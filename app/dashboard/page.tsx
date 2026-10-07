@@ -216,7 +216,7 @@ export default async function DashboardPage() {
 
                 <aside className="hh-right-stack">
                   <section className="hh-panel hh-plan-card">
-                    <div className="hh-panel-heading"><div><small>CAREER AGENT</small><h2>Today's plan</h2></div><span>LIVE</span></div>
+                    <div className="hh-panel-heading"><div><small>CAREER AGENT</small><h2>Today&apos;s plan</h2></div><span>LIVE</span></div>
                     <div className="hh-plan-item"><b>✦</b><div><strong>Review your highest matches</strong><small>Let the agent prioritize what deserves attention.</small></div><span>›</span></div>
                     <div className="hh-plan-item"><b>✓</b><div><strong>Keep applications moving</strong><small>Track responses and prepare next steps.</small></div><span>›</span></div>
                     <div className="hh-plan-item"><b>↗</b><div><strong>{profileReadiness < 100 ? "Strengthen your profile" : "Review your career signal"}</strong><small>{profileReadiness < 100 ? "Small improvements can increase match quality." : "Your profile is ready for active discovery."}</small></div><span>›</span></div>
