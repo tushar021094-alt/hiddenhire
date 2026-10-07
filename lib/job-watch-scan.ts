@@ -140,6 +140,8 @@ export async function scanJobWatch(
         remote: Boolean(match.job.remote),
         postedDate: match.job.postedDate ?? null,
         priority: eventPriority(eventType, score),
+        opportunityScore: Number((match as WatchableMatch).opportunityScore ?? score),
+        roleRelevanceScore: Number((match as WatchableMatch).roleRelevanceScore ?? 0),
         watchName: watch.name,
         description: match.job.description ?? null,
         requiredSkills: match.job.requiredSkills ?? [],
