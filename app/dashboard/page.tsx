@@ -174,7 +174,7 @@ export default async function DashboardPage() {
             {role === "candidate" && <div className="hh-pro-card">
               <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
               <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
-              <Link href="/profile">Explore Pro <span>→</span></Link>
+              <Link href="/dashboard#pricing">Explore Pro <span>→</span></Link>
             </div>}
             <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
           </aside>
@@ -240,6 +240,32 @@ export default async function DashboardPage() {
               </div>
 
               <div id="career-agent" className="hh-agent-section"><CareerAgent targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} location={profile?.location ?? null} skills={skills} yearsOfExperience={Number(profile?.experience_years ?? 0)} minimumSalary={Number(profile?.min_salary ?? 0)} remoteOnly={Boolean(profile?.remote_only)} applications={applicationList} /></div>
+              <section id="pricing" className="hh-pricing-section">
+                <div className="hh-pricing-heading">
+                  <div>
+                    <small>HIDDENHIRE PRO</small>
+                    <h2>Go deeper with career intelligence.</h2>
+                    <p>Unlock deeper opportunity signals, advanced matching insights and priority career intelligence from one monthly plan.</p>
+                  </div>
+                  <span className="hh-pricing-cycle">MONTHLY</span>
+                </div>
+                <div className="hh-pricing-grid">
+                  <article className="hh-plan-option hh-plan-free">
+                    <div><small>CURRENT PLAN</small><h3>Free</h3><p>Core job discovery and your existing career workspace.</p></div>
+                    <strong>₹0 <span>/ month</span></strong>
+                  </article>
+                  <article className="hh-plan-option hh-plan-pro">
+                    <div>
+                      <small>RECOMMENDED</small>
+                      <h3>Pro</h3>
+                      <p>Advanced AI insights, priority opportunities and deeper career intelligence.</p>
+                      <ul><li>Advanced match intelligence</li><li>Priority opportunity signals</li><li>Deeper career insights</li></ul>
+                    </div>
+                    <div className="hh-plan-price"><strong>₹199</strong><span>/ month</span><a href="#pricing">Upgrade to Pro <span>→</span></a></div>
+                  </article>
+                </div>
+              </section>
+
               <div id="learning" className="hh-watch-section"><JobWatchManager targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} skills={skills} minimumSalary={Number(profile?.min_salary ?? 0)} currency="INR" remoteOnly={Boolean(profile?.remote_only)} /></div>
             </> : (
               <section className="hh-recruiter-workspace">
