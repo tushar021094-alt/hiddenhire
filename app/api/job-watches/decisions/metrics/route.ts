@@ -6,6 +6,7 @@ import { calibrateScore } from "@/lib/career-score-calibration";
 import { buildCareerAgentEffectiveness, buildCareerAgentEffectivenessPolicy } from "@/lib/career-agent-effectiveness";
 import { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";
 import { buildCareerStrategy } from "@/lib/career-strategy";
+import { buildStrategyLearning } from "@/lib/career-strategy-learning";
 import { getCandidateEntitlements } from "@/lib/entitlements";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
@@ -21,7 +22,7 @@ export async function GET() {
 
   const { data: actions, error } = await supabase
     .from("career_agent_actions")
-    .select("id,action,source_url,job_title,job_location,source_provider,job_function,is_remote,task_status,outcome,outcome_at,created_at,decision_score")
+    .select("id,action,source_url,job_title,job_location,source_provider,job_function,is_remote,task_status,outcome,outcome_at,created_at,decision_score,strategy_id,strategy_changes")
     .eq("candidate_id", user.id)
     .order("created_at", { ascending: false })
     .limit(500);
@@ -44,6 +45,7 @@ export async function GET() {
 
   const learningObservations = (actions ?? []).filter((action) => OUTCOMES.includes((applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started") as typeof OUTCOMES[number])).map((action) => ({ action: action.action, decisionScore: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" }));
   const learning = buildLearningInsights(learningObservations);
+  const strategyLearning = buildStrategyLearning((actions ?? []).map((action) => ({ strategyId: action.strategy_id || "", outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" })).filter((item) => item.outcome !== "not_started"));
   const effectiveness = buildCareerAgentEffectiveness((actions ?? []).map((action) => ({ action: action.action, taskStatus: action.task_status, outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" })));
   const effectivenessPolicy = buildCareerAgentEffectivenessPolicy(effectiveness);
   const calibration = calibrateScore((actions ?? []).map((action) => ({ score: Number(action.decision_score || 0), outcome: applicationByUrl.get(normalize(action.source_url)) || action.outcome || "not_started" } )).filter((item) => item.outcome !== "not_started"));
@@ -116,6 +118,7 @@ export async function GET() {
     calibration: isPlus ? calibration : null,
     outcomeIntelligence: isPlus ? outcomeIntelligence : null,
     strategy: isPlus ? strategy : null,
+    strategyLearning: isPlus ? strategyLearning : null,
     plan: entitlements.id,
     upgradeRequired: !isPlus,
   });

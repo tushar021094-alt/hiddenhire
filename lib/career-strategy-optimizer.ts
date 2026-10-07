@@ -1,5 +1,6 @@
 import type { MatchResult } from "@/lib/job-types";
 import type { CareerSimulation, CareerSimulationChanges } from "@/lib/career-simulation";
+import type { StrategyLearningInsight } from "@/lib/career-strategy-learning";
 
 export type CareerStrategyCandidate = {
   id: string;
@@ -16,6 +17,7 @@ export type CareerStrategyRecommendation = CareerStrategyCandidate & {
   opportunityDelta: number;
   averageInterviewProbabilityDelta: number;
   simulation: CareerSimulation;
+  learningAdjustment: number;
 };
 
 const unique = (values: string[]) => {
@@ -96,15 +98,18 @@ export function generateCareerStrategyCandidates(
 
 export function rankCareerStrategies(
   candidates: Array<CareerStrategyCandidate & { simulation: CareerSimulation }>,
+  learning: StrategyLearningInsight[] = [],
 ): CareerStrategyRecommendation[] {
   return candidates
     .map((candidate) => {
       const { deltas } = candidate.simulation;
-      const score =
+      const rawScore =
         deltas.highProbability * 5 +
         deltas.strongMatches * 3 +
         deltas.opportunities * 1 +
         deltas.averageInterviewProbability * 0.5;
+      const learningAdjustment = learning.find((item) => item.strategyId === candidate.id)?.adjustment ?? 0;
+      const score = rawScore + learningAdjustment;
       return {
         ...candidate,
         rank: 0,
@@ -113,6 +118,7 @@ export function rankCareerStrategies(
         strongMatchDelta: deltas.strongMatches,
         opportunityDelta: deltas.opportunities,
         averageInterviewProbabilityDelta: deltas.averageInterviewProbability,
+        learningAdjustment,
       };
     })
     .sort((a, b) =>

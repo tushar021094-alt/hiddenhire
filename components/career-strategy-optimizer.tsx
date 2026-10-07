@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { MatchResult } from "@/lib/job-types";
 import { buildCareerSimulation } from "@/lib/career-simulation";
-import { generateCareerStrategyCandidates, rankCareerStrategies } from "@/lib/career-strategy-optimizer";
+import { generateCareerStrategyCandidates, rankCareerStrategies, type CareerStrategyCandidate } from "@/lib/career-strategy-optimizer";
+import type { StrategyLearningInsight } from "@/lib/career-strategy-learning";
 
 type Props = {
   targetRoles: string[];
@@ -14,6 +15,8 @@ type Props = {
   minimumSalary: number;
   remoteOnly: boolean;
   matches: MatchResult[];
+  strategySignals?: StrategyLearningInsight[];
+  onStrategySelect?: (strategyId: string, changes: CareerStrategyCandidate["changes"], label: string) => void;
 };
 
 type SearchPayload = { results?: MatchResult[]; message?: string };
@@ -61,7 +64,7 @@ export default function CareerStrategyOptimizer(props: Props) {
         return { ...candidate, simulation: buildCareerSimulation(props.matches, Array.isArray(payload.results) ? payload.results : []) };
       }));
 
-      setRecommendations(rankCareerStrategies(evaluated));
+      setRecommendations(rankCareerStrategies(evaluated, props.strategySignals ?? []));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Strategy optimization failed.");
     } finally {
@@ -93,7 +96,7 @@ export default function CareerStrategyOptimizer(props: Props) {
           <div className="rounded-xl border border-emerald-300/15 bg-emerald-300/[.04] p-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-emerald-300/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-emerald-200">Best next move</span>
-              <span className="text-[9px] text-white/30">Rank #1 · strategy score {best.score}</span>
+              <span className="text-[9px] text-white/30">Rank #1 · strategy score {best.score}{best.learningAdjustment ? ` · history ${best.learningAdjustment > 0 ? "+" : ""}${best.learningAdjustment}` : ""}</span>
             </div>
             <h4 className="mt-2 text-lg font-semibold text-white">{best.label}</h4>
             <p className="mt-1 text-xs leading-5 text-white/50">{best.description}</p>
@@ -103,6 +106,7 @@ export default function CareerStrategyOptimizer(props: Props) {
               <span className="rounded-lg border border-white/10 bg-white/[.03] px-2.5 py-1.5 text-[10px] text-white/65">Opportunities {best.opportunityDelta > 0 ? "+" : ""}{best.opportunityDelta}</span>
               <span className="rounded-lg border border-white/10 bg-white/[.03] px-2.5 py-1.5 text-[10px] text-white/65">Interview probability {best.averageInterviewProbabilityDelta > 0 ? "+" : ""}{best.averageInterviewProbabilityDelta} pts</span>
             </div>
+            {props.onStrategySelect && <button type="button" onClick={() => props.onStrategySelect?.(best.id, best.changes, best.label)} className="mt-3 rounded-lg bg-violet-300/10 px-3 py-2 text-[10px] font-semibold text-violet-100 ring-1 ring-violet-300/20">Use this strategy for my next actions →</button>}
           </div>
 
           <div className="mt-4 grid gap-2">

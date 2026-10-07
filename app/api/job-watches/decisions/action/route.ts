@@ -18,6 +18,8 @@ export async function POST(request: Request) {
   const value = body as Record<string, unknown>;
   const jobFingerprint = typeof value.jobFingerprint === "string" ? value.jobFingerprint.trim() : "";
   const requestedAction = typeof value.action === "string" ? value.action.trim() as CareerDecisionAction : null;
+  const strategyId = typeof value.strategyId === "string" ? value.strategyId.trim().slice(0, 64) : null;
+  const strategyChanges = value.strategyChanges && typeof value.strategyChanges === "object" && !Array.isArray(value.strategyChanges) ? value.strategyChanges : null;
   if (!jobFingerprint || !requestedAction || !ACTIONS.has(requestedAction)) {
     return NextResponse.json({ error: "jobFingerprint and a valid action are required." }, { status: 400 });
   }
@@ -147,6 +149,8 @@ export async function POST(request: Request) {
     source_provider: (() => { try { return new URL(opportunity.applicationUrl).hostname.replace(/^www\\./, ""); } catch { return null; } })(),
     is_remote: /remote/i.test(opportunity.location),
     job_function: classifyJobFunction(opportunity.title),
+    strategy_id: strategyId,
+    strategy_changes: strategyChanges,
     workflow: requestedAction === "apply_now" ? { ...workflow, preparation: applicationPreparation } : workflow, task_status: "open", completed_at: null, last_evaluated_at: new Date().toISOString(),
   }, { onConflict: "candidate_id,job_fingerprint,action", ignoreDuplicates: true });
 

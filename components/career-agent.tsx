@@ -31,6 +31,7 @@ type LearningMetrics = {
   effectivenessPolicy: { eligible: boolean; sampleSize: number; recommendations: Array<{ action: string; direction: "positive" | "negative"; delta: number; reason: string }> };
   outcomeIntelligence?: { summary: { resolved: number; positive: number; interviews: number; hires: number; rejected: number; withdrawn: number; positiveRate: number; interviewOrHireRate: number; hireRate: number; medianOutcomeDays: number | null }; breakdowns: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; hireRate: number }> }> };
   strategy?: { eligible: boolean; sampleSize: number; headline: string; recommendations: string[]; bottlenecks: string[] };
+  strategyLearning: Array<{ strategyId: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; eligible: boolean; adjustment: number }> | null;
   attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }> };
 };
 
@@ -65,6 +66,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null>(null);
   const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; queue_reason?: string; outcome?: string | null; job_fingerprint: string }>>([]);
   const [learningMetrics, setLearningMetrics] = useState<LearningMetrics | null>(null);
+  const [selectedStrategy, setSelectedStrategy] = useState<{ id: string; label: string; changes: Record<string, unknown> } | null>(null);
   const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
 
   const activeApplications = useMemo(
@@ -154,7 +156,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       const response = await fetch("/api/job-watches/decisions/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobFingerprint: item.jobFingerprint, action }),
+        body: JSON.stringify({ jobFingerprint: item.jobFingerprint, action, strategyId: selectedStrategy?.id ?? null, strategyChanges: selectedStrategy?.changes ?? null }),
       });
       const payload = await response.json();
       if (response.status === 409 && payload?.decision) {
@@ -243,7 +245,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     <>
       <CareerIntelligence {...careerIntelligenceProps} />
       <CareerSimulation {...careerIntelligenceProps} />
-      <CareerStrategyOptimizer {...careerIntelligenceProps} />
+      <CareerStrategyOptimizer {...careerIntelligenceProps} strategySignals={learningMetrics?.strategyLearning ?? []} onStrategySelect={(id, changes, label) => setSelectedStrategy({ id, label, changes })} />
       <section className="career-agent-v2 mt-6 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/[0.06] via-white/[0.025] to-blue-500/[0.04]">
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -286,7 +288,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
         </div>}
 
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Decision Engine</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Decision Engine</p>{selectedStrategy && <span className="rounded-md border border-violet-300/15 bg-violet-300/[.04] px-2 py-1 text-[9px] text-violet-200/80">Strategy active: {selectedStrategy.label}</span>}
           <span className="text-[10px] text-white/30">{decisions.length} recommended actions</span>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
