@@ -34,6 +34,7 @@ export default function PricingPage() {
             description="The full intelligence layer for serious job searches."
             featured
             features={["Everything in Free","10 AI resume optimizations / month","10 AI cover letters / month","10 AI interview sessions / month","Priority Career Agent signals","Deep match intelligence"]}
+            checkoutConfigured={checkoutConfigured}
           />
         </section>
 
@@ -56,12 +57,14 @@ function PlanCard({
   description,
   features,
   featured = false,
+  checkoutConfigured = false,
 }: {
   title: string;
   price: number;
   description: string;
   features: string[];
   featured?: boolean;
+  checkoutConfigured?: boolean;
 }) {
   return (
     <article className={`hh-plan-card ${featured ? "is-pro" : ""}`}>
