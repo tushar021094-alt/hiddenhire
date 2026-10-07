@@ -1081,3 +1081,233 @@ body{
   .hh-discovery-meta{display:none}
   .hh-discovery-actions .hh-save-button{display:none}
 }
+
+
+/* Dashboard 2.4 — typography, contrast and Pro plan destination */
+.hh-dashboard{
+  --hh-ui-title:#f7f9ff;
+  --hh-ui-body:#b7c4d8;
+  --hh-ui-muted:#8797b1;
+  --hh-ui-faint:#6f809b;
+}
+.hh-dashboard .hh-eyebrow,
+.hh-dashboard .hh-panel-heading small,
+.hh-dashboard .hh-stat-card small,
+.hh-dashboard .hh-plan-card .hh-panel-heading small,
+.hh-dashboard .hh-profile-card .hh-panel-heading small{
+  color:#9eadd0!important;
+  font-size:10px!important;
+  letter-spacing:.18em!important;
+  font-weight:750!important;
+}
+.hh-dashboard .hh-hero-copy h1{
+  color:#f8faff!important;
+  font-size:clamp(42px,4vw,58px)!important;
+  line-height:1.04!important;
+  letter-spacing:-.045em!important;
+}
+.hh-dashboard .hh-hero-copy>p{
+  color:#a9b7cc!important;
+  font-size:15px!important;
+  line-height:1.7!important;
+  max-width:700px;
+}
+.hh-dashboard .hh-hero-pills span{
+  color:#c5d0e2!important;
+  font-size:11px!important;
+  border-color:rgba(148,163,184,.18)!important;
+  background:rgba(10,16,34,.72)!important;
+}
+.hh-dashboard .hh-stat-card{
+  min-height:136px!important;
+  padding:22px!important;
+}
+.hh-dashboard .hh-stat-card small{
+  color:#9aa9c1!important;
+  font-size:11px!important;
+  letter-spacing:.02em!important;
+}
+.hh-dashboard .hh-stat-card strong{
+  color:#f8faff!important;
+  font-size:31px!important;
+  line-height:1.05!important;
+  letter-spacing:-.025em!important;
+}
+.hh-dashboard .hh-stat-card em{
+  color:#8191aa!important;
+  font-size:10px!important;
+  font-style:normal!important;
+}
+.hh-dashboard .hh-stat-icon{
+  width:46px!important;height:46px!important;
+  font-size:18px!important;
+}
+.hh-dashboard .hh-panel-heading h2{
+  color:#f3f6ff!important;
+  font-size:21px!important;
+  line-height:1.2!important;
+  letter-spacing:-.025em!important;
+}
+.hh-dashboard .hh-panel-heading>a,
+.hh-dashboard .hh-panel-heading>span{
+  color:#b9a8ff!important;
+  font-size:11px!important;
+  font-weight:750!important;
+}
+.hh-dashboard .hh-tabs span{
+  color:#8392ac!important;
+  font-size:10px!important;
+}
+.hh-dashboard .hh-tabs .is-active{
+  color:#eee9ff!important;
+  background:rgba(124,58,237,.15)!important;
+  border-color:rgba(139,92,246,.35)!important;
+}
+.hh-dashboard .hh-job-row{
+  min-height:116px!important;
+  padding:20px 4px!important;
+}
+.hh-dashboard .hh-job-info strong{
+  color:#f4f7ff!important;
+  font-size:15px!important;
+  line-height:1.3!important;
+}
+.hh-dashboard .hh-job-info>span{
+  color:#a3b1c6!important;
+  font-size:11px!important;
+}
+.hh-dashboard .hh-job-info>div i{
+  color:#74849e!important;
+  font-size:9px!important;
+}
+.hh-dashboard .hh-match-badge{
+  color:#5eead4!important;
+  background:rgba(20,184,166,.12)!important;
+  font-size:10px!important;
+  font-weight:800!important;
+}
+.hh-dashboard .hh-job-action{
+  font-size:10px!important;
+  padding:10px 13px!important;
+}
+.hh-dashboard .hh-plan-item{
+  min-height:78px!important;
+  padding:14px 0!important;
+}
+.hh-dashboard .hh-plan-item strong{
+  color:#edf2fb!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+.hh-dashboard .hh-plan-item small{
+  display:block;
+  color:#8fa0b9!important;
+  font-size:10px!important;
+  line-height:1.45!important;
+  margin-top:4px!important;
+}
+.hh-dashboard .hh-profile-card p{
+  color:#9ba9c0!important;
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+.hh-dashboard .hh-profile-card>a{
+  font-size:10px!important;
+  font-weight:750!important;
+}
+
+/* Career Agent: make strategy and intelligence content readable */
+.hh-dashboard .hh-agent-section .career-agent-v2{
+  font-size:12px!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-[9px]"]{
+  font-size:11px!important;
+  line-height:1.55!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-[10px]"]{
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-xs"]{
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-lg"]{
+  font-size:20px!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="p-3"]{
+  padding:15px!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="mt-2"]{
+  margin-top:9px!important;
+}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-white/35"]{color:#8d9db6!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-white/40"]{color:#9aa9c0!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-white/55"]{color:#aebbd0!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-white/65"]{color:#c1ccdb!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-white/85"]{color:#eef3fb!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-cyan-200"]{color:#8be9f7!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-cyan-300"]{color:#67e8f9!important}
+.hh-dashboard .hh-agent-section .career-agent-v2 [class*="text-amber-200"]{color:#fcd34d!important}
+
+/* Pro monthly plan section */
+.hh-pricing-section{
+  margin-top:18px;
+  padding:26px;
+  border:1px solid rgba(99,102,241,.24);
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 85% 15%,rgba(236,72,153,.10),transparent 30%),
+    linear-gradient(145deg,rgba(12,18,38,.97),rgba(7,12,27,.99));
+  box-shadow:0 24px 70px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035);
+}
+.hh-pricing-heading{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:24px;
+  padding-bottom:20px;border-bottom:1px solid rgba(148,163,184,.10);
+}
+.hh-pricing-heading small{display:block;color:#a5b4fc;font-size:10px;font-weight:800;letter-spacing:.2em}
+.hh-pricing-heading h2{margin:8px 0 7px;color:#f7f9ff;font-size:25px;line-height:1.15;letter-spacing:-.03em}
+.hh-pricing-heading p{margin:0;max-width:690px;color:#94a4bd;font-size:12px;line-height:1.6}
+.hh-pricing-cycle{
+  flex:none;padding:8px 11px;border:1px solid rgba(139,92,246,.30);border-radius:999px;
+  background:rgba(124,58,237,.10);color:#c4b5fd;font-size:9px;font-weight:800;letter-spacing:.16em;
+}
+.hh-pricing-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:14px;margin-top:16px}
+.hh-plan-option{
+  min-height:190px;padding:20px;border-radius:16px;border:1px solid rgba(148,163,184,.13);
+  background:rgba(8,14,30,.82);display:flex;justify-content:space-between;gap:20px;
+}
+.hh-plan-option small{display:block;font-size:9px;font-weight:800;letter-spacing:.16em;color:#74849e}
+.hh-plan-option h3{margin:7px 0 6px;color:#f5f7ff;font-size:19px}
+.hh-plan-option p{margin:0;max-width:470px;color:#8e9db6;font-size:11px;line-height:1.55}
+.hh-plan-option strong{color:#f8faff;font-size:23px;white-space:nowrap}
+.hh-plan-option strong span{font-size:10px;color:#8190aa;font-weight:500}
+.hh-plan-pro{
+  border-color:rgba(139,92,246,.34);
+  background:linear-gradient(135deg,rgba(38,24,74,.34),rgba(8,14,30,.94));
+  box-shadow:0 18px 48px rgba(124,58,237,.10);
+}
+.hh-plan-pro small{color:#67e8f9}
+.hh-plan-pro ul{display:grid;gap:6px;margin:14px 0 0;padding:0;list-style:none;color:#aebbd0;font-size:10px}
+.hh-plan-pro li::before{content:"✓";color:#67e8f9;margin-right:7px}
+.hh-plan-price{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;min-width:118px}
+.hh-plan-price strong{font-size:29px}
+.hh-plan-price a{
+  display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border-radius:9px;
+  background:linear-gradient(100deg,#0ea5e9,#6366f1,#a21caf);color:#fff!important;
+  font-size:10px;font-weight:800;box-shadow:0 9px 24px rgba(99,102,241,.22);
+}
+@media(max-width:900px){
+  .hh-dashboard .hh-hero-copy h1{font-size:42px!important}
+  .hh-pricing-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+  .hh-dashboard .hh-hero-copy h1{font-size:34px!important}
+  .hh-dashboard .hh-stat-card{min-height:118px!important;padding:16px!important}
+  .hh-dashboard .hh-stat-card strong{font-size:27px!important}
+  .hh-pricing-section{padding:18px}
+  .hh-pricing-heading{display:block}
+  .hh-pricing-cycle{display:inline-flex;margin-top:12px}
+  .hh-plan-option{display:block}
+  .hh-plan-price{align-items:flex-start;margin-top:18px;gap:12px}
+}
