@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CareerAgent from "@/components/career-agent";
 import CareerOperations from "@/components/career-operations";
+import CareerExecution from "@/components/career-execution";
 import JobWatchManager from "@/components/job-watch-manager";
 import DashboardHeader from "@/components/dashboard-header";
 import TimeAwareGreeting from "@/components/time-aware-greeting";
@@ -150,6 +151,7 @@ export default async function DashboardPage() {
                 <Link href="/jobs" className="hh-nav-item"><span>⌘</span>Job Discovery</Link>
                 <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
                 <Link href="/dashboard#operations" className="hh-nav-item"><span>⚡</span>Career Operations</Link>
+                <Link href="/dashboard#execution" className="hh-nav-item"><span>↗</span>Career Execution <em>AI</em></Link>
                 <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
                 <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
                 <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
@@ -234,6 +236,7 @@ export default async function DashboardPage() {
               </div>
 
               <CareerOperations />
+              <CareerExecution />
               <div id="career-agent" className="hh-agent-section"><CareerAgent targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} location={profile?.location ?? null} skills={skills} yearsOfExperience={Number(profile?.experience_years ?? 0)} minimumSalary={Number(profile?.min_salary ?? 0)} remoteOnly={Boolean(profile?.remote_only)} applications={applicationList} /></div>
               <section id="pricing" className="hh-pricing-section">
                 <div className="hh-pricing-heading">
