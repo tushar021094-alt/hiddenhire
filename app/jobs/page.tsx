@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import DashboardHeader from "@/components/dashboard-header";
 
 type Job = {
   id: string;
@@ -205,20 +206,11 @@ useEffect(() => {
   return (
     <main className="hh-dashboard hh-jobs-page">
       <div className="hh-shell">
-        <header className="hh-topbar">
-          <Link href="/dashboard" className="hh-brand" aria-label="HiddenHire dashboard">
-            <span className="hh-brand-mark"><i /><i /><i /></span>
-            <span>Hidden<span>Hire</span></span>
-          </Link>
-          <div className="hh-command"><span className="hh-command-icon">⌕</span><span>Search jobs, companies, skills or anything...</span><kbd>⌘ K</kbd></div>
-          <div className="hh-top-actions">
-            <Link href="/dashboard" className="hh-icon-button" aria-label="Dashboard">⌂</Link>
-            <div className="hh-user">
-              <div className="hh-avatar">{(profile?.full_name || "H").slice(0,1).toUpperCase()}</div>
-              <div className="hh-user-copy"><strong>{profile?.full_name || "Job Seeker"}</strong><span>Job Seeker</span></div>
-            </div>
-          </div>
-        </header>
+        <DashboardHeader
+          name={profile?.full_name || "Job Seeker"}
+          firstName={(profile?.full_name || "Job Seeker").split(" ")[0]}
+          roleLabel="Job Seeker"
+        />
         <div className="hh-layout">
           <aside className="hh-sidebar">
             <nav aria-label="Dashboard navigation">
@@ -234,7 +226,7 @@ useEffect(() => {
             <div className="hh-pro-card">
               <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
               <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
-              <Link href="/profile">Explore Pro <span>→</span></Link>
+              <Link href="/dashboard#pricing">Explore Pro <span>→</span></Link>
             </div>
             <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
           </aside>
