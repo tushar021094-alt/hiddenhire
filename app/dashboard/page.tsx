@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import CareerAgent from "@/components/career-agent";
 import JobWatchManager from "@/components/job-watch-manager";
 import DashboardHeader from "@/components/dashboard-header";
+import TimeAwareGreeting from "@/components/time-aware-greeting";
 
 type Profile = {
   full_name: string | null;
@@ -175,7 +176,7 @@ export default async function DashboardPage() {
               <div className="hh-hero-art" aria-hidden="true"><div className="hh-stars" /><div className="hh-planet" /><div className="hh-city"><i /><i /><i /><i /><i /></div></div>
               <div className="hh-hero-copy">
                 <p className="hh-eyebrow">{copy.eyebrow} <span className="hh-live-dot" /> LIVE</p>
-                <h1>Good morning, {firstName}.<br /><span>Your next opportunity is closer than you think.</span></h1>
+                <h1><TimeAwareGreeting firstName={firstName} /><br /><span>Your next opportunity is closer than you think.</span></h1>
                 <p>{copy.subtitle}</p>
                 <div className="hh-hero-pills"><span>✦ AI-powered matching</span><span>◎ Global opportunities</span><span>◈ Personalized insights</span></div>
               </div>
