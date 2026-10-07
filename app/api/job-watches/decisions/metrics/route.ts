@@ -6,6 +6,7 @@ import { calibrateScore } from "@/lib/career-score-calibration";
 import { buildCareerAgentEffectiveness, buildCareerAgentEffectivenessPolicy } from "@/lib/career-agent-effectiveness";
 import { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";
 import { buildCareerStrategy } from "@/lib/career-strategy";
+import { getCandidateEntitlements } from "@/lib/entitlements";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
 
@@ -14,6 +15,9 @@ export async function GET() {
   if (authError || !user) {
     return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
   }
+
+  const entitlements = await getCandidateEntitlements(supabase, user.id);
+  const isPlus = entitlements.id === "candidate_plus";
 
   const { data: actions, error } = await supabase
     .from("career_agent_actions")
@@ -105,12 +109,14 @@ export async function GET() {
     outcomes: outcomeCounts,
     actions_by_type: actionCounts,
     conversion_by_action: conversionByAction,
-    learning,
-    effectiveness,
-    effectivenessPolicy,
-    attribution,
-    calibration,
-    outcomeIntelligence,
-    strategy,
+    learning: isPlus ? learning : null,
+    effectiveness: isPlus ? effectiveness : null,
+    effectivenessPolicy: isPlus ? effectivenessPolicy : null,
+    attribution: isPlus ? attribution : null,
+    calibration: isPlus ? calibration : null,
+    outcomeIntelligence: isPlus ? outcomeIntelligence : null,
+    strategy: isPlus ? strategy : null,
+    plan: entitlements.id,
+    upgradeRequired: !isPlus,
   });
 }
