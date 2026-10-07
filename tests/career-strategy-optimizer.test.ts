@@ -5,7 +5,7 @@ import { generateCareerStrategyCandidates, rankCareerStrategies } from "@/lib/ca
 
 function match(id: string, score: number, missingRequirements: string[], location = "Delhi") {
   return {
-    job: { id, title: "Finance Manager", company: "Acme", location },
+    job: { id, title: "Finance Manager", company: "Acme", location, requiredSkills: ["SAP", "FP&A"] },
     score,
     opportunityScore: 80,
     roleRelevanceScore: score,
