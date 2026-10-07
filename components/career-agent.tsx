@@ -34,7 +34,7 @@ type LearningMetrics = {
   strategy?: { eligible: boolean; sampleSize: number; headline: string; recommendations: string[]; bottlenecks: string[] };
   strategyLearning: Array<{ strategyId: string; sampleSize: number; positiveRate: number; interviewOrHireRate: number; eligible: boolean; adjustment: number }> | null;
   personalization: { eligible: boolean; sampleSize: number; confidence: "low" | "medium" | "high"; headline: string; focus: string[] } | null;
-  attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }>; policy: { eligible: boolean; sampleSize: number; boosts: Array<{ dimension: string; group: string; points: number }>; penalties: Array<{ dimension: string; group: string; points: number }> } };
+  attribution: { dimensions: Array<{ dimension: string; results: Array<{ group: string; sampleSize: number; eligible: boolean; positiveRate: number; interviewOrHireRate: number }> }>; recommendations: Array<{ dimension: string; group: string; sampleSize: number; direction: "positive" | "negative"; delta: number; reason: string }>; policy: { eligible: boolean; sampleSize: number; boosts: Array<{ dimension: "role" | "source" | "remote" | "score_band"; group: string; points: number }>; penalties: Array<{ dimension: "role" | "source" | "remote" | "score_band"; group: string; points: number }> } };
 };
 
 type Props = {
