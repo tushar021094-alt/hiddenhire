@@ -49,6 +49,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const isDemo = Boolean(profile.demo || profile.demoMode === 'demo');
+    if (isDemo) {
+      return NextResponse.json(await searchJobs(profile));
+    }
+
     let calibrationAdjustment = 0;
     let learningPolicy: ReturnType<typeof buildAttributionInsights>["policy"] | undefined;
     const auth = await getAuthenticatedUser();
