@@ -26,7 +26,19 @@ const MAX_MATCHES = 100;
 const normalizeUrl = (value: unknown) => typeof value === "string" ? value.replace(/\/$/, "").toLowerCase() : "";
 const RECENT_DUPLICATE_MS = 86_400_000;
 
-export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, suppliedMatches?: unknown[]) {
+type ScanPolicy = {
+  calibrationAdjustment: number;
+  learningPolicy: Parameters<typeof searchJobs>[3];
+  eligible: boolean;
+  sampleSize: number;
+};
+
+export async function scanJobWatch(
+  supabase: ScanSupabase,
+  watch: Watch,
+  suppliedMatches?: unknown[],
+  scanPolicy?: ScanPolicy,
+) {
   let matches = Array.isArray(suppliedMatches) ? suppliedMatches.slice(0, MAX_MATCHES) : [];
 
   if (matches.length === 0) {
@@ -39,7 +51,7 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
       minimumSalary: Number(watch.minimum_salary ?? 0),
       preferredCurrency: watch.currency || "INR",
       remoteOnly: Boolean(watch.remote_only),
-    });
+    }, scanPolicy?.calibrationAdjustment ?? 0, scanPolicy?.learningPolicy);
     matches = Array.isArray(searchResult.results) ? searchResult.results.slice(0, MAX_MATCHES) : [];
   }
 
@@ -602,5 +614,15 @@ export async function scanJobWatch(supabase: ScanSupabase, watch: Watch, supplie
     .update({ last_scanned_at: observationsNow, updated_at: observationsNow }).eq("id", watch.id);
   if (touchError) throw new Error("Unable to update watch scan timestamp.");
 
-  return { watchId: watch.id, watchName: watch.name, scanned: usable.length, threshold, eventsCreated: events.length, events };
+  return {
+    watchId: watch.id,
+    watchName: watch.name,
+    scanned: usable.length,
+    threshold,
+    eventsCreated: events.length,
+    personalized: Boolean(scanPolicy?.eligible),
+    learningSampleSize: scanPolicy?.sampleSize ?? 0,
+    calibrationAdjustment: scanPolicy?.calibrationAdjustment ?? 0,
+    events,
+  };
 }
