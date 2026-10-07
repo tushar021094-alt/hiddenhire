@@ -2,6 +2,8 @@ export type JobWatchEventType = "new" | "score_increase" | "salary_change" | "lo
 
 export type WatchableMatch = {
   score?: number;
+  opportunityScore?: number;
+  roleRelevanceScore?: number;
   job: {
     id?: string;
     title: string;
