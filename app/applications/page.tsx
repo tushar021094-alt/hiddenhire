@@ -286,19 +286,20 @@ export default function ApplicationsPage() {
                             application.status === "applied" &&
                             application.jobs?.source_type === "native" &&
                             Date.now() - new Date(application.created_at).getTime() >= 5 * 86_400_000 && (
-                              application.recruiter_response_due_at ? (
-                                <span className="rounded-full border border-amber-300/20 bg-amber-50 px-3 py-1 text-xs text-amber-700">
-                                  Reminder sent · response requested
-                                </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => remindRecruiter(application.id)}
-                                  className="workspace-secondary-button"
-                                >
-                                  Remind recruiter
-                                </button>
-                              )
+                              application.last_candidate_reminder_at &&
+                            Date.now() - new Date(application.last_candidate_reminder_at).getTime() < 3 * 86_400_000 ? (
+                              <span className="rounded-full border border-amber-300/20 bg-amber-50 px-3 py-1 text-xs text-amber-700">
+                                Reminder sent · awaiting response
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => remindRecruiter(application.id)}
+                                className="workspace-secondary-button"
+                              >
+                                {application.candidate_reminder_count ? "Remind again" : "Remind recruiter"}
+                              </button>
+                            )
                             )}
                           {application.recruiter_response_due_at && (
                             <span className="text-xs text-slate-500">
