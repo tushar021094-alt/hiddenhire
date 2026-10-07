@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     }
 
     const isDemo = Boolean(profile.demo || profile.demoMode === 'demo');
-    if (isDemo) {
+    if (isDemo && process.env.NODE_ENV !== 'production') {
       return NextResponse.json(await searchJobs(profile));
     }
 
