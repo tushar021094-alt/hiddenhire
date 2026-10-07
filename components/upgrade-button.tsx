@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function UpgradeButton() {
+export function UpgradeButton({ configured }: { configured: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,14 +22,36 @@ export function UpgradeButton() {
 
       window.location.assign(data.checkoutUrl);
     } catch (checkoutError) {
-      setError(checkoutError instanceof Error ? checkoutError.message : "Unable to start checkout.");
+      setError(
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : "Unable to start checkout."
+      );
       setBusy(false);
     }
   }
 
+  if (!configured) {
+    return (
+      <div className="hh-upgrade-action">
+        <button type="button" disabled className="hh-plan-button is-primary">
+          Razorpay setup pending <span>•</span>
+        </button>
+        <p className="hh-upgrade-error hh-upgrade-info">
+          Payment credentials are not configured on the production environment yet.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="hh-upgrade-action">
-      <button type="button" onClick={startCheckout} disabled={busy} className="hh-plan-button is-primary">
+      <button
+        type="button"
+        onClick={startCheckout}
+        disabled={busy}
+        className="hh-plan-button is-primary"
+      >
         {busy ? "Opening secure checkout…" : "Upgrade to Candidate Plus"} <span>→</span>
       </button>
       {error && <p className="hh-upgrade-error">{error}</p>}
