@@ -94,7 +94,7 @@ export default function CareerSimulation({ targetRoles, preferredLocations, loca
         </label>
       </div>
       <div className="flex flex-col gap-2 border-t border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p className="text-[10px] text-white/35">Scenario: {simulatedProfile.keySkills.length - skills.length} new skill(s) · {simulatedProfile.preferredLocations.length - (baselineProfile.preferredLocations?.length || 0)} new location(s) · ₹{simulatedProfile.minimumSalary.toLocaleString("en-IN")} · {simulatedProfile.remoteOnly ? "remote-only" : "location flexible"}</p>
+        <p className="text-[10px] text-white/35">Scenario: {simulatedProfile.keySkills.length - skills.length} new skill(s) · {(simulatedProfile.preferredLocations?.length || 0) - (baselineProfile.preferredLocations?.length || 0)} new location(s) · ₹{simulatedProfile.minimumSalary.toLocaleString("en-IN")} · {simulatedProfile.remoteOnly ? "remote-only" : "location flexible"}</p>
         <button type="button" onClick={() => void simulate()} disabled={running || !matches.length} className="rounded-lg bg-cyan-300/10 px-4 py-2 text-xs font-semibold text-cyan-100 ring-1 ring-cyan-300/20 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-40">{running ? "Simulating live market…" : "Run what-if →"}</button>
       </div>
       {error && <div className="mx-5 mb-4 rounded-lg border border-rose-400/15 bg-rose-400/[.04] p-3 text-[10px] text-rose-200 sm:mx-6">{error}</div>}
