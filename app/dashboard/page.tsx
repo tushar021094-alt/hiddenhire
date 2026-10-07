@@ -149,6 +149,7 @@ export default async function DashboardPage() {
                 <Link href="/dashboard" className="hh-nav-item is-active"><span>⌂</span>Dashboard</Link>
                 <Link href="/jobs" className="hh-nav-item"><span>⌘</span>Job Discovery</Link>
                 <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
+                <Link href="/dashboard#operations" className="hh-nav-item"><span>⚡</span>Career Operations</Link>
                 <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
                 <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
                 <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
