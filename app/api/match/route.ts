@@ -5,6 +5,7 @@ import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
+import { getAuthenticatedUser } from "@/lib/supabase/server";
 
 const MAX_ROLE_LENGTH = 200;
 const MAX_SKILLS = 30;
@@ -145,6 +146,14 @@ export async function POST(request: Request) {
 
     if (!validProfile(body)) {
       return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
+    }
+
+    const auth = await getAuthenticatedUser();
+    if (!auth.user) {
+      return NextResponse.json(
+        { error: "Sign in or create a HiddenHire account to search live jobs.", code: "AUTH_REQUIRED" },
+        { status: 401 },
+      );
     }
 
     const liveJobs = await discoverJobs();
