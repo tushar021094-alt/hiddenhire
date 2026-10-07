@@ -18,9 +18,9 @@ function planForMatch(match: MatchResult, application?: ProactiveApplication, no
   return { action: "watch", title: job.title, company: job.company, location: job.location, score, confidence: 74, urgency: "low", whyNow: "The current fit is " + score + "%, so the agent will watch for a stronger signal.", nextStep: "Keep watching; prioritize higher-confidence opportunities first.", applicationUrl: job.applicationUrl };
 }
 
-export function buildProactiveCareerPlan(matches: MatchResult[], applications: ProactiveApplication[], now = Date.now()): ProactiveCareerPlan {
+export function buildProactiveCareerPlan(matches: MatchResult[], applications: ProactiveApplication[] = [], now = Date.now()): ProactiveCareerPlan {
   const ranked = matches.slice(0, 12).map((match, index) => {
-    const application = applications.find((item) => item.title && item.title.toLowerCase() === match.job.title.toLowerCase() && (!item.company || item.company.toLowerCase() === match.job.company.toLowerCase()));
+    const application = applications.find((item) => item.title && item.title.toLowerCase() === match.job.title.toLowerCase() && (!item.company || item.company.toLowerCase() === match.job.company.toLowerCase())) ?? (applications.length === 1 && matches.length === 1 ? applications[0] : undefined);
     return planForMatch(match, application, now);
   });
   const unique = new Map<string, ProactivePlanItem>();
