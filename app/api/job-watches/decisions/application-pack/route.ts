@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildApplicationPreparation } from "@/lib/application-preparation";
+import { getCandidateEntitlements } from "@/lib/entitlements";
 
 export async function POST(request: Request) {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (authError || !user) return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
+  const entitlements = await getCandidateEntitlements(supabase, user.id);
+  if (entitlements.id !== "candidate_plus") {
+    return NextResponse.json({ error: "Application Copilot is a Candidate Plus feature.", code: "PRO_REQUIRED", upgradeUrl: "/pricing" }, { status: 403 });
+  }
+
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 }); }
   const fingerprint = body && typeof body === "object" && !Array.isArray(body) && typeof (body as Record<string, unknown>).jobFingerprint === "string"
