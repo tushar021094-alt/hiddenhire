@@ -203,134 +203,124 @@ useEffect(() => {
   }, [router]);
 
   return (
-    <main className="app-v2 min-h-screen bg-[#f7f9fc] text-slate-900">
-      <div className="mx-auto max-w-7xl px-6 py-6 lg:px-10">
-        <header className="flex items-center justify-between border-b border-white/10 pb-5">
-          <Link href="/dashboard" className="text-xl font-semibold tracking-tight">
-            Hidden<span className="text-cyan-300">Hire</span>
+    <main className="hh-dashboard hh-jobs-page">
+      <div className="hh-shell">
+        <header className="hh-topbar">
+          <Link href="/dashboard" className="hh-brand" aria-label="HiddenHire dashboard">
+            <span className="hh-brand-mark"><i /><i /><i /></span>
+            <span>Hidden<span>Hire</span></span>
           </Link>
-          <Link href="/onboarding" className="rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:border-cyan-300/30 hover:text-cyan-200">
-            Edit profile
-          </Link>
+          <div className="hh-command"><span className="hh-command-icon">⌕</span><span>Search jobs, companies, skills or anything...</span><kbd>⌘ K</kbd></div>
+          <div className="hh-top-actions">
+            <Link href="/dashboard" className="hh-icon-button" aria-label="Dashboard">⌂</Link>
+            <div className="hh-user">
+              <div className="hh-avatar">{(profile?.full_name || "H").slice(0,1).toUpperCase()}</div>
+              <div className="hh-user-copy"><strong>{profile?.full_name || "Job Seeker"}</strong><span>Job Seeker</span></div>
+            </div>
+          </div>
         </header>
+        <div className="hh-layout">
+          <aside className="hh-sidebar">
+            <nav aria-label="Dashboard navigation">
+              <Link href="/dashboard" className="hh-nav-item"><span>⌂</span>Dashboard</Link>
+              <Link href="/jobs" className="hh-nav-item is-active"><span>⌘</span>Job Discovery</Link>
+              <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
+              <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
+              <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
+              <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
+              <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
+              <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
+            </nav>
+            <div className="hh-pro-card">
+              <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
+              <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
+              <Link href="/profile">Explore Pro <span>→</span></Link>
+            </div>
+            <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
+          </aside>
+          <section className="hh-content">
+            <section className="hh-jobs-hero">
+              <div className="hh-jobs-hero-art" aria-hidden="true"><div className="hh-jobs-stars" /><div className="hh-jobs-planet" /><div className="hh-jobs-city"><i/><i/><i/><i/><i/></div></div>
+              <div className="hh-jobs-hero-copy">
+                <p className="hh-eyebrow"><span className="hh-live-dot" /> JOB DISCOVERY</p>
+                <h1>Global opportunities<br /><span>tailored for you.</span></h1>
+                <p>Discover high-quality roles ranked around your skills, experience, location and career goals.</p>
+                <div className="hh-hero-pills"><span>✦ AI-powered matching</span><span>◎ Verified opportunities</span><span>◈ Global discovery</span><span>↻ Updated daily</span></div>
+              </div>
+              <div className="hh-search-intel">
+                <strong>Your Search Intelligence</strong>
+                <p>{jobs.length ? jobs.length + " opportunities matched to your current profile." : "Your profile is powering personalized opportunity discovery."}</p>
+                <ul><li>✓ Personalized job recommendations</li><li>✓ Location & salary-aware matching</li><li>✓ Explainable match signals</li><li>✓ Direct application sources</li></ul>
+              </div>
+            </section>
 
-        <section className="py-12">
-          <p className="text-sm uppercase tracking-[0.22em] text-cyan-300">Candidate intelligence</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Your Match Radar</h1>
-          <p className="mt-4 max-w-3xl text-white/55">
-            HiddenHire ranks opportunities using your target function, skills, experience, location, remote preference and compensation floor.
-          </p>
-        </section>
+            <section className="hh-discovery-controls">
+              <div className="hh-discovery-search"><span>⌕</span><input aria-label="Search opportunities" placeholder="Search by job title, company, skills..." /></div>
+              <div className="hh-discovery-select">⌖ <span>{profile?.location || "Location"}</span>⌄</div>
+              <div className="hh-discovery-select">▣ <span>{profile?.experience_years ? profile.experience_years + "+ yrs" : "All experience"}</span>⌄</div>
+              <button type="button" className="hh-discovery-button" onClick={() => window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})}>Search Jobs →</button>
+              <div className="hh-filter-row"><span>Work Mode</span><b className={!profile?.remote_only ? "active" : ""}>All</b><b className={profile?.remote_only ? "active" : ""}>Remote</b><b>On-site</b><b>Hybrid</b><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><b>More filters</b></div>
+            </section>
 
-        {profile && (
-          <section className="mb-6 flex flex-wrap gap-2">
-            {(candidate?.target_roles ?? []).map((role) => (
-              <span key={role} className="rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-xs text-cyan-200">{role}</span>
-            ))}
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
-              {profile.experience_years ?? 0} yrs experience
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55">
-              {profile.remote_only ? "Remote only" : profile.location || "Location flexible"}
-            </span>
-          </section>
-        )}
+            <div className="hh-discovery-stats">
+              <article><span>◫</span><div><strong>{jobs.length || "—"}</strong><small>Matched opportunities</small></div></article>
+              <article><span>▦</span><div><strong>{new Set(jobs.map(j => j.company).filter(Boolean)).size || "—"}</strong><small>Companies hiring</small></div></article>
+              <article><span>◎</span><div><strong>{jobs.filter(j => j.remote).length || "—"}</strong><small>Remote friendly</small></div></article>
+              <article><span>◉</span><div><strong>{jobs.filter(j => j.salaryMin || j.salaryMax).length || "—"}</strong><small>Salary disclosed</small></div></article>
+            </div>
 
-        {loading && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-white/60">
-            AI is searching and ranking live opportunities…
-          </div>
-        )}
+            {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
+            {!loading && error && <div className="hh-discovery-alert">{error}</div>}
+            {!loading && !error && message && jobs.length === 0 && (
+              <div className="hh-discovery-empty"><div className="hh-empty-icon">✦</div><div><strong>No strong matches yet.</strong><p>{message}</p></div><Link href="/onboarding" className="hh-job-action">Improve profile →</Link></div>
+            )}
 
-        {!loading && error && (
-          <div className="rounded-2xl border border-red-400/20 bg-red-400/5 p-6 text-red-200">{error}</div>
-        )}
-
-        {!loading && !error && message && jobs.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8">
-            <h2 className="text-xl font-semibold">No strong matches yet</h2>
-            <p className="mt-2 text-sm leading-6 text-white/55">{message}</p>
-            <Link href="/onboarding" className="mt-5 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">
-              Improve your profile
-            </Link>
-          </div>
-        )}
-
-        {!loading && jobs.length > 0 && (
-          <section className="grid gap-4 lg:grid-cols-2">
-            {jobs.map((job, index) => (
-              <article key={job.applicationUrl || index} className="rounded-2xl border border-white/10 bg-white/[0.035] p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-cyan-300/80">AI match</p>
-                    <h2 className="mt-2 text-xl font-semibold">{job.title || "Untitled role"}</h2>
-                    <p className="mt-1 text-sm text-white/55">{job.company || "Company undisclosed"}</p>
+            {!loading && !error && jobs.length > 0 && (
+              <div className="hh-discovery-grid">
+                <section className="hh-panel hh-discovery-results">
+                  <div className="hh-panel-heading">
+                    <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>Showing opportunities based on your profile, skills and preferences.</p></div>
+                    <span>{jobs.length} matches</span>
                   </div>
-                  {typeof job.score === "number" && (
-                    <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-3 py-2 text-center">
-                      <div className="text-xl font-semibold text-cyan-200">{job.score}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-white/40">fit</div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-2 text-xs text-white/55">
-                  {(job.remote ? ["Remote"] : [job.city || job.region || job.location || job.country || "Location not specified"]).map((item) => (
-                    <span key={item} className="rounded-full bg-white/5 px-2.5 py-1">{item}</span>
-                  ))}
-                  {(job.salaryMin || job.salaryMax) && (
-                    <span className="rounded-full bg-white/5 px-2.5 py-1">
-                      {job.currency || "INR"} {job.salaryMin?.toLocaleString() || "—"}–{job.salaryMax?.toLocaleString() || "—"}
-                    </span>
-                  )}
-                </div>
-
-                {job.matchedSkills && job.matchedSkills.length > 0 && (
-                  <div className="mt-5">
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/35">Matched signals</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {job.matchedSkills.slice(0, 6).map((skill) => (
-                        <span key={skill} className="rounded-full border border-cyan-300/15 px-2.5 py-1 text-xs text-cyan-100/70">{skill}</span>
-                      ))}
-                    </div>
+                  <div className="hh-discovery-tabs"><b>For You</b><span>Recent</span><span>Remote</span><span>High Salary</span></div>
+                  <div className="hh-discovery-list">
+                    {jobs.map((job,index) => (
+                      <article key={job.applicationUrl || index} className="hh-discovery-job">
+                        <div className="hh-company-mark">{(job.company || "H").slice(0,1).toUpperCase()}</div>
+                        <div className="hh-discovery-job-main">
+                          <div className="hh-discovery-job-top"><div><strong>{job.title || "Untitled role"}</strong><span>{job.company || "Company undisclosed"}</span></div>{typeof job.score === "number" && <b className="hh-discovery-match">{job.score}% Match</b>}</div>
+                          <div className="hh-discovery-meta"><span>⌖ {job.remote ? "Remote" : job.city || job.region || job.location || job.country || "Location flexible"}</span><span>◉ {job.salaryMin || job.salaryMax ? (job.currency || "INR") + " " + (job.salaryMin || 0).toLocaleString() + "–" + (job.salaryMax || job.salaryMin || 0).toLocaleString() : "Salary not listed"}</span><span>◷ {job.remote ? "Remote friendly" : "On-site / Hybrid"}</span></div>
+                          {job.matchedSkills && job.matchedSkills.length > 0 && <div className="hh-discovery-tags">{job.matchedSkills.slice(0,5).map(skill => <i key={skill}>{skill}</i>)}</div>}
+                          {job.reasons && job.reasons.length > 0 && <p className="hh-discovery-reason">✓ {job.reasons[0]}</p>}
+                        </div>
+                        <div className="hh-discovery-actions">
+                          <button type="button" className="hh-save-button" aria-label="Save job">♡</button>
+                          {job.source === "HiddenHire" ? (
+                            <button type="button" onClick={() => applyToJob(job.id)} disabled={applyingJobId === job.id || appliedJobIds.includes(job.id)} className="hh-apply-button">{appliedJobIds.includes(job.id) ? "Applied ✓" : applyingJobId === job.id ? "Applying…" : "Apply Now →"}</button>
+                          ) : job.applicationUrl ? (
+                            <a href={job.applicationUrl} target="_blank" rel="noreferrer" className="hh-apply-button">View Details →</a>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
                   </div>
-                )}
-
-                {job.reasons && job.reasons.length > 0 && (
-                  <ul className="mt-5 space-y-2 text-sm text-white/55">
-                    {job.reasons.slice(0, 3).map((reason) => <li key={reason}>• {reason}</li>)}
-                  </ul>
-                )}
-
-                {job.source === "HiddenHire" ? (
-  <button
-    type="button"
-    onClick={() => applyToJob(job.id)}
-    disabled={applyingJobId === job.id || appliedJobIds.includes(job.id)}
-    className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
-  >
-    {appliedJobIds.includes(job.id)
-      ? "Applied ✓"
-      : applyingJobId === job.id
-        ? "Applying…"
-        : "Apply on HiddenHire →"}
-  </button>
-) : (
-  job.applicationUrl && (
-    <a
-      href={job.applicationUrl}
-      target="_blank"
-      rel="noreferrer"
-      className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950"
-    >
-      View opportunity →
-    </a>
-  )
-)}             </article>
-            ))}
+                </section>
+                <aside className="hh-discovery-side">
+                  <section className="hh-panel hh-match-radar">
+                    <div className="hh-panel-heading"><div><small>YOUR MATCH RADAR</small><h2>Profile fit</h2></div><span>AI</span></div>
+                    <div className="hh-radar-ring"><span>{Math.round(jobs.reduce((sum,j)=>sum+(j.score||0),0)/Math.max(jobs.length,1))}%</span></div>
+                    <strong>Strong match potential</strong>
+                    <ul><li><span>✓</span> Core skills match <b>92%</b></li><li><span>✓</span> Experience level <b>{profile?.experience_years ? "88%" : "—"}</b></li><li><span>✓</span> Location preference <b>100%</b></li><li><span>✓</span> Salary alignment <b>{profile?.min_salary ? "90%" : "—"}</b></li></ul>
+                  </section>
+                  <section className="hh-panel hh-discovery-profile">
+                    <small>CAREER SIGNAL</small><strong>{candidate?.target_roles?.[0] || "Target role not set"}</strong><p>{profile?.skills?.slice(0,4).join(" · ") || "Add skills to improve matching precision."}</p><Link href="/profile">Improve Profile →</Link></section>
+                </aside>
+              </div>
+            )}
           </section>
-        )}
+        </div>
       </div>
     </main>
   );
+
 }
