@@ -33,13 +33,21 @@ export function generateCareerStrategyCandidates(
   currentMinimumSalary: number,
   remoteOnly: boolean,
 ): CareerStrategyCandidate[] {
-  const missingSkills = unique(matches.flatMap((match) => match.missingRequirements ?? []))
-    .filter((skill) => skill.length <= 40)
-    .slice(0, 2);
+  const existingSkills = new Set<string>();
+  const locationsInProfile = new Set<string>();
+  const missingSkills = unique(
+    matches.flatMap((match) => match.job.requiredSkills ?? []).filter((skill) => {
+      const key = skill.trim().toLowerCase();
+      if (!key || existingSkills.has(key)) return false;
+      return true;
+    }),
+  ).slice(0, 2);
 
   const locations = unique(matches.map((match) => match.job.location || ""))
     .filter((location) => !/remote|anywhere|india/i.test(location))
     .slice(0, 2);
+
+  void locationsInProfile;
 
   const candidates: CareerStrategyCandidate[] = [];
 
