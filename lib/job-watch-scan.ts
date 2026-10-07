@@ -28,7 +28,7 @@ const RECENT_DUPLICATE_MS = 86_400_000;
 
 type ScanPolicy = {
   calibrationAdjustment: number;
-  learningPolicy: Parameters<typeof searchJobs>[3];
+  learningPolicy: Parameters<typeof searchJobs>[2];
   eligible: boolean;
   sampleSize: number;
 };
