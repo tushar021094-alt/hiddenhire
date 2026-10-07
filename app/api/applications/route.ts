@@ -32,7 +32,7 @@ export async function GET() {
     const { data: applications, error } = await supabase
       .from("applications")
       .select(
-        "id, job_id, status, created_at, updated_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, companies(name))",
+        "id, job_id, status, created_at, updated_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, companies(name))",
       )
       .eq("candidate_id", user.id)
       .order("created_at", { ascending: false });
@@ -143,6 +143,80 @@ export async function PATCH(request: Request) {
     const applicationId = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { applicationId?: unknown }).applicationId === "string"
       ? (body as { applicationId: string }).applicationId.trim()
       : "";
+    const applicationId = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { applicationId?: unknown }).applicationId === "string"
+      ? (body as { applicationId: string }).applicationId.trim()
+      : "";
+
+    if (!applicationId) {
+      return NextResponse.json({ error: "applicationId is required." }, { status: 400 });
+    }
+
+    const action = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { action?: unknown }).action === "string"
+      ? (body as { action: string }).action.trim().toLowerCase()
+      : "";
+
+    if (profile?.role === "candidate" && action === "remind") {
+      const { data: application, error: applicationError } = await supabase
+        .from("applications")
+        .select("id, job_id, candidate_id, status, created_at, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, source_type, status, posted_by)")
+        .eq("id", applicationId)
+        .eq("candidate_id", user.id)
+        .maybeSingle();
+
+      if (applicationError) {
+        return NextResponse.json({ error: "Unable to load the application." }, { status: 500 });
+      }
+
+      if (!application) {
+        return NextResponse.json({ error: "Application not found." }, { status: 404 });
+      }
+
+      if (!["applied", "reviewing", "shortlisted"].includes(application.status)) {
+        return NextResponse.json({ error: "A reminder is only available while the application is awaiting a recruiter decision." }, { status: 409 });
+      }
+
+      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+      if (job?.source_type !== "native" || job?.status !== "published" || !job?.posted_by) {
+        return NextResponse.json({ error: "This application is not managed by a HiddenHire recruiter or agency." }, { status: 409 });
+      }
+
+      const now = Date.now();
+      const lastReminder = application.last_candidate_reminder_at
+        ? new Date(application.last_candidate_reminder_at).getTime()
+        : 0;
+      const nextEligible = lastReminder ? lastReminder + 3 * 86_400_000 : 0;
+
+      if (nextEligible > now) {
+        return NextResponse.json({
+          error: "A reminder was already sent recently.",
+          nextEligibleAt: new Date(nextEligible).toISOString(),
+        }, { status: 429 });
+      }
+
+      const dueAt = new Date(now + 3 * 86_400_000).toISOString();
+      const { data: updated, error: updateError } = await supabase
+        .from("applications")
+        .update({
+          candidate_reminder_count: (application.candidate_reminder_count ?? 0) + 1,
+          last_candidate_reminder_at: new Date(now).toISOString(),
+          recruiter_response_due_at: dueAt,
+        })
+        .eq("id", applicationId)
+        .eq("candidate_id", user.id)
+        .select("id, status, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at")
+        .single();
+
+      if (updateError) {
+        return NextResponse.json({ error: "Unable to send the recruiter reminder." }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        reminder: updated,
+        message: "Reminder sent. The recruiter or agency has been asked to update the application.",
+      });
+    }
+
     const status = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { status?: unknown }).status === "string"
       ? (body as { status: string }).status.trim().toLowerCase()
       : "";
