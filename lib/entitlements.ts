@@ -38,3 +38,29 @@ export function canConsume(limit:number|undefined, used:number, amount=1) {
   if (limit === undefined || limit === Infinity) return true;
   return used + amount <= limit;
 }
+
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export async function getActivePlanId(supabase: SupabaseClient, profileId: string): Promise<PlanId> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan_id,status,current_period_end")
+    .eq("profile_id", profileId)
+    .in("status", ["active", "trialing"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data?.plan_id && data.plan_id in PLAN_DEFINITIONS) {
+    const id = data.plan_id as PlanId;
+    const end = data.current_period_end ? new Date(data.current_period_end).getTime() : null;
+    if ((!end || end > Date.now()) && PLAN_DEFINITIONS[id].audience === "candidate") return id;
+  }
+  return "candidate_free";
+}
+
+export async function getCandidateEntitlements(supabase: SupabaseClient, profileId: string) {
+  const planId = await getActivePlanId(supabase, profileId);
+  return PLAN_DEFINITIONS[planId];
+}
