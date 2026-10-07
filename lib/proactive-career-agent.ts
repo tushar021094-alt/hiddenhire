@@ -1,6 +1,6 @@
 import type { MatchResult } from "@/lib/job-types";
 
-export type ProactiveApplication = { status: string; created_at: string };
+export type ProactiveApplication = { status: string; created_at: string; title?: string | null; company?: string | null };
 export type ProactiveAction = "prepare" | "follow_up" | "apply_now" | "review" | "watch" | "improve_profile";
 export type ProactivePlanItem = { action: ProactiveAction; title: string; company: string; location: string; score: number; confidence: number; urgency: "high" | "medium" | "low"; whyNow: string; nextStep: string; applicationUrl: string };
 export type ProactiveCareerPlan = { headline: string; summary: string; primary: ProactivePlanItem | null; items: ProactivePlanItem[]; scanState: "actionable" | "monitoring" | "profile_needed" };
@@ -20,7 +20,7 @@ function planForMatch(match: MatchResult, application?: ProactiveApplication, no
 
 export function buildProactiveCareerPlan(matches: MatchResult[], applications: ProactiveApplication[], now = Date.now()): ProactiveCareerPlan {
   const ranked = matches.slice(0, 12).map((match, index) => {
-    const application = applications[index] ?? undefined;
+    const application = applications.find((item) => item.title && item.title.toLowerCase() === match.job.title.toLowerCase() && (!item.company || item.company.toLowerCase() === match.job.company.toLowerCase()));
     return planForMatch(match, application, now);
   });
   const unique = new Map<string, ProactivePlanItem>();
