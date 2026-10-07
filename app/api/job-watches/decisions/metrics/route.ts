@@ -7,6 +7,7 @@ import { buildCareerAgentEffectiveness, buildCareerAgentEffectivenessPolicy } fr
 import { buildOutcomeIntelligence } from "@/lib/career-outcome-intelligence";
 import { buildCareerStrategy } from "@/lib/career-strategy";
 import { buildStrategyLearning } from "@/lib/career-strategy-learning";
+import { buildCareerPersonalization } from "@/lib/career-personalization";
 import { getCandidateEntitlements } from "@/lib/entitlements";
 
 const OUTCOMES = ["not_started","opened","applied","reviewing","shortlisted","interview","hired","rejected","withdrawn"] as const;
@@ -69,6 +70,8 @@ export async function GET() {
     outcomeAt: action.outcome_at,
   })));
 
+  const personalization = buildCareerPersonalization(attribution.policy, strategyLearning);
+
   const strategy = buildCareerStrategy({
     resolved: outcomeIntelligence.summary.resolved,
     positiveRate: outcomeIntelligence.summary.positiveRate,
@@ -119,6 +122,7 @@ export async function GET() {
     outcomeIntelligence: isPlus ? outcomeIntelligence : null,
     strategy: isPlus ? strategy : null,
     strategyLearning: isPlus ? strategyLearning : null,
+    personalization: isPlus ? personalization : null,
     plan: entitlements.id,
     upgradeRequired: !isPlus,
   });

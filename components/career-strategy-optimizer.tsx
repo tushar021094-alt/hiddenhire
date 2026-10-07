@@ -16,6 +16,7 @@ type Props = {
   remoteOnly: boolean;
   matches: MatchResult[];
   strategySignals?: StrategyLearningInsight[];
+  personalization?: { eligible: boolean; confidence: "low" | "medium" | "high"; headline: string; focus: string[] };
   onStrategySelect?: (strategyId: string, changes: CareerStrategyCandidate["changes"], label: string) => void;
 };
 
@@ -81,7 +82,7 @@ export default function CareerStrategyOptimizer(props: Props) {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[.24em] text-violet-300">Career Strategy Optimizer</p>
             <h3 className="mt-1 text-xl font-semibold text-white">What should you change next?</h3>
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-white/50">HiddenHire tests evidence-backed strategy changes against the live market and ranks them by expected opportunity and interview-probability lift.</p>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-white/50">HiddenHire tests evidence-backed strategy changes against the live market and ranks them by expected opportunity and interview-probability lift.</p>{props.personalization?.eligible && <p className="mt-2 text-[9px] text-violet-200/60">Personalized policy active · {props.personalization.confidence} confidence</p>}
           </div>
           <button type="button" onClick={() => void optimize()} disabled={running || !props.matches.length} className="rounded-lg bg-violet-300/10 px-4 py-2 text-xs font-semibold text-violet-100 ring-1 ring-violet-300/20 hover:bg-violet-300/15 disabled:cursor-not-allowed disabled:opacity-40">
             {running ? "Testing strategy paths…" : "Optimize my strategy →"}

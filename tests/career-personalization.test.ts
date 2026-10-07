@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {buildCareerPersonalization} from "@/lib/career-personalization";
+describe("career personalization",()=>{it("holds before evidence is eligible",()=>{const p=buildCareerPersonalization({eligible:false,boosts:[],penalties:[]},[]);expect(p.eligible).toBe(false);expect(p.confidence).toBe("low")});it("raises confidence with enough evidence",()=>{const p=buildCareerPersonalization({eligible:true,boosts:[{dimension:"source",group:"greenhouse",points:2}],penalties:[]},[{strategyId:"remote",sampleSize:50,adjustment:3}]);expect(p.confidence).toBe("medium");expect(p.focus.length).toBeGreaterThan(0)})});
