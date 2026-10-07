@@ -68,6 +68,21 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   const [workflow, setWorkflow] = useState<{ type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null>(null);
   const [todayQueue, setTodayQueue] = useState<Array<{ id: string; action: CareerDecisionAction; job_title: string | null; company_name: string | null; decision_score: number; source_url: string; due_at: string | null; overdue: boolean; priority_score: number; queue_reason?: string; outcome?: string | null; job_fingerprint: string }>>([]);
   const [learningMetrics, setLearningMetrics] = useState<LearningMetrics | null>(null);
+  const [opportunityIntelligence, setOpportunityIntelligence] = useState<Array<{
+    jobFingerprint: string;
+    title: string;
+    company: string;
+    location: string;
+    applicationUrl: string;
+    latestScore: number;
+    opportunityScore: number;
+    attentionScore: number;
+    priority: "act_now" | "review" | "watch" | "ignore";
+    reasons: string[];
+    watchCount: number;
+    isDuplicateAcrossWatches: boolean;
+    applicationStatus: string | null;
+  }>>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<{ id: string; label: string; changes: Record<string, unknown> } | null>(null);
   const [actionHistory, setActionHistory] = useState<Array<{ id: string; job_fingerprint: string; action: CareerDecisionAction; decision_score: number; source_url: string; job_title: string | null; company_name: string | null; job_location: string | null; workflow: { type: string; title: string; message?: string; timing?: string; checklist?: string[]; preparation?: ApplicationPreparation | null } | null; task_status: "open" | "completed" | "dismissed"; effective_status: "open" | "completed" | "dismissed"; application_status: string | null; completed_at: string | null; due_at: string | null; last_reminded_at: string | null; outcome: string | null; outcome_at: string | null; outcome_source: string | null; created_at: string }>>([]);
 
@@ -133,6 +148,14 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
     } catch {}
   }
 
+  async function refreshOpportunityIntelligence() {
+    try {
+      const response = await fetch("/api/job-watches/opportunity-intelligence");
+      const payload = await response.json();
+      if (response.ok && Array.isArray(payload?.opportunities)) setOpportunityIntelligence(payload.opportunities);
+    } catch {}
+  }
+
   async function updateTask(id: string, taskStatus: "open" | "completed" | "dismissed") {
     try {
       const response = await fetch("/api/job-watches/decisions/task", {
@@ -175,6 +198,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       if (historyResponse.ok && Array.isArray(historyPayload?.actions)) setActionHistory(historyPayload.actions);
       await refreshTodayQueue();
       await refreshLearningMetrics();
+      await refreshOpportunityIntelligence();
       if (payload?.nextStep === "open_application" && payload?.applicationUrl) window.open(payload.applicationUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       setActionMessage(err instanceof Error ? err.message : "Action could not be completed.");
@@ -187,6 +211,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
   useEffect(() => {
     void refreshTodayQueue();
     void refreshLearningMetrics();
+    void refreshOpportunityIntelligence();
     void fetch("/api/job-watches/decisions/actions").then((response) => response.json()).then((data) => { if (Array.isArray(data?.actions)) { setActionHistory(data.actions); const latestWorkflow = data.actions.find((item: { workflow?: unknown; task_status?: string; effective_status?: string }) => item.workflow && item.effective_status === "open")?.workflow; if (latestWorkflow) setWorkflow(latestWorkflow); } }).catch(() => undefined);
 
     let cancelled = false;
@@ -267,6 +292,31 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
       <ProactiveCareerPlan matches={matches} applications={applications.map((application) => { const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs; return { status: application.status, created_at: application.created_at, title: job?.title ?? null, company: companyName(job?.companies) }; })} probabilityEvidence={learningMetrics?.calibration ? { eligible: learningMetrics.calibration.eligible, sampleSize: learningMetrics.calibration.sampleSize, highScorePositiveRate: learningMetrics.calibration.highScorePositiveRate, overallPositiveRate: learningMetrics.calibration.overallPositiveRate } : undefined} />
 
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+        <div className="mb-4 rounded-xl border border-violet-300/15 bg-violet-300/[.025] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-200">Opportunity Intelligence</p>
+              <p className="mt-1 text-[11px] text-white/45">One canonical attention queue across all your watches — duplicates are consolidated before ranking.</p>
+            </div>
+            <span className="rounded-full border border-white/10 bg-black/10 px-2 py-1 text-[9px] text-white/45">{opportunityIntelligence.filter((item) => item.priority !== "ignore").length} actionable</span>
+          </div>
+          <div className="mt-3 space-y-2">
+            {opportunityIntelligence.filter((item) => item.priority !== "ignore").slice(0, 5).map((item) => (
+              <div key={item.jobFingerprint} className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-black/10 px-3 py-2.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-[10px] font-semibold text-white">{item.title}</p>
+                    <span className={item.priority === "act_now" ? "rounded border border-rose-300/20 bg-rose-300/5 px-1.5 py-0.5 text-[8px] font-bold text-rose-200" : item.priority === "review" ? "rounded border border-cyan-300/20 bg-cyan-300/5 px-1.5 py-0.5 text-[8px] font-bold text-cyan-200" : "rounded border border-white/10 px-1.5 py-0.5 text-[8px] font-bold text-white/45"}>{item.priority.replace("_", " ").toUpperCase()}</span>
+                  </div>
+                  <p className="mt-0.5 truncate text-[9px] text-white/35">{item.company} · {item.latestScore}% match · attention {item.attentionScore}{item.isDuplicateAcrossWatches ? " · consolidated" : ""}</p>
+                  <p className="mt-1 truncate text-[9px] text-white/45">{item.reasons.slice(0, 3).join(" · ")}</p>
+                </div>
+                <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="shrink-0 text-[9px] font-semibold text-violet-200 hover:text-violet-100">Open →</a>
+              </div>
+            ))}
+            {!opportunityIntelligence.some((item) => item.priority !== "ignore") && <p className="text-xs text-white/35">No autonomous opportunity signals yet. The agent will populate this after watch scans.</p>}
+          </div>
+        </div>
         <div className="border-b border-white/10 px-5 py-4 sm:px-6"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Today</p><span className="text-[10px] text-white/30">{todayQueue.length} priority actions</span></div><div className="mt-3 space-y-2">{todayQueue.slice(0, 5).map((item) => <div key={item.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2"><div className="min-w-0"><p className="truncate text-[10px] font-semibold">{item.action.replace("_", " ").toUpperCase()} · {item.job_title || "Opportunity"}</p><p className="truncate text-[9px] text-white/35">{item.company_name || "Company"} · {Math.round(Number(item.decision_score))}%{item.overdue ? " · DUE NOW" : ""}{item.queue_reason ? " · " + item.queue_reason : ""}</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => { const decision = decisions.find((entry) => entry.jobFingerprint === item.job_fingerprint); if (decision) void executeDecision(decision); }} disabled={actionLoading !== null} className="text-[9px] font-semibold text-cyan-200/80">{item.action === "apply_now" ? "Apply" : item.action === "prepare" ? "Prepare" : item.action === "follow_up" ? "Follow up" : item.action === "review" ? "Review" : "Watch"}</button><a href={item.source_url} target="_blank" rel="noreferrer" className="text-[9px] text-white/40">Open</a></div></div>)}{!todayQueue.length && <p className="text-xs text-white/35">Nothing needs your attention right now.</p>}</div></div>
 
 <div className="mb-4">
