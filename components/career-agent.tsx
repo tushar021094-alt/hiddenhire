@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { MatchResult } from "@/lib/job-types";
 import type { CareerDecisionAction } from "@/lib/career-decision";
+import CareerIntelligence from "@/components/career-intelligence";
 
 type ApplicationSummary = {
   id: string;
@@ -233,8 +234,12 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           ? "Review new high-match opportunities"
           : "Refresh your profile and scan again";
 
+  const careerIntelligenceProps = { targetRoles, preferredLocations, location, skills, yearsOfExperience, minimumSalary, remoteOnly, matches };
+
   return (
-    <section className="career-agent-v2 mt-6 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/[0.06] via-white/[0.025] to-blue-500/[0.04]">
+    <>
+      <CareerIntelligence {...careerIntelligenceProps} />
+      <section className="career-agent-v2 mt-6 overflow-hidden rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/[0.06] via-white/[0.025] to-blue-500/[0.04]">
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -464,6 +469,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           </div>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }
