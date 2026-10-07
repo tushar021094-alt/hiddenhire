@@ -34,7 +34,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unable to build your execution package." }, { status: 500 });
   }
 
-  const rows = applications ?? [];
+  type ApplicationRow = {
+    id: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    jobs?: {
+      title?: string | null;
+      application_url?: string | null;
+      location?: string | null;
+      companies?: { name?: string | null } | { name?: string | null }[] | null;
+    } | {
+      title?: string | null;
+      application_url?: string | null;
+      location?: string | null;
+      companies?: { name?: string | null } | { name?: string | null }[] | null;
+    }[] | null;
+  };
+  const rows = (applications ?? []) as ApplicationRow[];
   const selected = requestedApplicationId
     ? rows.find((item) => item.id === requestedApplicationId)
     : rows.find((item) => !["rejected", "withdrawn", "hired"].includes(item.status)) ?? rows[0];
