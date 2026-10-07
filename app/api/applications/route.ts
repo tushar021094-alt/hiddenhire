@@ -143,9 +143,6 @@ export async function PATCH(request: Request) {
     const applicationId = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { applicationId?: unknown }).applicationId === "string"
       ? (body as { applicationId: string }).applicationId.trim()
       : "";
-    const applicationId = body && typeof body === "object" && !Array.isArray(body) && typeof (body as { applicationId?: unknown }).applicationId === "string"
-      ? (body as { applicationId: string }).applicationId.trim()
-      : "";
 
     if (!applicationId) {
       return NextResponse.json({ error: "applicationId is required." }, { status: 400 });
@@ -230,7 +227,7 @@ export async function PATCH(request: Request) {
     if ((profile?.role === "employer" || profile?.role === "agency") && recruiterStatuses.includes(status)) {
       const { data: application, error: updateError } = await supabase
         .from("applications")
-        .update({ status })
+        .update({ status, recruiter_response_due_at: null })
         .eq("id", applicationId)
         .select("id, job_id, candidate_id, status, created_at, updated_at")
         .single();
