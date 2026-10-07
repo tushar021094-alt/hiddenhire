@@ -80,7 +80,7 @@ export function buildCareerIntelligence(input: CareerIntelligenceInput): CareerI
     score, label,
     dimensions: { roleClarity, skillDepth, experienceStrength, marketFit, searchReadiness },
     strongestSignals: strongestSignals.slice(0, 4),
-    gaps: gaps.slice(0, 4),
+    gaps: [...new Set([...missing.entries()].filter(([, count]) => count >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([gap, count]) => 'Repeated opportunity gap: ' + gap + '. It appears across ' + count + ' top matches.')), ...gaps].slice(0, 4),
     priorityActions: priorityActions.slice(0, 3),
     evidence: { jobsAnalyzed: matches.length, strongMatches, averageMatch, topMatch },
   };
