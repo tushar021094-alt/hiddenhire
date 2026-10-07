@@ -5,6 +5,7 @@ import { UpgradeButton } from "@/components/upgrade-button";
 export default function PricingPage() {
   const candidateFree = PLAN_DEFINITIONS.candidate_free;
   const candidatePlus = PLAN_DEFINITIONS.candidate_plus;
+  const checkoutConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID);
 
   return (
     <main className="hh-pricing-page">
@@ -75,7 +76,7 @@ function PlanCard({
       <p className="hh-plan-description">{description}</p>
       <ul>{features.map((feature) => <li key={feature}><b>✓</b>{feature}</li>)}</ul>
       {featured ? (
-        <UpgradeButton />
+        <UpgradeButton configured={checkoutConfigured} />
       ) : (
         <Link href="/dashboard" className="hh-plan-button">Continue with Free <span>→</span></Link>
       )}
