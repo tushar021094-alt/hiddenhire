@@ -165,7 +165,7 @@ export default async function DashboardPage() {
             {role === "candidate" && <div className="hh-pro-card">
               <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
               <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
-              <Link href="/dashboard#pricing">Explore Pro <span>→</span></Link>
+              <Link href="/pricing">Explore Pro <span>→</span></Link>
             </div>}
             <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
           </aside>
