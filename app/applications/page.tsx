@@ -10,6 +10,9 @@ type Application = {
   status: string;
   created_at: string;
   updated_at: string;
+  candidate_reminder_count?: number;
+  last_candidate_reminder_at?: string | null;
+  recruiter_response_due_at?: string | null;
   jobs?: {
     id: string;
     title: string | null;
@@ -23,6 +26,7 @@ type Application = {
     salary_max: number | null;
     currency: string | null;
     source_type: string | null;
+    posted_by?: string | null;
     companies?: { name: string | null } | { name: string | null }[] | null;
   } | null;
 };
@@ -94,6 +98,33 @@ export default function ApplicationsPage() {
       setError(err instanceof Error ? err.message : "Unable to load applications.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function remindRecruiter(applicationId: string) {
+    setError("");
+    try {
+      const response = await fetch("/api/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, action: "remind" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Unable to send reminder.");
+      setApplications((current) =>
+        current.map((application) =>
+          application.id === applicationId
+            ? {
+                ...application,
+                candidate_reminder_count: payload?.reminder?.candidate_reminder_count ?? application.candidate_reminder_count,
+                last_candidate_reminder_at: payload?.reminder?.last_candidate_reminder_at ?? application.last_candidate_reminder_at,
+                recruiter_response_due_at: payload?.reminder?.recruiter_response_due_at ?? application.recruiter_response_due_at,
+              }
+            : application,
+        ),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send reminder.");
     }
   }
 
@@ -250,7 +281,33 @@ export default function ApplicationsPage() {
                         </div>
                       </div>
 
-                      <div className="application-card-side">
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                          {isActive(application.status) &&
+                            application.status === "applied" &&
+                            application.jobs?.source_type === "native" &&
+                            Date.now() - new Date(application.created_at).getTime() >= 5 * 86_400_000 && (
+                              application.recruiter_response_due_at ? (
+                                <span className="rounded-full border border-amber-300/20 bg-amber-50 px-3 py-1 text-xs text-amber-700">
+                                  Reminder sent · response requested
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => remindRecruiter(application.id)}
+                                  className="workspace-secondary-button"
+                                >
+                                  Remind recruiter
+                                </button>
+                              )
+                            )}
+                          {application.recruiter_response_due_at && (
+                            <span className="text-xs text-slate-500">
+                              Requested by {formatDate(application.recruiter_response_due_at)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="application-card-side">
                         <span className={`application-status-pill ${tone}`}>
                           {statusLabels[application.status] || application.status}
                         </span>
