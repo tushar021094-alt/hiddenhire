@@ -54,10 +54,17 @@ export async function POST(request: Request) {
       return NextResponse.json(await searchJobs(profile));
     }
 
+    const auth = await getAuthenticatedUser();
+    if (!auth.user) {
+      return NextResponse.json(
+        { error: "Sign in or create a HiddenHire account to search live jobs.", code: "AUTH_REQUIRED" },
+        { status: 401 },
+      );
+    }
+
     let calibrationAdjustment = 0;
     let learningPolicy: ReturnType<typeof buildAttributionInsights>["policy"] | undefined;
-    const auth = await getAuthenticatedUser();
-    if (auth.user) {
+    {
       const { data: actions } = await auth.supabase
         .from("career_agent_actions")
         .select("action,source_url,outcome,decision_score,source_provider,job_function,job_title,is_remote")
