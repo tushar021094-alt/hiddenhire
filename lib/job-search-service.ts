@@ -246,14 +246,30 @@ const roleMatched = deduped.filter((job) =>
     .filter((match) => String(match.job.source || '').toLowerCase() === 'hiddenhire' && /^[0-9a-f-]{36}$/i.test(match.job.id))
     .map((match) => match.job.id);
 
+  type PersistedAuthenticityRow = {
+    job_id: string;
+    score: number;
+    tier: string;
+    verified_job: boolean;
+    verified_company: boolean;
+    verified_recruiter: boolean;
+    source_verified: boolean;
+    duplicate_count: number;
+    flags: unknown;
+    signals: unknown;
+  };
+
+  const authenticityClient = await createClient();
   const authenticityRows = nativeIds.length
-    ? (await createClient()
+    ? (((await authenticityClient
         .from('job_authenticity')
         .select('job_id, score, tier, verified_job, verified_company, verified_recruiter, source_verified, duplicate_count, flags, signals')
-        .in('job_id', nativeIds)).data ?? []
+        .in('job_id', nativeIds)).data ?? []) as PersistedAuthenticityRow[])
     : [];
 
-  const authenticityByJob = new Map(authenticityRows.map((row) => [row.job_id, row]));
+  const authenticityByJob = new Map<string, PersistedAuthenticityRow>(
+    authenticityRows.map((row) => [row.job_id, row]),
+  );
   const enrichedResults = returned.map((match) => {
     const persisted = authenticityByJob.get(match.job.id);
     const duplicateKey = [match.job.company, match.job.title, match.job.location]
