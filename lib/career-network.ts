@@ -72,7 +72,7 @@ export function buildCareerRelationships(
             ? "reconnect"
             : "cold";
 
-    const nextAction =
+    const nextAction: CareerRelationship["nextAction"] =
       status === "interview_stage"
         ? "prepare"
         : status === "active"
