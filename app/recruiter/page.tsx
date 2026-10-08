@@ -38,6 +38,11 @@ type CandidateMatch = {
   roleClassification: string;
   reasons: string[];
   missingRequirements: string[];
+  recruiterScore: number;
+  readinessScore: number;
+  recruiterPriority: "strong" | "promising" | "review";
+  recruiterConfidence: "high" | "medium" | "low";
+  nextAction: "shortlist" | "review" | "keep_watching";
 };
 
 export default function RecruiterPage(){
@@ -272,7 +277,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
                 </h3>
               </div>
 
-              {candidate.headline && (
+              <div className="mt-2 text-xs text-cyan-200/70">Next action: {candidate.nextAction.replace("_", " ")}</div>\n\n              {candidate.headline && (
                 <p className="mt-1 text-sm text-white/50">
                   {candidate.headline}
                 </p>
