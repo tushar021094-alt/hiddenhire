@@ -1,6 +1,7 @@
 import type { CandidateProfile } from '@/lib/job-types';
 import { createClient } from '@/lib/supabase/server';
 import { evaluateJobAuthenticity } from '@/lib/job-authenticity';
+import { evaluateFraudRisk } from '@/lib/fraud-risk';
 import {
   buildExpandedRoleQueries,
   createJobSourceRegistry,
@@ -270,6 +271,26 @@ const roleMatched = deduped.filter((job) =>
   const authenticityByJob = new Map<string, PersistedAuthenticityRow>(
     authenticityRows.map((row) => [row.job_id, row]),
   );
+
+  type PersistedSafetyRow = {
+    job_id: string;
+    score: number;
+    tier: string;
+    action: string;
+    flags: unknown;
+    signals: unknown;
+  };
+
+  const safetyRows = nativeIds.length
+    ? (((await authenticityClient
+        .from('job_safety_risk')
+        .select('job_id, score, tier, action, flags, signals')
+        .in('job_id', nativeIds)).data ?? []) as PersistedSafetyRow[])
+    : [];
+
+  const safetyByJob = new Map<string, PersistedSafetyRow>(
+    safetyRows.map((row) => [row.job_id, row]),
+  );
   const enrichedResults = returned.map((match) => {
     const persisted = authenticityByJob.get(match.job.id);
     const duplicateKey = [match.job.company, match.job.title, match.job.location]
@@ -299,11 +320,27 @@ const roleMatched = deduped.filter((job) =>
           duplicateCount,
         });
 
+    const persistedSafety = safetyByJob.get(match.job.id);
+    const safety = persistedSafety
+      ? {
+          score: Number(persistedSafety.score),
+          tier: persistedSafety.tier as 'low' | 'guarded' | 'high' | 'critical',
+          action: persistedSafety.action as 'allow' | 'warn' | 'restrict' | 'escalate',
+          flags: Array.isArray(persistedSafety.flags) ? persistedSafety.flags.map(String) : [],
+          signals: Array.isArray(persistedSafety.signals) ? persistedSafety.signals.map(String) : [],
+        }
+      : evaluateFraudRisk({
+          authenticityScore: authenticity.score,
+          authenticityTier: authenticity.tier,
+          duplicateCount: authenticity.duplicateCount,
+        });
+
     return {
       ...match,
       job: {
         ...match.job,
         authenticity,
+        safety,
       },
     };
   });
