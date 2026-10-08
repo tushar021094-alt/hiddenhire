@@ -279,7 +279,7 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
                 </h3>
               </div>
 
-              <div className="mt-2 text-xs text-cyan-200/70">Next action: {candidate.nextAction.replace("_", " ")}</div>\n\n              <RecruiterOutreachCard candidate={candidate} jobTitle={candidate.jobTitle ?? candidate.title ?? "this role"} companyName={candidate.companyName} />
+              <div className="mt-2 text-xs text-cyan-200/70">Next action: {candidate.nextAction.replace("_", " ")}</div>\n\n              <RecruiterOutreachCard candidate={candidate} jobTitle={selectedJob?.title ?? "this role"} companyName={selectedJob?.company ?? null} />
 
               {candidate.headline && (
                 <p className="mt-1 text-sm text-white/50">
