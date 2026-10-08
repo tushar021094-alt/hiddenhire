@@ -53,6 +53,8 @@ export async function GET() {
           .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response, identity_verified, company_verified, trust_score")
           .in("recruiter_id", recruiterIds)
       : { data: [] };
+    const qualityByRecruiter = new Map((recruiterQuality ?? []).map((quality) => [quality.recruiter_id, quality]));
+
     const nativeJobIds = [...new Set(applicationRows.map((application) => {
       const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
       return job?.source_type === "native" ? job.id : null;
