@@ -53,3 +53,35 @@ end; $$;
 revoke all on function private.refresh_recruiter_quality_from_application() from public,anon,authenticated;
 drop trigger if exists refresh_recruiter_quality_after_application on public.applications;
 create trigger refresh_recruiter_quality_after_application after insert or update of status,candidate_reminder_count,recruiter_response_due_at,recruiter_first_response_at on public.applications for each row execute function private.refresh_recruiter_quality_from_application();
+
+-- Phase 25 trust graph additions
+alter table public.recruiter_quality
+  add column if not exists identity_verified boolean not null default false,
+  add column if not exists company_verified boolean not null default false,
+  add column if not exists trust_score integer not null default 0;
+create index if not exists recruiter_quality_trust_idx on public.recruiter_quality (trust_score desc);
+
+create or replace function private.refresh_recruiter_quality(target_recruiter uuid)
+returns void language plpgsql security definer set search_path = public, private as $$
+declare total_count integer; responded_count integer; overdue_count integer; reminded_count integer; response_rate_value integer; median_hours_value numeric; score_value integer; tier_value text; repeated_value boolean; identity_value boolean; company_value boolean; trust_value integer;
+begin
+  select count(*)::integer, count(*) filter (where a.recruiter_first_response_at is not null)::integer,
+    count(*) filter (where a.status not in ('rejected','withdrawn','hired') and a.recruiter_response_due_at is not null and a.recruiter_response_due_at < now())::integer,
+    count(*) filter (where coalesce(a.candidate_reminder_count,0) > 0)::integer
+  into total_count, responded_count, overdue_count, reminded_count
+  from public.applications a join public.jobs j on j.id=a.job_id where j.posted_by=target_recruiter;
+  select percentile_cont(0.5) within group (order by extract(epoch from (a.recruiter_first_response_at-a.created_at))/3600)
+  into median_hours_value from public.applications a join public.jobs j on j.id=a.job_id
+  where j.posted_by=target_recruiter and a.recruiter_first_response_at is not null;
+  select exists(select 1 from public.verification_records v where v.profile_id=target_recruiter and v.verification_type='recruiter_verification' and v.status='approved') into identity_value;
+  select exists(select 1 from public.jobs j join public.companies c on c.id=j.company_id where j.posted_by=target_recruiter and c.verification_status='verified') into company_value;
+  response_rate_value := case when total_count>0 then round(responded_count::numeric/total_count*100)::integer else 0 end;
+  score_value := case when total_count=0 then 0 else greatest(0,least(100,round(response_rate_value*0.55 + case when median_hours_value is null then 50 when median_hours_value<=24 then 100 when median_hours_value<=72 then 85 when median_hours_value<=120 then 70 when median_hours_value<=168 then 55 else 35 end*0.45 - least(25,overdue_count::numeric/total_count*100)*0.35 - least(20,reminded_count::numeric/total_count*60)*0.15))) end;
+  repeated_value := total_count>=5 and overdue_count>=2 and overdue_count::numeric/total_count>=0.25 and response_rate_value<70;
+  trust_value := round(score_value*0.5 + case when identity_value then 25 else 0 end + case when company_value then 25 else 0 end)::integer;
+  tier_value := case when total_count<5 then 'new' when trust_value>=90 and identity_value and company_value then 'trusted' when trust_value>=75 then 'established' when repeated_value then 'needs_attention' else 'building' end;
+  insert into public.recruiter_quality(recruiter_id,total_applications,responded_applications,response_rate,overdue_applications,reminded_applications,median_first_response_hours,responsiveness_score,repeated_non_response,identity_verified,company_verified,trust_score,trust_tier,updated_at)
+  values(target_recruiter,total_count,responded_count,response_rate_value,overdue_count,reminded_count,median_hours_value,score_value,repeated_value,identity_value,company_value,trust_value,tier_value,now())
+  on conflict(recruiter_id) do update set total_applications=excluded.total_applications,responded_applications=excluded.responded_applications,response_rate=excluded.response_rate,overdue_applications=excluded.overdue_applications,reminded_applications=excluded.reminded_applications,median_first_response_hours=excluded.median_first_response_hours,responsiveness_score=excluded.responsiveness_score,repeated_non_response=excluded.repeated_non_response,identity_verified=excluded.identity_verified,company_verified=excluded.company_verified,trust_score=excluded.trust_score,trust_tier=excluded.trust_tier,updated_at=excluded.updated_at;
+end; $$;
+revoke all on function private.refresh_recruiter_quality(uuid) from public,anon,authenticated;
