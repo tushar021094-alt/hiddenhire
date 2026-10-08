@@ -11,6 +11,7 @@ import RecruiterSlaCard from "@/components/recruiter-sla-card";
 import RecruiterQualityCard from "@/components/recruiter-quality-card";
 import { calculateRecruiterSla } from "@/lib/recruiter-sla";
 import MarketplaceSafetyCard from "@/components/marketplace-safety-card";
+import ModerationQueueCard from "@/components/moderation-queue-card";
 
 type Profile = {
   full_name: string | null;
@@ -138,6 +139,21 @@ export default async function DashboardPage() {
         .in("job_id", recruiterJobList.map((job) => job.id))
     : { data: [] };
   const recruiterSafetyList = Array.isArray(recruiterSafetyRows) ? recruiterSafetyRows : [];
+  const { data: moderationCases } = isRecruiter
+    ? await supabase
+        .from("moderation_cases")
+        .select("queue, decision, status")
+        .in("job_id", recruiterJobList.map((job) => job.id))
+    : { data: [] };
+  const moderationCaseList = Array.isArray(moderationCases) ? moderationCases : [];
+  const moderationMetrics = isRecruiter ? {
+    total: moderationCaseList.length,
+    urgent: moderationCaseList.filter((row) => row.queue === "urgent" && row.status !== "resolved").length,
+    review: moderationCaseList.filter((row) => row.queue === "review" && row.status !== "resolved").length,
+    monitor: moderationCaseList.filter((row) => row.queue === "monitor" && row.status !== "resolved").length,
+    restricted: moderationCaseList.filter((row) => row.decision === "restrict" || row.decision === "escalate").length,
+  } : null;
+
   const marketplaceSafety = isRecruiter ? {
     totalJobs: recruiterJobList.length,
     guardedJobs: recruiterSafetyList.filter((row) => row.tier === "guarded").length,
@@ -330,6 +346,7 @@ export default async function DashboardPage() {
                 {recruiterSla && <RecruiterSlaCard metrics={recruiterSla} />}
                 {recruiterQuality && <RecruiterQualityCard quality={recruiterQuality} />}
                 {marketplaceSafety && <MarketplaceSafetyCard metrics={marketplaceSafety} />}
+                {moderationMetrics && <ModerationQueueCard metrics={moderationMetrics} />}
                 <div className="hh-stat-grid">
                   <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">▦</span><div><small>Total jobs</small><strong>{recruiterJobCount}</strong><em>Created by your account</em></div></article>
                   <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">◷</span><div><small>Pending review</small><strong>{recruiterPendingCount}</strong><em>Awaiting approval</em></div></article>
