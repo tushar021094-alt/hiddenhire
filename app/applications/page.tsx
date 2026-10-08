@@ -21,6 +21,9 @@ type Application = {
     responsiveness_score: number;
     trust_tier: "new" | "highly_responsive" | "responsive" | "needs_attention";
     repeated_non_response: boolean;
+    identity_verified: boolean;
+    company_verified: boolean;
+    trust_score: number;
   } | null;
   jobs?: {
     id: string;
@@ -283,9 +286,9 @@ export default function ApplicationsPage() {
                           <p>{companyName(job?.companies)}</p>
                         </div>
 
-                        {application.recruiter_quality && ["highly_responsive", "responsive"].includes(application.recruiter_quality.trust_tier) && application.recruiter_quality.total_applications >= 5 && (
+                        {application.recruiter_quality && application.recruiter_quality.total_applications >= 5 && application.recruiter_quality.trust_tier === "trusted" && (
                           <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/[.06] px-3 py-1 text-xs text-emerald-200">
-                            <span>✓</span> {application.recruiter_quality.trust_tier === "highly_responsive" ? "Highly responsive recruiter" : "Responsive recruiter"}
+                            <span>✓</span> Trusted recruiter · identity and company verified
                           </div>
                         )}
                         <div className="application-meta">
