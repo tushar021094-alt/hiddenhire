@@ -50,7 +50,7 @@ export async function GET() {
     const { data: recruiterQuality } = recruiterIds.length
       ? await supabase
           .from("recruiter_quality")
-          .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response")
+          .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response, identity_verified, company_verified, trust_score")
           .in("recruiter_id", recruiterIds)
       : { data: [] };
     const qualityByRecruiter = new Map((recruiterQuality ?? []).map((quality) => [quality.recruiter_id, quality]));
