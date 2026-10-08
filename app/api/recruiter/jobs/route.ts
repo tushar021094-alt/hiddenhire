@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 import { calculateJobMatch } from "@/lib/match-engine";
+import { buildRecruiterCandidateIntelligence } from "@/lib/recruiter-intelligence";
 import {
   toCandidateProfile,
   toRecruiterJob,
@@ -493,6 +494,7 @@ const candidateMatches = (
       async (candidate: RecruiterCandidateRow) => {
         const profile = toCandidateProfile(candidate);
         const match = calculateJobMatch(profile, recruiterJob);
+        const intelligence = buildRecruiterCandidateIntelligence({ match, candidate: { skills: candidate.skills, experienceYears: candidate.experience_years, headline: candidate.headline, targetRoles: candidate.target_roles } });
 
         const { error: matchSaveError } = await supabase.rpc(
           "save_recruiter_match",
@@ -521,6 +523,11 @@ const candidateMatches = (
           roleClassification: match.roleClassification,
           reasons: match.reasons,
           missingRequirements: match.missingRequirements,
+          recruiterScore: intelligence.recruiterScore,
+          readinessScore: intelligence.readinessScore,
+          recruiterPriority: intelligence.priority,
+          recruiterConfidence: intelligence.confidence,
+          nextAction: intelligence.nextAction,
         };
       }
     )
