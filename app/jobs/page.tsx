@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/dashboard-header";
 import JobAuthenticityBadge from "@/components/job-authenticity-badge";
+import FraudRiskBadge from "@/components/fraud-risk-badge";
+import type { FraudRiskSignal } from "@/lib/job-types";
 import type { JobAuthenticitySignal } from "@/lib/job-types";
 
 type Job = {
@@ -28,6 +30,7 @@ type Job = {
   reasons?: string[];
   matchedSkills?: string[];
   authenticity?: JobAuthenticitySignal;
+  safety?: FraudRiskSignal;
 };
 
 type Profile = {
@@ -283,7 +286,7 @@ useEffect(() => {
                       <article key={job.applicationUrl || index} className="hh-discovery-job">
                         <div className="hh-company-mark">{(job.company || "H").slice(0,1).toUpperCase()}</div>
                         <div className="hh-discovery-job-main">
-                          <div className="hh-discovery-job-top"><div><strong>{job.title || "Untitled role"}</strong><span>{job.company || "Company undisclosed"}</span><JobAuthenticityBadge authenticity={job.authenticity} /></div>{typeof job.score === "number" && <b className="hh-discovery-match">{job.score}% Match</b>}</div>
+                          <div className="hh-discovery-job-top"><div><strong>{job.title || "Untitled role"}</strong><span>{job.company || "Company undisclosed"}</span><JobAuthenticityBadge authenticity={job.authenticity} /><FraudRiskBadge risk={job.safety} /></div>{typeof job.score === "number" && <b className="hh-discovery-match">{job.score}% Match</b>}</div>
                           <div className="hh-discovery-meta"><span>⌖ {job.remote ? "Remote" : job.city || job.region || job.location || job.country || "Location flexible"}</span><span>◉ {job.salaryMin || job.salaryMax ? (job.currency || "INR") + " " + (job.salaryMin || 0).toLocaleString() + "–" + (job.salaryMax || job.salaryMin || 0).toLocaleString() : "Salary not listed"}</span><span>◷ {job.remote ? "Remote friendly" : "On-site / Hybrid"}</span></div>
                           {job.matchedSkills && job.matchedSkills.length > 0 && <div className="hh-discovery-tags">{job.matchedSkills.slice(0,5).map(skill => <i key={skill}>{skill}</i>)}</div>}
                           {job.reasons && job.reasons.length > 0 && <p className="hh-discovery-reason">✓ {job.reasons[0]}</p>}
