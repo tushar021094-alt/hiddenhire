@@ -1,4 +1,5 @@
-import { calculateJobMatch } from "@/lib/match-engine";\ntype MatchResult = ReturnType<typeof calculateJobMatch>;
+import { calculateJobMatch } from "@/lib/match-engine";
+type MatchResult = ReturnType<typeof calculateJobMatch>;
 
 export type RecruiterCandidateIntelligence = {
   priority: "strong" | "promising" | "review";
