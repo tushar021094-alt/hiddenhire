@@ -128,6 +128,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This job is not available for applications." }, { status: 404 });
     }
 
+    const { data: safetyRisk } = await supabase
+      .from("job_safety_risk")
+      .select("score, tier, action")
+      .eq("job_id", job.id)
+      .maybeSingle();
+
+    if (safetyRisk?.action === "restrict" || safetyRisk?.action === "escalate") {
+      return NextResponse.json({
+        error: "Applications to this job are temporarily paused while HiddenHire completes a marketplace safety review.",
+        safety: {
+          tier: safetyRisk.tier,
+          score: safetyRisk.score,
+        },
+      }, { status: 409 });
+    }
+
     const { data: application, error: applicationError } = await supabase
       .from("applications")
       .insert({ job_id: job.id, candidate_id: user.id, status: "applied" })
