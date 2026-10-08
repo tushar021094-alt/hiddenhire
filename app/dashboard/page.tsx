@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import CareerAgent from "@/components/career-agent";
 import CareerOperations from "@/components/career-operations";
 import CareerExecution from "@/components/career-execution";
+import CareerAgentExecution from "@/components/career-agent-execution";
 import JobWatchManager from "@/components/job-watch-manager";
 import DashboardHeader from "@/components/dashboard-header";
 import TimeAwareGreeting from "@/components/time-aware-greeting";
@@ -313,6 +314,7 @@ export default async function DashboardPage() {
 
               <CareerOperations />
               <CareerExecution />
+                <CareerAgentExecution />
               <div id="career-agent" className="hh-agent-section"><CareerAgent targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} location={profile?.location ?? null} skills={skills} yearsOfExperience={Number(profile?.experience_years ?? 0)} minimumSalary={Number(profile?.min_salary ?? 0)} remoteOnly={Boolean(profile?.remote_only)} applications={applicationList} /></div>
               <section id="pricing" className="hh-pricing-section">
                 <div className="hh-pricing-heading">
