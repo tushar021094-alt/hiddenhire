@@ -85,3 +85,26 @@ begin
   on conflict(recruiter_id) do update set total_applications=excluded.total_applications,responded_applications=excluded.responded_applications,response_rate=excluded.response_rate,overdue_applications=excluded.overdue_applications,reminded_applications=excluded.reminded_applications,median_first_response_hours=excluded.median_first_response_hours,responsiveness_score=excluded.responsiveness_score,repeated_non_response=excluded.repeated_non_response,identity_verified=excluded.identity_verified,company_verified=excluded.company_verified,trust_score=excluded.trust_score,trust_tier=excluded.trust_tier,updated_at=excluded.updated_at;
 end; $$;
 revoke all on function private.refresh_recruiter_quality(uuid) from public,anon,authenticated;
+
+
+create or replace function private.refresh_recruiter_quality_from_verification()
+returns trigger language plpgsql security definer set search_path=public,private as $$
+begin
+  if new.profile_id is not null then perform private.refresh_recruiter_quality(new.profile_id); end if;
+  return new;
+end; $$;
+drop trigger if exists refresh_recruiter_quality_after_verification on public.verification_records;
+create trigger refresh_recruiter_quality_after_verification after insert or update of status on public.verification_records for each row execute function private.refresh_recruiter_quality_from_verification();
+revoke all on function private.refresh_recruiter_quality_from_verification() from public,anon,authenticated;
+
+create or replace function private.refresh_recruiter_quality_from_company()
+returns trigger language plpgsql security definer set search_path=public,private as $$
+declare recruiter_id uuid;
+begin
+  select j.posted_by into recruiter_id from public.jobs j where j.company_id=coalesce(new.id,old.id) and j.posted_by is not null limit 1;
+  if recruiter_id is not null then perform private.refresh_recruiter_quality(recruiter_id); end if;
+  return coalesce(new,old);
+end; $$;
+drop trigger if exists refresh_recruiter_quality_after_company on public.companies;
+create trigger refresh_recruiter_quality_after_company after update of verification_status on public.companies for each row execute function private.refresh_recruiter_quality_from_company();
+revoke all on function private.refresh_recruiter_quality_from_company() from public,anon,authenticated;
