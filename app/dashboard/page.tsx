@@ -7,6 +7,8 @@ import CareerExecution from "@/components/career-execution";
 import JobWatchManager from "@/components/job-watch-manager";
 import DashboardHeader from "@/components/dashboard-header";
 import TimeAwareGreeting from "@/components/time-aware-greeting";
+import RecruiterSlaCard from "@/components/recruiter-sla-card";
+import { calculateRecruiterSla } from "@/lib/recruiter-sla";
 
 type Profile = {
   full_name: string | null;
@@ -100,6 +102,25 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false })
     : { data: [] };
       const recruiterJobList = Array.isArray(recruiterJobs) ? recruiterJobs : [];
+  const { data: recruiterApplications } = isRecruiter
+    ? await supabase
+        .from("applications")
+        .select("id, job_id, status, created_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at, recruiter_first_response_at, recruiter_response_count")
+        .in("job_id", recruiterJobList.map((job) => job.id))
+        .order("created_at", { ascending: false })
+    : { data: [] };
+  const recruiterSla = isRecruiter
+    ? calculateRecruiterSla((Array.isArray(recruiterApplications) ? recruiterApplications : []).map((application) => ({
+        id: application.id,
+        status: application.status,
+        createdAt: application.created_at,
+        candidateReminderCount: application.candidate_reminder_count,
+        lastCandidateReminderAt: application.last_candidate_reminder_at,
+        responseDueAt: application.recruiter_response_due_at,
+        recruiterFirstResponseAt: application.recruiter_first_response_at,
+        recruiterResponseCount: application.recruiter_response_count,
+      })))
+    : null;
 
   const recruiterJobCount = recruiterJobList.length;
   const recruiterPendingCount = recruiterJobList.filter(
@@ -267,6 +288,7 @@ export default async function DashboardPage() {
               <div id="learning" className="hh-watch-section"><JobWatchManager targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} skills={skills} minimumSalary={Number(profile?.min_salary ?? 0)} currency="INR" remoteOnly={Boolean(profile?.remote_only)} /></div>
             </> : (
               <section className="hh-recruiter-workspace">
+                {recruiterSla && <RecruiterSlaCard metrics={recruiterSla} />}
                 <div className="hh-stat-grid">
                   <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">▦</span><div><small>Total jobs</small><strong>{recruiterJobCount}</strong><em>Created by your account</em></div></article>
                   <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">◷</span><div><small>Pending review</small><strong>{recruiterPendingCount}</strong><em>Awaiting approval</em></div></article>
