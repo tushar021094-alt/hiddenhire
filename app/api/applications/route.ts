@@ -53,10 +53,24 @@ export async function GET() {
           .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response, identity_verified, company_verified, trust_score")
           .in("recruiter_id", recruiterIds)
       : { data: [] };
-    const qualityByRecruiter = new Map((recruiterQuality ?? []).map((quality) => [quality.recruiter_id, quality]));
+    const nativeJobIds = [...new Set(applicationRows.map((application) => {
+      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+      return job?.source_type === "native" ? job.id : null;
+    }).filter((value): value is string => Boolean(value)))];
+    const { data: safetyRows } = nativeJobIds.length
+      ? await supabase
+          .from("job_safety_risk")
+          .select("job_id, score, tier, action, flags, signals")
+          .in("job_id", nativeJobIds)
+      : { data: [] };
+    const safetyByJob = new Map((safetyRows ?? []).map((risk) => [risk.job_id, risk]));
     const enrichedApplications = applicationRows.map((application) => {
       const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
-      return { ...application, recruiter_quality: job?.posted_by ? qualityByRecruiter.get(job.posted_by) ?? null : null };
+      return {
+        ...application,
+        recruiter_quality: job?.posted_by ? qualityByRecruiter.get(job.posted_by) ?? null : null,
+        safety_risk: job?.id ? safetyByJob.get(job.id) ?? null : null,
+      };
     });
     return NextResponse.json({ applications: enrichedApplications });
   } catch (error) {
