@@ -13,6 +13,15 @@ type Application = {
   candidate_reminder_count?: number;
   last_candidate_reminder_at?: string | null;
   recruiter_response_due_at?: string | null;
+  recruiter_quality?: {
+    total_applications: number;
+    response_rate: number;
+    overdue_applications: number;
+    median_first_response_hours: number | null;
+    responsiveness_score: number;
+    trust_tier: "new" | "highly_responsive" | "responsive" | "needs_attention";
+    repeated_non_response: boolean;
+  } | null;
   jobs?: {
     id: string;
     title: string | null;
@@ -274,6 +283,11 @@ export default function ApplicationsPage() {
                           <p>{companyName(job?.companies)}</p>
                         </div>
 
+                        {application.recruiter_quality && ["highly_responsive", "responsive"].includes(application.recruiter_quality.trust_tier) && application.recruiter_quality.total_applications >= 5 && (
+                          <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/[.06] px-3 py-1 text-xs text-emerald-200">
+                            <span>✓</span> {application.recruiter_quality.trust_tier === "highly_responsive" ? "Highly responsive recruiter" : "Responsive recruiter"}
+                          </div>
+                        )}
                         <div className="application-meta">
                           <span>{location}</span>
                           {salary && <span>{salary}</span>}
