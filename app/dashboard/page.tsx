@@ -8,6 +8,7 @@ import JobWatchManager from "@/components/job-watch-manager";
 import DashboardHeader from "@/components/dashboard-header";
 import TimeAwareGreeting from "@/components/time-aware-greeting";
 import RecruiterSlaCard from "@/components/recruiter-sla-card";
+import RecruiterQualityCard from "@/components/recruiter-quality-card";
 import { calculateRecruiterSla } from "@/lib/recruiter-sla";
 
 type Profile = {
@@ -121,6 +122,25 @@ export default async function DashboardPage() {
         recruiterResponseCount: application.recruiter_response_count,
       })))
     : null;
+
+  const { data: recruiterQualityRow } = isRecruiter
+    ? await supabase
+        .from("recruiter_quality")
+        .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response")
+        .eq("recruiter_id", user.id)
+        .maybeSingle()
+    : { data: null };
+  const recruiterQuality = recruiterQualityRow ? {
+    recruiterId: recruiterQualityRow.recruiter_id,
+    totalApplications: recruiterQualityRow.total_applications,
+    responseRate: recruiterQualityRow.response_rate,
+    overdueApplications: recruiterQualityRow.overdue_applications,
+    remindedApplications: recruiterQualityRow.reminded_applications,
+    medianFirstResponseHours: recruiterQualityRow.median_first_response_hours == null ? null : Number(recruiterQualityRow.median_first_response_hours),
+    responsivenessScore: recruiterQualityRow.responsiveness_score,
+    trustTier: recruiterQualityRow.trust_tier as "new" | "highly_responsive" | "responsive" | "needs_attention",
+    repeatedNonResponse: recruiterQualityRow.repeated_non_response,
+  } : null;
 
   const recruiterJobCount = recruiterJobList.length;
   const recruiterPendingCount = recruiterJobList.filter(
@@ -289,6 +309,7 @@ export default async function DashboardPage() {
             </> : (
               <section className="hh-recruiter-workspace">
                 {recruiterSla && <RecruiterSlaCard metrics={recruiterSla} />}
+                {recruiterQuality && <RecruiterQualityCard quality={recruiterQuality} />}
                 <div className="hh-stat-grid">
                   <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">▦</span><div><small>Total jobs</small><strong>{recruiterJobCount}</strong><em>Created by your account</em></div></article>
                   <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">◷</span><div><small>Pending review</small><strong>{recruiterPendingCount}</strong><em>Awaiting approval</em></div></article>
