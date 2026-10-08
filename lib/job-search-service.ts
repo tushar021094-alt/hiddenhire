@@ -1,4 +1,6 @@
 import type { CandidateProfile } from '@/lib/job-types';
+import { createClient } from '@/lib/supabase/server';
+import { evaluateJobAuthenticity } from '@/lib/job-authenticity';
 import {
   buildExpandedRoleQueries,
   createJobSourceRegistry,
@@ -231,11 +233,70 @@ const roleMatched = deduped.filter((job) =>
 );
   const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment, learningPolicy);
   const returned = ranked.slice(0, 20);
+
+  const duplicateCounts = new Map<string, number>();
+  for (const job of collectedJobs) {
+    const key = [job.company, job.title, job.location]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .join('|');
+    duplicateCounts.set(key, (duplicateCounts.get(key) ?? 0) + 1);
+  }
+
+  const nativeIds = returned
+    .filter((match) => String(match.job.source || '').toLowerCase() === 'hiddenhire' && /^[0-9a-f-]{36}$/i.test(match.job.id))
+    .map((match) => match.job.id);
+
+  const authenticityRows = nativeIds.length
+    ? (await createClient()
+        .from('job_authenticity')
+        .select('job_id, score, tier, verified_job, verified_company, verified_recruiter, source_verified, duplicate_count, flags, signals')
+        .in('job_id', nativeIds)).data ?? []
+    : [];
+
+  const authenticityByJob = new Map(authenticityRows.map((row) => [row.job_id, row]));
+  const enrichedResults = returned.map((match) => {
+    const persisted = authenticityByJob.get(match.job.id);
+    const duplicateKey = [match.job.company, match.job.title, match.job.location]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .join('|');
+    const duplicateCount = persisted?.duplicate_count ?? Math.max(0, (duplicateCounts.get(duplicateKey) ?? 1) - 1);
+    const authenticity = persisted
+      ? {
+          score: Number(persisted.score),
+          tier: persisted.tier as 'verified' | 'likely_authentic' | 'review' | 'caution',
+          verifiedJob: Boolean(persisted.verified_job),
+          verifiedCompany: Boolean(persisted.verified_company),
+          verifiedRecruiter: Boolean(persisted.verified_recruiter),
+          sourceVerified: Boolean(persisted.source_verified),
+          duplicateCount,
+          flags: Array.isArray(persisted.flags) ? persisted.flags.map(String) : [],
+          signals: Array.isArray(persisted.signals) ? persisted.signals.map(String) : [],
+        }
+      : evaluateJobAuthenticity({
+          source: match.job.source,
+          company: match.job.company,
+          companyWebsite: match.job.companyWebsite,
+          applicationUrl: match.job.applicationUrl,
+          description: match.job.description,
+          salaryMin: match.job.salaryMin,
+          salaryMax: match.job.salaryMax,
+          duplicateCount,
+        });
+
+    return {
+      ...match,
+      job: {
+        ...match.job,
+        authenticity,
+      },
+    };
+  });
+
   const sourceMetrics = collected.metrics;
 
   const response = {
     dataMode: 'live',
-    results: returned,
+    results: enrichedResults,
     count: returned.length,
     totalCollected: collectedJobs.length,
     totalAfterDeduplication: deduped.length,
