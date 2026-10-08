@@ -13,6 +13,7 @@ import RecruiterQualityCard from "@/components/recruiter-quality-card";
 import { calculateRecruiterSla } from "@/lib/recruiter-sla";
 import MarketplaceSafetyCard from "@/components/marketplace-safety-card";
 import ModerationQueueCard from "@/components/moderation-queue-card";
+import CareerNetworkCard from "@/components/career-network-card";
 
 type Profile = {
   full_name: string | null;
@@ -229,6 +230,7 @@ export default async function DashboardPage() {
                 <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
                 <Link href="/dashboard#operations" className="hh-nav-item"><span>⚡</span>Career Operations</Link>
                 <Link href="/dashboard#execution" className="hh-nav-item"><span>↗</span>Career Execution <em>AI</em></Link>
+                <Link href="/dashboard#career-network" className="hh-nav-item"><span>◎</span>Career Network</Link>
                 <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
                 <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
                 <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
@@ -312,6 +314,7 @@ export default async function DashboardPage() {
                 </aside>
               </div>
 
+              <CareerNetworkCard />
               <CareerOperations />
               <CareerExecution />
                 <CareerAgentExecution />
