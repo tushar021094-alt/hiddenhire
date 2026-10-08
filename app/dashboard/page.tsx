@@ -10,6 +10,7 @@ import TimeAwareGreeting from "@/components/time-aware-greeting";
 import RecruiterSlaCard from "@/components/recruiter-sla-card";
 import RecruiterQualityCard from "@/components/recruiter-quality-card";
 import { calculateRecruiterSla } from "@/lib/recruiter-sla";
+import MarketplaceSafetyCard from "@/components/marketplace-safety-card";
 
 type Profile = {
   full_name: string | null;
@@ -130,6 +131,21 @@ export default async function DashboardPage() {
         .eq("recruiter_id", user.id)
         .maybeSingle()
     : { data: null };
+  const { data: recruiterSafetyRows } = isRecruiter && recruiterJobList.length
+    ? await supabase
+        .from("job_safety_risk")
+        .select("job_id, tier, action")
+        .in("job_id", recruiterJobList.map((job) => job.id))
+    : { data: [] };
+  const recruiterSafetyList = Array.isArray(recruiterSafetyRows) ? recruiterSafetyRows : [];
+  const marketplaceSafety = isRecruiter ? {
+    totalJobs: recruiterJobList.length,
+    guardedJobs: recruiterSafetyList.filter((row) => row.tier === "guarded").length,
+    highRiskJobs: recruiterSafetyList.filter((row) => row.tier === "high").length,
+    criticalJobs: recruiterSafetyList.filter((row) => row.tier === "critical").length,
+    escalations: recruiterSafetyList.filter((row) => row.action === "escalate").length,
+  } : null;
+
   const recruiterQuality = recruiterQualityRow ? {
     recruiterId: recruiterQualityRow.recruiter_id,
     totalApplications: recruiterQualityRow.total_applications,
@@ -313,6 +329,7 @@ export default async function DashboardPage() {
               <section className="hh-recruiter-workspace">
                 {recruiterSla && <RecruiterSlaCard metrics={recruiterSla} />}
                 {recruiterQuality && <RecruiterQualityCard quality={recruiterQuality} />}
+                {marketplaceSafety && <MarketplaceSafetyCard metrics={marketplaceSafety} />}
                 <div className="hh-stat-grid">
                   <article className="hh-stat-card stat-violet"><span className="hh-stat-icon">▦</span><div><small>Total jobs</small><strong>{recruiterJobCount}</strong><em>Created by your account</em></div></article>
                   <article className="hh-stat-card stat-blue"><span className="hh-stat-icon">◷</span><div><small>Pending review</small><strong>{recruiterPendingCount}</strong><em>Awaiting approval</em></div></article>
