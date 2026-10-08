@@ -1,4 +1,6 @@
 "use client";
+
+import RecruiterOutreachCard from "@/components/recruiter-outreach-card";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -277,7 +279,9 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
                 </h3>
               </div>
 
-              <div className="mt-2 text-xs text-cyan-200/70">Next action: {candidate.nextAction.replace("_", " ")}</div>\n\n              {candidate.headline && (
+              <div className="mt-2 text-xs text-cyan-200/70">Next action: {candidate.nextAction.replace("_", " ")}</div>\n\n              <RecruiterOutreachCard candidate={candidate} jobTitle={candidate.jobTitle ?? candidate.title ?? "this role"} companyName={candidate.companyName} />
+
+              {candidate.headline && (
                 <p className="mt-1 text-sm text-white/50">
                   {candidate.headline}
                 </p>
