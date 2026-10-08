@@ -32,7 +32,7 @@ export async function GET() {
     const { data: applications, error } = await supabase
       .from("applications")
       .select(
-        "id, job_id, status, created_at, updated_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, companies(name))",
+        "id, job_id, status, created_at, updated_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, company_id, location, city, region, country, remote, salary_min, salary_max, currency, source_type, posted_by, companies(name))",
       )
       .eq("candidate_id", user.id)
       .order("created_at", { ascending: false });
@@ -42,7 +42,23 @@ export async function GET() {
       return NextResponse.json({ error: "Unable to load your applications." }, { status: 500 });
     }
 
-    return NextResponse.json({ applications: applications ?? [] });
+    const applicationRows = applications ?? [];
+    const recruiterIds = [...new Set(applicationRows.map((application) => {
+      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+      return job?.posted_by ?? null;
+    }).filter((value): value is string => Boolean(value)))];
+    const { data: recruiterQuality } = recruiterIds.length
+      ? await supabase
+          .from("recruiter_quality")
+          .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response")
+          .in("recruiter_id", recruiterIds)
+      : { data: [] };
+    const qualityByRecruiter = new Map((recruiterQuality ?? []).map((quality) => [quality.recruiter_id, quality]));
+    const enrichedApplications = applicationRows.map((application) => {
+      const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
+      return { ...application, recruiter_quality: job?.posted_by ? qualityByRecruiter.get(job.posted_by) ?? null : null };
+    });
+    return NextResponse.json({ applications: enrichedApplications });
   } catch (error) {
     console.error("Application list error", error);
     return NextResponse.json({ error: "Unable to load your applications." }, { status: 500 });
