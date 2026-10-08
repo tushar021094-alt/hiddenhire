@@ -28,6 +28,14 @@ export type FinanceSubfunction =
   | 'OTHER_FINANCE'
   | 'NOT_FINANCE';
 
+export interface FraudRiskSignal {
+  score: number;
+  tier: 'low' | 'guarded' | 'high' | 'critical';
+  action: 'allow' | 'warn' | 'restrict' | 'escalate';
+  flags: string[];
+  signals: string[];
+}
+
 export interface JobAuthenticitySignal {
   score: number;
   tier: 'verified' | 'likely_authentic' | 'review' | 'caution';
@@ -69,6 +77,7 @@ export interface Job {
   freshnessScore?: number;
   isDemo?: boolean;
   authenticity?: JobAuthenticitySignal;
+  safety?: FraudRiskSignal;
 }
 
 export interface CandidateProfile {
