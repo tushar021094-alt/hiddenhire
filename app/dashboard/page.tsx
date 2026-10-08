@@ -140,6 +140,9 @@ export default async function DashboardPage() {
     responsivenessScore: recruiterQualityRow.responsiveness_score,
     trustTier: recruiterQualityRow.trust_tier as "new" | "trusted" | "established" | "building" | "needs_attention",
     repeatedNonResponse: recruiterQualityRow.repeated_non_response,
+    identityVerified: recruiterQualityRow.identity_verified,
+    companyVerified: recruiterQualityRow.company_verified,
+    trustScore: recruiterQualityRow.trust_score,
   } : null;
 
   const recruiterJobCount = recruiterJobList.length;
