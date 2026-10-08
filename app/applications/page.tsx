@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import FraudRiskBadge from "@/components/fraud-risk-badge";
+import type { FraudRiskSignal } from "@/lib/job-types";
 
 type Application = {
   id: string;
@@ -13,6 +15,7 @@ type Application = {
   candidate_reminder_count?: number;
   last_candidate_reminder_at?: string | null;
   recruiter_response_due_at?: string | null;
+  safety_risk?: FraudRiskSignal | null;
   recruiter_quality?: {
     total_applications: number;
     response_rate: number;
