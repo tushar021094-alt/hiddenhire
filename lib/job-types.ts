@@ -28,6 +28,18 @@ export type FinanceSubfunction =
   | 'OTHER_FINANCE'
   | 'NOT_FINANCE';
 
+export interface JobAuthenticitySignal {
+  score: number;
+  tier: 'verified' | 'likely_authentic' | 'review' | 'caution';
+  verifiedJob: boolean;
+  verifiedCompany: boolean;
+  verifiedRecruiter: boolean;
+  sourceVerified: boolean;
+  duplicateCount: number;
+  flags: string[];
+  signals: string[];
+}
+
 export interface Job {
   id: string;
   title: string;
@@ -56,6 +68,7 @@ export interface Job {
   remotePolicy?: string;
   freshnessScore?: number;
   isDemo?: boolean;
+  authenticity?: JobAuthenticitySignal;
 }
 
 export interface CandidateProfile {
