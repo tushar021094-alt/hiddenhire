@@ -225,11 +225,27 @@ export async function PATCH(request: Request) {
     const recruiterStatuses = ["reviewing", "shortlisted", "interview", "rejected", "hired"];
 
     if ((profile?.role === "employer" || profile?.role === "agency") && recruiterStatuses.includes(status)) {
+      const { data: existingApplication, error: existingError } = await supabase
+        .from("applications")
+        .select("id, recruiter_first_response_at, recruiter_response_count")
+        .eq("id", applicationId)
+        .maybeSingle();
+
+      if (existingError || !existingApplication) {
+        return NextResponse.json({ error: "Unable to load the application." }, { status: 500 });
+      }
+
+      const responseNow = new Date().toISOString();
       const { data: application, error: updateError } = await supabase
         .from("applications")
-        .update({ status, recruiter_response_due_at: null })
+        .update({
+          status,
+          recruiter_response_due_at: null,
+          recruiter_first_response_at: existingApplication.recruiter_first_response_at ?? responseNow,
+          recruiter_response_count: Number(existingApplication.recruiter_response_count ?? 0) + 1,
+        })
         .eq("id", applicationId)
-        .select("id, job_id, candidate_id, status, created_at, updated_at")
+        .select("id, job_id, candidate_id, status, created_at, updated_at, recruiter_first_response_at, recruiter_response_count")
         .single();
 
       if (updateError) {
