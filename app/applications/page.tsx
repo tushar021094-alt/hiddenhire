@@ -19,7 +19,7 @@ type Application = {
     overdue_applications: number;
     median_first_response_hours: number | null;
     responsiveness_score: number;
-    trust_tier: "new" | "highly_responsive" | "responsive" | "needs_attention";
+    trust_tier: "new" | "trusted" | "established" | "building" | "needs_attention";
     repeated_non_response: boolean;
     identity_verified: boolean;
     company_verified: boolean;
