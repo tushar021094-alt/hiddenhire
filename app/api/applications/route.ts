@@ -155,7 +155,7 @@ export async function PATCH(request: Request) {
     if (profile?.role === "candidate" && action === "remind") {
       const { data: application, error: applicationError } = await supabase
         .from("applications")
-        .select("id, job_id, candidate_id, status, created_at, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, source_type, status, posted_by)")
+        .select("id, job_id, candidate_id, status, created_at, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at, jobs!inner(id, title, source_type, status, posted_by)")
         .eq("id", applicationId)
         .eq("candidate_id", user.id)
         .maybeSingle();
