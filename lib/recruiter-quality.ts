@@ -8,6 +8,9 @@ export type RecruiterQuality = {
   responsivenessScore: number;
   trustTier: "new" | "trusted" | "established" | "building" | "needs_attention";
   repeatedNonResponse: boolean;
+  identityVerified: boolean;
+  companyVerified: boolean;
+  trustScore: number;
 };
 
 export function recruiterQualityLabel(q: RecruiterQuality) {
