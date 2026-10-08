@@ -16,6 +16,7 @@ type ApplicationStatus = (typeof STATUSES)[number];
 export default function ApplicationStatusControl({
   applicationId,
   currentStatus,
+  responseDueAt,
 }: {
   applicationId: string;
   currentStatus: string;
@@ -29,8 +30,8 @@ export default function ApplicationStatusControl({
 
   const [status, setStatus] =
     useState<ApplicationStatus>(normalizedStatus);
-
-  const [saving, setSaving] = useState(false);\n  const [needsResponse, setNeedsResponse] = useState(Boolean(responseDueAt));
+  const [saving, setSaving] = useState(false);
+  const [needsResponse, setNeedsResponse] = useState(Boolean(responseDueAt));
   const [error, setError] = useState("");
 
   async function updateStatus(nextStatus: ApplicationStatus) {
@@ -57,7 +58,8 @@ export default function ApplicationStatusControl({
         );
       }
 
-      setStatus(nextStatus);\n      setNeedsResponse(false);
+      setStatus(nextStatus);
+      setNeedsResponse(false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -70,7 +72,13 @@ export default function ApplicationStatusControl({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2 sm:items-end">\n      {needsResponse && (\n        <span className="text-[11px] text-amber-200/70">Candidate reminder is awaiting your status update.</span>\n      )}
+    <div className="flex flex-col items-start gap-2 sm:items-end">
+      {needsResponse && (
+        <span className="text-[11px] text-amber-200/70">
+          Candidate reminder is awaiting your status update.
+        </span>
+      )}
+
       <select
         value={status}
         disabled={saving}
