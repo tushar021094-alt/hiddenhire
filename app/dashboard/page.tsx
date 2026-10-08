@@ -126,7 +126,7 @@ export default async function DashboardPage() {
   const { data: recruiterQualityRow } = isRecruiter
     ? await supabase
         .from("recruiter_quality")
-        .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response")
+        .select("recruiter_id, total_applications, response_rate, overdue_applications, reminded_applications, median_first_response_hours, responsiveness_score, trust_tier, repeated_non_response, identity_verified, company_verified, trust_score")
         .eq("recruiter_id", user.id)
         .maybeSingle()
     : { data: null };
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
     remindedApplications: recruiterQualityRow.reminded_applications,
     medianFirstResponseHours: recruiterQualityRow.median_first_response_hours == null ? null : Number(recruiterQualityRow.median_first_response_hours),
     responsivenessScore: recruiterQualityRow.responsiveness_score,
-    trustTier: recruiterQualityRow.trust_tier as "new" | "highly_responsive" | "responsive" | "needs_attention",
+    trustTier: recruiterQualityRow.trust_tier as "new" | "trusted" | "established" | "building" | "needs_attention",
     repeatedNonResponse: recruiterQualityRow.repeated_non_response,
   } : null;
 
