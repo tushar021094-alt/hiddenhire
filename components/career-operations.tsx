@@ -18,6 +18,8 @@ export default function CareerOperations({ refreshKey = 0 }: Props) {
   const [readiness, setReadiness] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function enqueue(operation: CareerOperation) { await fetch("/api/career-operations/enqueue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation }) }); window.location.hash = "execution-control"; }
+
   async function load() {
     try {
       const response = await fetch("/api/career-operations");
@@ -79,7 +81,7 @@ export default function CareerOperations({ refreshKey = 0 }: Props) {
                 {operation.route === "/profile" ? (
                   <Link href="/profile">Improve →</Link>
                 ) : operation.route === "/applications" ? (
-                  <Link href="/dashboard#execution">{operation.requiresApproval ? "Execute →" : "Prepare →"}</Link>
+                  <button onClick={() => void enqueue(operation)}>{operation.requiresApproval ? "Queue →" : "Prepare →"}</button>
                 ) : (
                   <Link href="/jobs">Review →</Link>
                 )}
