@@ -24,6 +24,7 @@ type Job = {
   currency?: string;
   requiredSkills?: string[];
   source?: string;
+  postedDate?: string;
   applicationUrl?: string;
   description?: string;
   score?: number;
@@ -79,7 +80,15 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
       if (workModeFilter === "hybrid" && !/hybrid/i.test(job.location || "")) return false;
       return true;
     })
-    .sort((a, b) => sortMode === "salary" ? (b.salaryMax ?? b.salaryMin ?? 0) - (a.salaryMax ?? a.salaryMin ?? 0) : sortMode === "recent" ? 0 : (b.score ?? 0) - (a.score ?? 0));
+    .sort((a, b) => {
+      if (sortMode === "salary") return (b.salaryMax ?? b.salaryMin ?? 0) - (a.salaryMax ?? a.salaryMin ?? 0);
+      if (sortMode === "recent") {
+        const dateA = a.postedDate ? Date.parse(a.postedDate) : 0;
+        const dateB = b.postedDate ? Date.parse(b.postedDate) : 0;
+        return (Number.isFinite(dateB) ? dateB : 0) - (Number.isFinite(dateA) ? dateA : 0);
+      }
+      return (b.score ?? 0) - (a.score ?? 0);
+    });
 
   async function toggleSavedJob(job: Job) {
     const key = jobKey(job);
