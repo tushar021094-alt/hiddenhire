@@ -92,7 +92,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
       ? `My profile lists ${skills.slice(0, 4).join(", ")}. I would welcome the opportunity to discuss specific examples of how these skills align with the requirements of the role.`
       : "I would welcome the opportunity to discuss how my background aligns with the requirements of this role. I will use examples grounded in my verified experience.",
     "",
-    "I would appreciate the opportunity to discuss the position and the contribution I could make. I will be glad to share relevant examples and measurable results from my work history.");
+    "I would appreciate the opportunity to discuss the position and the contribution I could make. I will be glad to share relevant examples and measurable results from my work history.",
     "",
     "Regards,",
     name,
