@@ -17,6 +17,7 @@ export type CareerExecutionInput = {
   };
   job: {
     title?: string | null;
+    description?: string | null;
     company?: string | null;
     location?: string | null;
     applicationUrl?: string | null;
