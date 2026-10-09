@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     supabase.from("candidate_profiles").select("headline,target_roles").eq("profile_id", user.id).maybeSingle(),
     supabase
       .from("applications")
-      .select("id,status,created_at,updated_at,jobs(id,title,description,application_url,location,company_id,companies(name))")
+      .select("id,status,created_at,updated_at,jobs(id,title,description,location,company_id,companies(name))")
       .eq("candidate_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20),
@@ -42,7 +42,6 @@ export async function GET(request: Request) {
     jobs?: {
       title?: string | null;
       description?: string | null;
-      application_url?: string | null;
       location?: string | null;
       company_id?: string | null;
       companies?: { name?: string | null } | { name?: string | null }[] | null;
@@ -94,7 +93,7 @@ export async function GET(request: Request) {
       description: job?.description,
       company: selectedCompany,
       location: job?.location,
-      applicationUrl: job?.application_url,
+      applicationUrl: null,
     },
   });
 
