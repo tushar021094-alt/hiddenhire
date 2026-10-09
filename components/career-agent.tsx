@@ -406,11 +406,11 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           {learningMetrics && <span className="text-[10px] text-white/30">{learningMetrics.totals.actions} tracked actions</span>}
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-4">
-          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Agent completion</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.effectiveness.completionRate ?? 0}%</p><p className="text-[9px] text-white/35">{learningMetrics?.effectiveness.completed ?? 0} completed · {learningMetrics?.effectiveness.dismissed ?? 0} dismissed</p></div>
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Agent completion</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.effectiveness?.completionRate ?? 0}%</p><p className="text-[9px] text-white/35">{learningMetrics?.effectiveness?.completed ?? 0} completed · {learningMetrics?.effectiveness?.dismissed ?? 0} dismissed</p></div>
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Applications</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.applications ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.application_conversion_rate ?? 0}% conversion</p></div>
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Interviews</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.interviews ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.interview_conversion_rate ?? 0}% of applications</p></div>
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Hires</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.hires ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.hire_conversion_rate ?? 0}% of applications</p></div>
-          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Calibration</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.calibration.eligible ? (learningMetrics.calibration.adjustment > 0 ? "+" : "") + learningMetrics.calibration.adjustment : "HOLD"}</p><p className="text-[9px] text-white/35">{learningMetrics?.calibration.sampleSize ?? 0}/50 outcomes</p></div>
+          <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Calibration</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.calibration?.eligible ? (learningMetrics.calibration!.adjustment > 0 ? "+" : "") + learningMetrics.calibration.adjustment : "HOLD"}</p><p className="text-[9px] text-white/35">{learningMetrics?.calibration?.sampleSize ?? 0}/50 outcomes</p></div>
         </div>
         {learningMetrics && <p className="mt-3 text-[9px] leading-4 text-white/40">{learningMetrics.calibration.reason}</p>}
         {learningMetrics?.effectivenessPolicy?.recommendations?.length ? (
@@ -432,11 +432,11 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           </div>
         ) : null}
 
-        {learningMetrics?.effectiveness.actions.length ? (
+        {learningMetrics?.effectiveness?.actions?.length ? (
           <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">Action effectiveness</p>
             <div className="mt-2 space-y-1.5">
-              {learningMetrics.effectiveness.actions.slice(0, 4).map((item) => (
+              {learningMetrics.effectiveness?.actions?.slice(0, 4).map((item) => (
                 <div key={item.action} className="flex items-center justify-between gap-3 text-[10px]">
                   <span className="text-white/60">{item.action.replace("_", " ")} · {item.sampleSize} tasks</span>
                   <span className="text-cyan-200/80">{item.completionRate}% completed · {item.positiveOutcomeRate}% positive</span>
@@ -446,11 +446,11 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           </div>
         ) : null}
 
-        {!!learningMetrics?.attribution.recommendations.length && (
+        {!!learningMetrics?.attribution?.recommendations?.length && (
           <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">Learning signals</p>
             <div className="mt-2 space-y-1.5">
-              {learningMetrics.attribution.recommendations.slice(0, 3).map((item) => (
+              {learningMetrics.attribution?.recommendations?.slice(0, 3).map((item) => (
                 <div key={`${item.dimension}-${item.group}`} className="flex items-center justify-between gap-3 text-[10px]">
                   <span className="text-white/60">{item.dimension.replace("_", " ")}: <span className="text-white/85">{item.group}</span></span>
                   <span className={item.direction === "positive" ? "text-emerald-300" : "text-rose-300"}>{item.delta > 0 ? "+" : ""}{item.delta} pts</span>
