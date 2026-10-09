@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       title?: string | null;
       application_url?: string | null;
       location?: string | null;
+      company_id?: string | null;
       companies?: { name?: string | null } | { name?: string | null }[] | null;
     }[] | null;
   };
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
   const companyIds = [...new Set(rows.map((item) => {
     const rowJob = Array.isArray(item.jobs) ? item.jobs[0] : item.jobs;
     return rowJob?.company_id ?? null;
-  }).filter((value): value is string => Boolean(value)))]
+  }).filter((value): value is string => Boolean(value)))];
   const { data: companyRows } = companyIds.length
     ? await supabase.from("companies").select("id,name").in("id", companyIds)
     : { data: [] };
