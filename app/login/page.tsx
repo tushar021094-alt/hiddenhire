@@ -1,12 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -61,7 +59,9 @@ export default function LoginPage() {
         throw verifyError;
       }
 
-      router.replace("/dashboard");
+      // Force a document navigation so the newly written Supabase auth cookies are
+      // included in the first server-rendered dashboard request.
+      window.location.assign("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "That code could not be verified.");
     } finally {
