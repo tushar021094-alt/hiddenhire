@@ -12,7 +12,7 @@ export async function GET() {
   const [{ data: profile }, { data: career }, { data: applications, error: applicationsError }, { data: actions, error: actionsError }, { data: watches }] = await Promise.all([
     supabase.from("profiles").select("full_name,skills,experience_years,location").eq("id", user.id).maybeSingle(),
     supabase.from("candidate_profiles").select("headline,target_roles,preferred_locations").eq("profile_id", user.id).maybeSingle(),
-    supabase.from("applications").select("id,status,created_at,updated_at,jobs(title,companies(name))").eq("candidate_id", user.id).order("created_at", { ascending: false }).limit(100),
+    supabase.from("applications").select("id,status,created_at,updated_at,jobs(title,application_url,companies(name))").eq("candidate_id", user.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("career_agent_actions").select("id,job_fingerprint,action,task_status,due_at,job_title,company_name,source_url").eq("candidate_id", user.id).order("created_at", { ascending: false }).limit(200),
     supabase.from("job_watches").select("id").eq("candidate_id", user.id).eq("enabled", true),
   ]);
