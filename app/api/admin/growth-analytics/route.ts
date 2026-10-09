@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { recommendGrowthExperiments } from "@/lib/growth-experiment-intelligence";
 
 const FUNNEL = [
   "landing_view",
@@ -60,6 +61,9 @@ export async function GET(request: Request) {
   const landing = funnel.find((item) => item.eventName === "landing_view")?.events ?? 0;
   const signup = funnel.find((item) => item.eventName === "signup_completed")?.events ?? 0;
 
+  const sourceRows = [...sources].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count).slice(0, 8);
+  const experiments = recommendGrowthExperiments({ funnel, sources: sourceRows, totalEvents: rows.length });
+
   return NextResponse.json({
     days,
     since,
@@ -71,7 +75,8 @@ export async function GET(request: Request) {
     },
     funnel,
     topEvents: [...eventCounts].map(([eventName, count]) => ({ eventName, count })).sort((a, b) => b.count - a.count).slice(0, 10),
-    sources: [...sources].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count).slice(0, 8),
+    sources: sourceRows,
+    experiments,
     daily: [...daily].map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date)),
     truncated: rows.length === 10000,
     generatedAt: new Date().toISOString(),
