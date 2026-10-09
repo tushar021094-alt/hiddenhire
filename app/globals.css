@@ -1703,3 +1703,36 @@ body{
 .hh-operations-empty{padding:30px 18px;text-align:center;color:#7f8ea6;font-size:11px}.hh-operations-empty strong,.hh-operations-empty span{display:block}.hh-operations-empty strong{color:#e7edf6;font-size:12px}.hh-operations-empty span{margin:6px auto 0;max-width:520px;line-height:1.6}
 .hh-operations-footer{display:flex;justify-content:space-between;gap:15px;padding:11px 18px;color:#63728a;font-size:8px;border-top:1px solid rgba(148,163,184,.06)}
 @media(max-width:700px){.hh-operations-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.hh-operation-row{grid-template-columns:30px minmax(0,1fr)}.hh-operation-icon{width:30px;height:30px}.hh-operation-action{grid-column:2}.hh-operation-action a{width:max-content}.hh-operations-footer{flex-direction:column;gap:4px}}
+
+
+/* UX polish — compact match badge and prevent discovery sidebar cards from stretching */
+.hh-discovery-match{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:max-content!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  align-self:flex-start!important;
+  flex:0 0 auto!important;
+  padding:6px 10px!important;
+  border:1px solid rgba(52,211,153,.18)!important;
+  border-radius:999px!important;
+  background:rgba(16,185,129,.09)!important;
+  color:#34d399!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+.hh-discovery-side{
+  align-self:start!important;
+  align-content:start!important;
+  grid-auto-rows:max-content!important;
+  height:max-content!important;
+}
+.hh-match-radar,
+.hh-discovery-profile{
+  align-self:start!important;
+  min-height:0!important;
+  height:auto!important;
+}
