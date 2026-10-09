@@ -9,6 +9,7 @@ type Payload = {
   topEvents:{eventName:string;count:number}[];
   sources:{source:string;count:number}[];
   daily:{date:string;count:number}[];
+  experiments:{priority:"high"|"medium"|"low";title:string;observation:string;experiment:string;metric:string}[];
   truncated:boolean;
 };
 const labels:Record<string,string> = {
@@ -68,6 +69,18 @@ export default function GrowthAnalyticsPage() {
           {data.topEvents.map(item=><div key={item.eventName} className="flex justify-between gap-3 py-1.5 text-sm"><span className="text-white/65">{labels[item.eventName] ?? item.eventName.replaceAll("_"," ")}</span><span>{item.count.toLocaleString()}</span></div>)}
         </section>
       </div>
+      <section className="hh-panel mt-5">
+        <div className="mb-4"><h2 className="text-lg font-semibold">Recommended growth experiments</h2><p className="mt-1 text-sm text-white/45">Rule-based hypotheses generated from recorded funnel signals. Validate with a controlled test before making broad changes.</p></div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {data.experiments.map((item,index)=><article key={item.title} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex items-center justify-between gap-3"><span className="text-xs uppercase tracking-wide text-white/45">Priority · {item.priority}</span><span className="text-xs text-white/35">Experiment {index+1}</span></div>
+            <h3 className="mt-2 font-semibold">{item.title}</h3>
+            <p className="mt-2 text-sm text-white/65">{item.observation}</p>
+            <p className="mt-3 text-sm text-cyan-100">{item.experiment}</p>
+            <p className="mt-3 border-t border-white/10 pt-3 text-xs text-white/45">Measure: {item.metric}</p>
+          </article>)}
+        </div>
+      </section>
       <section className="hh-panel mt-5">
         <h2 className="text-lg font-semibold">Daily activity</h2><p className="mb-5 mt-1 text-sm text-white/45">Recorded event count per day.</p>
         {data.daily.length ? <div className="flex h-44 items-end gap-1 overflow-x-auto">{data.daily.map(item=><div key={item.date} className="flex h-full min-w-3 flex-1 flex-col items-center justify-end gap-2" title={item.date+": "+item.count+" events"}><div className="w-full rounded-t bg-violet-300/80" style={{height:Math.max(item.count?3:0,item.count/maxDaily*100)+"%"}}/><span className="text-[9px] text-white/35 [writing-mode:vertical-rl]">{item.date.slice(5)}</span></div>)}</div> : <p className="text-sm text-white/45">No events recorded during this period.</p>}
