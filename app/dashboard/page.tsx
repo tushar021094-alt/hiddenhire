@@ -235,8 +235,15 @@ export default async function DashboardPage() {
                 <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
                 <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
               </> : <Link href="/dashboard" className="hh-nav-item is-active"><span>⌂</span>Workspace</Link>}
-              <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
-              <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
+              {role === "admin" && <div className="hh-side-section">
+                <small>PLATFORM ADMIN</small>
+                <Link href="/admin/marketplace" className="hh-nav-item"><span>◈</span>Marketplace Quality</Link>
+                <Link href="/admin/moderation" className="hh-nav-item"><span>⚑</span>Moderation Appeals</Link>
+              </div>}
+              {role !== "admin" && <>
+                <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
+                <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
+              </>}
             </nav>
 
             {isRecruiter && <div className="hh-side-section">
