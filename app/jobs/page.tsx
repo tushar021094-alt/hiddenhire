@@ -62,9 +62,24 @@ export default function JobsPage() {
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
+const [searchQuery, setSearchQuery] = useState("");
+const [workModeFilter, setWorkModeFilter] = useState<"all" | "remote" | "onsite" | "hybrid">("all");
+const [sortMode, setSortMode] = useState<"match" | "recent" | "salary">("match");
 const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
 
   function jobKey(job: Job) { return `${job.source || "external"}|${job.id}`; }
+
+  const visibleJobs = jobs
+    .filter((job) => {
+      const q = searchQuery.trim().toLowerCase();
+      const searchable = [job.title, job.company, job.location, job.city, job.region, job.country, ...(job.requiredSkills ?? [])].filter(Boolean).join(" ").toLowerCase();
+      if (q && !searchable.includes(q)) return false;
+      if (workModeFilter === "remote" && !job.remote) return false;
+      if (workModeFilter === "onsite" && (job.remote || /hybrid/i.test(job.location || ""))) return false;
+      if (workModeFilter === "hybrid" && !/hybrid/i.test(job.location || "")) return false;
+      return true;
+    })
+    .sort((a, b) => sortMode === "salary" ? (b.salaryMax ?? b.salaryMin ?? 0) - (a.salaryMax ?? a.salaryMin ?? 0) : sortMode === "recent" ? 0 : (b.score ?? 0) - (a.score ?? 0));
 
   async function toggleSavedJob(job: Job) {
     const key = jobKey(job);
@@ -304,11 +319,11 @@ useEffect(() => {
             </section>
 
             <section className="hh-discovery-controls">
-              <div className="hh-discovery-search"><span>⌕</span><input aria-label="Search opportunities" placeholder="Search by job title, company, skills..." /></div>
+              <div className="hh-discovery-search"><span>⌕</span><input aria-label="Search opportunities" placeholder="Search by job title, company, skills..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} /></div>
               <div className="hh-discovery-select">⌖ <span>{profile?.location || "Location"}</span>⌄</div>
               <div className="hh-discovery-select">▣ <span>{profile?.experience_years ? profile.experience_years + "+ yrs" : "All experience"}</span>⌄</div>
-              <button type="button" className="hh-discovery-button" onClick={() => window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"})}>Search Jobs →</button>
-              <div className="hh-filter-row"><span>Work Mode</span><b className={!profile?.remote_only ? "active" : ""}>All</b><b className={profile?.remote_only ? "active" : ""}>Remote</b><b>On-site</b><b>Hybrid</b><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><b>More filters</b></div>
+              <button type="button" className="hh-discovery-button" onClick={() => document.querySelector(".hh-discovery-grid")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Search Jobs →</button>
+              <div className="hh-filter-row"><span>Work Mode</span><button type="button" className={workModeFilter === "all" ? "active" : ""} onClick={() => setWorkModeFilter("all")}>All</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} onClick={() => setWorkModeFilter("remote")}>Remote</button><button type="button" className={workModeFilter === "onsite" ? "active" : ""} onClick={() => setWorkModeFilter("onsite")}>On-site</button><button type="button" className={workModeFilter === "hybrid" ? "active" : ""} onClick={() => setWorkModeFilter("hybrid")}>Hybrid</button><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><button type="button" onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); }}>Reset</button></div>
             </section>
 
             <div className="hh-discovery-stats">
@@ -325,16 +340,17 @@ useEffect(() => {
               <div className="hh-discovery-empty"><div className="hh-empty-icon">✦</div><div><strong>No strong matches yet.</strong><p>{message}</p></div><Link href="/onboarding" className="hh-job-action">Improve profile →</Link></div>
             )}
 
-            {!loading && !error && jobs.length > 0 && (
+            {!loading && !error && jobs.length > 0 && visibleJobs.length === 0 && <div className="hh-discovery-empty"><div><strong>No jobs match these filters.</strong><p>Try a different search or reset your filters.</p></div><button type="button" className="hh-job-action" onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); }}>Reset filters</button></div>}
+            {!loading && !error && jobs.length > 0 && visibleJobs.length > 0 && (
               <div className="hh-discovery-grid">
                 <section className="hh-panel hh-discovery-results">
                   <div className="hh-panel-heading">
                     <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>Showing opportunities based on your profile, skills and preferences.</p></div>
-                    <span>{jobs.length} matches</span>
+                    <span>{visibleJobs.length} matches</span>
                   </div>
-                  <div className="hh-discovery-tabs"><b>For You</b><span>Recent</span><span>Remote</span><span>High Salary</span></div>
+                  <div className="hh-discovery-tabs"><button type="button" className={sortMode === "match" ? "active" : ""} onClick={() => setSortMode("match")}>For You</button><button type="button" className={sortMode === "recent" ? "active" : ""} onClick={() => setSortMode("recent")}>Recent</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} onClick={() => setWorkModeFilter(workModeFilter === "remote" ? "all" : "remote")}>Remote</button><button type="button" className={sortMode === "salary" ? "active" : ""} onClick={() => setSortMode("salary")}>High Salary</button></div>
                   <div className="hh-discovery-list">
-                    {jobs.map((job,index) => (
+                    {visibleJobs.map((job,index) => (
                       <article key={job.applicationUrl || index} className="hh-discovery-job">
                         <div className="hh-company-mark">{(job.company || "H").slice(0,1).toUpperCase()}</div>
                         <div className="hh-discovery-job-main">
