@@ -35,7 +35,7 @@ export async function GET() {
     const applicationByUrl = new Map<string, string>();
     for (const application of applications ?? []) {
       const job = Array.isArray(application.jobs) ? application.jobs[0] : application.jobs;
-      const url = normalize(job?.application_url);
+      const url = normalize((job as { application_url?: string | null } | null | undefined)?.application_url);
       if (url) applicationByUrl.set(url, application.status);
     }
 
