@@ -66,7 +66,8 @@ function roleTokens(role: string) {
 
 export function buildCareerExecutionPackage(input: CareerExecutionInput): CareerExecutionPackage {
   const role = clean(input.job.title, input.candidate.targetRole || "the role");
-  const company = clean(input.job.company, "your organization");
+  const companyKnown = Boolean(input.job.company?.trim());
+  const company = clean(input.job.company, "Employer not listed");
   const location = clean(input.job.location, input.candidate.location || "the listed location");
   const name = clean(input.candidate.name, "Candidate");
   const skills = unique(input.candidate.skills).slice(0, 8);
@@ -81,13 +82,13 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     clean(input.candidate.headline, experience !== null ? `${experience}-year professional` : "Professional candidate") +
     ` targeting ${role} opportunities. ` +
     (skills.length
-      ? `Relevant profile skills include ${skills.slice(0, 4).join(", ")}. Highlight concrete examples and outcomes you can verify for ${company}.`
-      : `Add verified role-relevant skills and measurable achievements before using this summary for ${company}.`);
+      ? `Relevant profile skills include ${skills.slice(0, 4).join(", ")}. Highlight concrete examples and outcomes you can verify${companyKnown ? ` for ${company}` : ""}.`
+      : "Add verified role-relevant skills and measurable achievements before using this summary.");
 
   const coverLetter = [
     "Dear Hiring Team,",
     "",
-    `I am interested in the ${role} opportunity at ${company}.`,
+    `I am interested in the ${role} opportunity${companyKnown ? ` at ${company}` : ""}.`,
     skills.length
       ? `My profile lists ${skills.slice(0, 4).join(", ")}. I would welcome the opportunity to discuss specific examples of how these skills align with the requirements of the role.`
       : "I would welcome the opportunity to discuss how my background aligns with the requirements of this role. I will use examples grounded in my verified experience.",
@@ -103,7 +104,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     "",
     `Hi Hiring Team,`,
     "",
-    `I’m following up on my application for the ${role} position at ${company}. I remain very interested in the opportunity and would be happy to provide any additional information that would help with the review.`,
+    `I’m following up on my application for the ${role} position${companyKnown ? ` at ${company}` : ""}. I remain very interested in the opportunity and would be happy to provide any additional information that would help with the review.`,
     "",
     "Thank you for your consideration.",
     "",
