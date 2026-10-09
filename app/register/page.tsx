@@ -38,6 +38,26 @@ const router = useRouter();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  async function handleResendConfirmation() {
+    setError("");
+    setMessage("");
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) throw resendError;
+      setMessage("If this address has a pending confirmation, a new email has been requested. Check your inbox and spam folder.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not request another confirmation email.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleRegister(event: FormEvent) {
     event.preventDefault();
 
@@ -81,7 +101,7 @@ const router = useRouter();
       }
 
       setMessage(
-        "Account created. Check your email to verify your account, then log in."
+        "If this is a new account, check your inbox and spam folder for a confirmation email. If you already registered with this address, go to Log in instead of creating another account."
       );
     } catch (err) {
       setError(
@@ -235,6 +255,14 @@ const router = useRouter();
             {message && (
               <div className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100">
                 {message}
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={loading || !email.trim()}
+                  className="mt-3 block font-semibold text-cyan-200 underline underline-offset-4 disabled:opacity-50"
+                >
+                  {loading ? "Requesting email…" : "Resend confirmation email"}
+                </button>
               </div>
             )}
 
