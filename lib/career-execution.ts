@@ -71,7 +71,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
   const location = clean(input.job.location, input.candidate.location || "the listed location");
   const name = clean(input.candidate.name, "Candidate");
   const skills = unique(input.candidate.skills).slice(0, 8);
-  const experience = Number.isFinite(Number(input.candidate.experienceYears))
+  const experience = input.candidate.experienceYears !== null && input.candidate.experienceYears !== undefined && Number.isFinite(Number(input.candidate.experienceYears))
     ? Number(input.candidate.experienceYears)
     : null;
   const status = clean(input.application.status, "applied").toLowerCase();
@@ -158,7 +158,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     company,
     location,
     resumeFocus: focus.length
-      ? focus.map((item) => `If supported by your work history, show a concrete example demonstrating ${item}.`)
+      ? focus.map((item) => `Prioritize ${item} only where your work history supports it; add a specific responsibility, tool or measurable outcome as evidence.`)
       : ["Add verified role-relevant skills and concrete achievements from your actual work history before tailoring the resume."],
     professionalSummary,
     coverLetter,
