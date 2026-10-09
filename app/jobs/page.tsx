@@ -57,6 +57,7 @@ export default function JobsPage() {
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [message, setMessage] = useState("");
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
@@ -69,7 +70,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     const key = jobKey(job);
     const isSaved = savedJobKeys.includes(key);
     setSavingJobKey(key);
-    setError("");
+    setSaveError("");
     try {
       const response = await fetch("/api/saved-jobs", {
         method: isSaved ? "DELETE" : "POST",
@@ -92,7 +93,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
       if (!response.ok) throw new Error(payload?.error || "Unable to update saved jobs.");
       setSavedJobKeys((current) => isSaved ? current.filter((item) => item !== key) : [...current, key]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update saved jobs.");
+      setSaveError(err instanceof Error ? err.message : "Unable to update saved jobs.");
     } finally {
       setSavingJobKey(null);
     }
@@ -306,6 +307,7 @@ useEffect(() => {
 
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
             {!loading && error && <div className="hh-discovery-alert">{error}</div>}
+            {!loading && saveError && <div className="hh-discovery-alert">{saveError}</div>}
             {!loading && !error && message && jobs.length === 0 && (
               <div className="hh-discovery-empty"><div className="hh-empty-icon">✦</div><div><strong>No strong matches yet.</strong><p>{message}</p></div><Link href="/onboarding" className="hh-job-action">Improve profile →</Link></div>
             )}
