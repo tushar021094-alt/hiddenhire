@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     supabase.from("candidate_profiles").select("headline,target_roles").eq("profile_id", user.id).maybeSingle(),
     supabase
       .from("applications")
-      .select("id,status,created_at,updated_at,jobs(id,title,location,companies(name))")
+      .select("id,status,created_at,updated_at,jobs(id,title,location,company_id,companies(name))")
       .eq("candidate_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20),
@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       title?: string | null;
       application_url?: string | null;
       location?: string | null;
+      company_id?: string | null;
       companies?: { name?: string | null } | { name?: string | null }[] | null;
     } | {
       title?: string | null;
@@ -61,6 +62,15 @@ export async function GET(request: Request) {
   }
 
   const job = Array.isArray(selected.jobs) ? selected.jobs[0] : selected.jobs;
+  const companyIds = [...new Set(rows.map((item) => {
+    const rowJob = Array.isArray(item.jobs) ? item.jobs[0] : item.jobs;
+    return rowJob?.company_id ?? null;
+  }).filter((value): value is string => Boolean(value)))]
+  const { data: companyRows } = companyIds.length
+    ? await supabase.from("companies").select("id,name").in("id", companyIds)
+    : { data: [] };
+  const companyById = new Map((companyRows ?? []).map((company) => [company.id, company.name]));
+  const selectedCompany = companyName(job?.companies) ?? (job?.company_id ? companyById.get(job.company_id) : null) ?? null;
   const packageData = buildCareerExecutionPackage({
     candidate: {
       name: profile?.full_name,
@@ -78,7 +88,7 @@ export async function GET(request: Request) {
     },
     job: {
       title: job?.title,
-      company: companyName(job?.companies),
+      company: selectedCompany,
       location: job?.location,
       applicationUrl: job?.application_url,
     },
@@ -90,7 +100,7 @@ export async function GET(request: Request) {
       id: item.id,
       status: item.status,
       title: itemJob?.title ?? "Application",
-      company: companyName(itemJob?.companies) ?? "Company",
+      company: companyName(itemJob?.companies) ?? (itemJob?.company_id ? companyById.get(itemJob.company_id) : null) ?? "Employer not listed",
     };
   });
 
