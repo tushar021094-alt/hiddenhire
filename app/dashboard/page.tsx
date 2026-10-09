@@ -238,6 +238,7 @@ export default async function DashboardPage() {
               {role === "admin" && <div className="hh-side-section">
                 <small>PLATFORM ADMIN</small>
                 <Link href="/admin/marketplace" className="hh-nav-item"><span>◈</span>Marketplace Quality</Link>
+                <Link href="/admin/growth" className="hh-nav-item"><span>↗</span>Growth Analytics</Link>
                 <Link href="/admin/moderation" className="hh-nav-item"><span>⚑</span>Moderation Appeals</Link>
               </div>}
               {role !== "admin" && <>
