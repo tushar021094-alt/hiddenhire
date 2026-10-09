@@ -56,16 +56,17 @@ function unique(values: string[]) {
 }
 
 function roleTokens(role: string) {
+  const stopWords = new Set(["the", "and", "for", "with", "from", "into", "your", "role", "position", "manager", "senior", "junior", "lead", "executive", "specialist"]);
   return role
     .split(/[^a-zA-Z0-9+#/&-]+/)
     .map((token) => token.trim())
-    .filter((token) => token.length >= 3)
+    .filter((token) => token.length >= 3 && !stopWords.has(token.toLowerCase()))
     .slice(0, 6);
 }
 
 export function buildCareerExecutionPackage(input: CareerExecutionInput): CareerExecutionPackage {
   const role = clean(input.job.title, input.candidate.targetRole || "the role");
-  const company = clean(input.job.company, "the company");
+  const company = clean(input.job.company, "your organization");
   const location = clean(input.job.location, input.candidate.location || "the listed location");
   const name = clean(input.candidate.name, "Candidate");
   const skills = unique(input.candidate.skills).slice(0, 8);
@@ -74,18 +75,24 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     : null;
   const status = clean(input.application.status, "applied").toLowerCase();
   const tokens = roleTokens(role);
-  const focus = unique([...tokens, ...skills]).slice(0, 8);
+  const focus = skills.slice(0, 5);
 
   const professionalSummary =
-    clean(input.candidate.headline, experience !== null ? `${experience}-year professional` : "Experienced professional") +
-    ` targeting ${role} opportunities. For ${company}, lead with verified experience, measurable outcomes and evidence across ${focus.slice(0, 4).join(", ") || "the role's core requirements"}.`;
+    clean(input.candidate.headline, experience !== null ? `${experience}-year professional` : "Professional candidate") +
+    ` targeting ${role} opportunities. ` +
+    (skills.length
+      ? `Relevant profile skills include ${skills.slice(0, 4).join(", ")}. Highlight concrete examples and outcomes you can verify for ${company}.`
+      : `Add verified role-relevant skills and measurable achievements before using this summary for ${company}.`);
 
   const coverLetter = [
     "Dear Hiring Team,",
     "",
-    `I am interested in the ${role} opportunity at ${company}. My background is aligned with the role through my experience in ${skills.slice(0, 4).join(", ") || "relevant professional responsibilities"}.`,
+    `I am interested in the ${role} opportunity at ${company}.`,
+    skills.length
+      ? `My profile lists ${skills.slice(0, 4).join(", ")}. I would welcome the opportunity to discuss specific examples of how these skills align with the requirements of the role.`
+      : "I would welcome the opportunity to discuss how my background aligns with the requirements of this role. I will use examples grounded in my verified experience.",
     "",
-    `I would welcome the opportunity to discuss how my experience can contribute to ${company}. I have focused this application on the requirements of the role and can provide specific examples and measurable results during the hiring process.`,
+    "I would appreciate the opportunity to discuss the position and the contribution I could make. I will be glad to share relevant examples and measurable results from my work history.");
     "",
     "Regards,",
     name,
@@ -117,7 +124,9 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
       "What is the biggest challenge the person joining this role will need to solve?",
     ],
     roleFocus: [
-      `Explain how your experience maps to ${tokens.slice(0, 3).join(", ") || "the role requirements"}.`,
+      skills.length
+        ? `Prepare a verified example showing how you used ${skills.slice(0, 3).join(", ")} in your work.`
+        : `Review the job description and identify role requirements supported by your actual experience.`,
       "Use concrete examples and numbers where you have verified evidence.",
       "Do not claim tools, responsibilities, qualifications or results that are not in your actual experience.",
     ],
@@ -148,8 +157,8 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     company,
     location,
     resumeFocus: focus.length
-      ? focus.map((item) => `Keep verified evidence for ${item} prominent.`)
-      : ["Keep the strongest verified role-relevant achievements prominent."],
+      ? focus.map((item) => `If supported by your work history, show a concrete example demonstrating ${item}.`)
+      : ["Add verified role-relevant skills and concrete achievements from your actual work history before tailoring the resume."],
     professionalSummary,
     coverLetter,
     followUpMessage,
