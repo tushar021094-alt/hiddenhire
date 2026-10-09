@@ -65,6 +65,9 @@ export default function CareerExecution() {
       setApplications(nextApplications);
       const nextPackage = data.package ?? null;
       setPackageData(nextPackage);
+      setCoverLetterDraft(typeof nextPackage?.coverLetter === "string" ? nextPackage.coverLetter : "");
+      setFollowUpDraft(typeof nextPackage?.followUpMessage === "string" ? nextPackage.followUpMessage : "");
+      setCompletedChecklist([]);
       if (nextPackage?.applicationId) setSelectedId(nextPackage.applicationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to build execution package.");
@@ -94,7 +97,9 @@ export default function CareerExecution() {
         </div>
       </div>
 
-      {copyNotice && <p role="status" className="px-5 pt-3 text-xs text-emerald-200 sm:px-6">{copyNotice}</p>}\n\n      {applications.length > 0 && (
+      {copyNotice && <p role="status" className="px-5 pt-3 text-xs text-emerald-200 sm:px-6">{copyNotice}</p>}
+
+      {applications.length > 0 && (
         <div className="border-b border-white/10 px-5 py-3 sm:px-6">
           <div className="flex flex-wrap gap-2">
             {applications.slice(0, 8).map((item) => (
