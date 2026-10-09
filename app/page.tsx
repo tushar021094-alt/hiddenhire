@@ -67,13 +67,6 @@ export default function Home() {
 
   async function findJobs(event:FormEvent) {
     event.preventDefault();
-    if(authState !== "authenticated"){
-      setAuthRequired(true);
-      setSearched(true);
-      setResults([]);
-      setError("");
-      return;
-    }
     setAuthRequired(false);
     if(!role.trim()){
       setSearched(true);
