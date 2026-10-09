@@ -41,12 +41,14 @@ export async function GET(request: Request) {
     updated_at: string;
     jobs?: {
       title?: string | null;
+      description?: string | null;
       application_url?: string | null;
       location?: string | null;
       company_id?: string | null;
       companies?: { name?: string | null } | { name?: string | null }[] | null;
     } | {
       title?: string | null;
+      description?: string | null;
       application_url?: string | null;
       location?: string | null;
       company_id?: string | null;
@@ -89,6 +91,7 @@ export async function GET(request: Request) {
     },
     job: {
       title: job?.title,
+      description: job?.description,
       company: selectedCompany,
       location: job?.location,
       applicationUrl: job?.application_url,
