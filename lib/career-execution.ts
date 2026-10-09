@@ -39,6 +39,7 @@ export type CareerExecutionPackage = {
     stories: string[];
     questions: string[];
     roleFocus: string[];
+    sampleAnswers: { question: string; draft: string; evidenceNeeded: string }[];
   };
   checklist: string[];
   approval: {
@@ -139,6 +140,23 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
         : `Review the job description and identify role requirements supported by your actual experience.`,
       "Use concrete examples and numbers where you have verified evidence.",
       "Do not claim tools, responsibilities, qualifications or results that are not in your actual experience.",
+    ],
+    sampleAnswers: [
+      {
+        question: `Tell me about yourself and why you fit the ${role} role.`,
+        draft: `I am a professional targeting ${role}${experience !== null ? ` with ${experience} years of experience` : ""}. My profile highlights ${focus.length ? focus.join(", ") : "skills relevant to this role"}. One example that demonstrates my fit is [describe a real responsibility or project], where I [explain your specific contribution] and achieved [verified outcome]. I am interested in this role because [connect your experience to a requirement in the job description].`,
+        evidenceNeeded: "Add one real responsibility or project, your personal contribution, a verifiable result, and the job requirement it supports.",
+      },
+      {
+        question: "Describe a time you solved a difficult problem (STAR).",
+        draft: "Situation: [Describe the real work situation and context].\\nTask: [What were you responsible for?]\\nAction: [List the steps you personally took, tools used, and people you worked with].\\nResult: [State the verified outcome; include a metric only if you can substantiate it].\\nLearning: [What would you repeat or improve next time?]",
+        evidenceNeeded: "Fill every STAR section with a real example. Do not leave a placeholder in the final answer or invent numbers.",
+      },
+      {
+        question: `How have you used ${focus[0] ?? "a relevant skill"} to deliver results?`,
+        draft: `In my work at [company/team], I used ${focus[0] ?? "the relevant skill"} to [specific task or problem]. My responsibility was [your role]. I took these actions: [steps you personally completed]. The result was [verified outcome or measurable result]. This is relevant to the ${role} role because [link to a stated job requirement].`,
+        evidenceNeeded: `Provide the employer or project, task, your personal actions, and a verified outcome involving ${focus[0] ?? "the relevant skill"}.`,
+      },
     ],
   };
 
