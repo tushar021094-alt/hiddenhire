@@ -39,6 +39,19 @@ export default function CareerExecution() {
   const [packageData, setPackageData] = useState<ExecutionPackage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [coverLetterDraft, setCoverLetterDraft] = useState("");
+  const [followUpDraft, setFollowUpDraft] = useState("");
+  const [completedChecklist, setCompletedChecklist] = useState<string[]>([]);
+  const [copyNotice, setCopyNotice] = useState("");
+
+  async function copyDraft(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyNotice(label + " copied to clipboard.");
+    } catch {
+      setCopyNotice("Clipboard access was blocked. Select the text and copy it manually.");
+    }
+  }
 
   async function load(applicationId = "") {
     setLoading(true);
@@ -81,7 +94,7 @@ export default function CareerExecution() {
         </div>
       </div>
 
-      {applications.length > 0 && (
+      {copyNotice && <p role="status" className="px-5 pt-3 text-xs text-emerald-200 sm:px-6">{copyNotice}</p>}\n\n      {applications.length > 0 && (
         <div className="border-b border-white/10 px-5 py-3 sm:px-6">
           <div className="flex flex-wrap gap-2">
             {applications.slice(0, 8).map((item) => (
@@ -129,19 +142,19 @@ export default function CareerExecution() {
 
             <div className="mt-4 rounded-lg border border-white/10 bg-black/10 p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/35">Submission checklist</p>
-              <div className="mt-2 space-y-1.5">{packageData.checklist.map((item) => <p key={item} className="text-[10px] leading-5 text-white/60">□ {item}</p>)}</div>
+              <div className="mt-2 space-y-2">{packageData.checklist.map((item) => <label key={item} className="flex cursor-pointer items-start gap-2 text-[10px] leading-5 text-white/60"><input type="checkbox" checked={completedChecklist.includes(item)} onChange={(event) => setCompletedChecklist((current) => event.target.checked ? [...current, item] : current.filter((entry) => entry !== item))} className="mt-1 accent-cyan-300" /><span className={completedChecklist.includes(item) ? "text-white/35 line-through" : ""}>{item}</span></label>)}<p className="text-[9px] text-white/35">{completedChecklist.length} of {packageData.checklist.length} completed</p></div>
             </div>
           </div>
 
           <div className="bg-[#071017] p-5 sm:p-6">
             <div className="rounded-lg border border-cyan-300/10 bg-cyan-300/[.03] p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-cyan-200/60">Cover-letter draft</p>
-              <p className="mt-2 whitespace-pre-line text-[10px] leading-5 text-white/65">{packageData.coverLetter}</p>
+              <textarea aria-label="Editable cover-letter draft" value={coverLetterDraft} onChange={(event) => setCoverLetterDraft(event.target.value)} rows={10} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[11px] leading-5 text-white/80 outline-none focus:border-cyan-300/40" /><button type="button" onClick={() => void copyDraft(coverLetterDraft, "Cover letter")} className="mt-2 rounded-lg border border-cyan-300/20 px-3 py-2 text-[10px] text-cyan-100">Copy cover letter</button>
             </div>
 
             <div className="mt-4 rounded-lg border border-amber-300/10 bg-amber-300/[.03] p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-amber-200/60">Recruiter follow-up draft</p>
-              <p className="mt-2 whitespace-pre-line text-[10px] leading-5 text-white/65">{packageData.followUpMessage}</p>
+              <textarea aria-label="Editable recruiter follow-up draft" value={followUpDraft} onChange={(event) => setFollowUpDraft(event.target.value)} rows={8} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[11px] leading-5 text-white/80 outline-none focus:border-amber-300/40" /><button type="button" onClick={() => void copyDraft(followUpDraft, "Recruiter follow-up")} className="mt-2 rounded-lg border border-amber-300/20 px-3 py-2 text-[10px] text-amber-100">Copy follow-up</button>
             </div>
 
             <div className="mt-4 rounded-lg border border-violet-300/10 bg-violet-300/[.03] p-3">
