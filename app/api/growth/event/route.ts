@@ -74,12 +74,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid session." }, { status: 400 });
     }
 
-    const auth = await getAuthenticatedUser();
-    const profileId = auth.user?.id ?? null;
+    await getAuthenticatedUser();
 
     await recordGrowthEvent({
       eventName,
-      profileId,
       sessionId,
       path: cleanString(input.path),
       referrer: cleanString(input.referrer),
