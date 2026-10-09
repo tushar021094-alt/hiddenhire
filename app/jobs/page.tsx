@@ -60,6 +60,43 @@ export default function JobsPage() {
   const [message, setMessage] = useState("");
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
+const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
+const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
+
+  function jobKey(job: Job) { return `${job.source || "external"}|${job.id}`; }
+
+  async function toggleSavedJob(job: Job) {
+    const key = jobKey(job);
+    const isSaved = savedJobKeys.includes(key);
+    setSavingJobKey(key);
+    setError("");
+    try {
+      const response = await fetch("/api/saved-jobs", {
+        method: isSaved ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: job.id,
+          source: job.source || "external",
+          title: job.title || "Untitled role",
+          company: job.company || "Company undisclosed",
+          location: job.city || job.region || job.location || job.country || "",
+          remote: Boolean(job.remote),
+          salaryMin: job.salaryMin,
+          salaryMax: job.salaryMax,
+          currency: job.currency,
+          score: job.score,
+          applicationUrl: job.applicationUrl,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || "Unable to update saved jobs.");
+      setSavedJobKeys((current) => isSaved ? current.filter((item) => item !== key) : [...current, key]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update saved jobs.");
+    } finally {
+      setSavingJobKey(null);
+    }
+  }
 
   async function applyToJob(jobId: string) {
   setApplyingJobId(jobId);
@@ -224,7 +261,7 @@ useEffect(() => {
               <Link href="/jobs" className="hh-nav-item is-active"><span>⌘</span>Job Discovery</Link>
               <Link href="/dashboard#career-agent" className="hh-nav-item"><span>✦</span>Career Agent <em>AI</em></Link>
               <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
-              <Link href="/jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
+              <Link href="/saved-jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
               <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
               <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
               <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
@@ -292,7 +329,7 @@ useEffect(() => {
                           {job.reasons && job.reasons.length > 0 && <p className="hh-discovery-reason">✓ {job.reasons[0]}</p>}
                         </div>
                         <div className="hh-discovery-actions">
-                          <button type="button" className="hh-save-button" aria-label="Save job">♡</button>
+                          <button type="button" className={`hh-save-button ${savedJobKeys.includes(jobKey(job)) ? "is-saved" : ""}`} aria-label={savedJobKeys.includes(jobKey(job)) ? "Remove saved job" : "Save job"} aria-pressed={savedJobKeys.includes(jobKey(job))} disabled={savingJobKey === jobKey(job)} onClick={() => toggleSavedJob(job)}>{savingJobKey === jobKey(job) ? "…" : savedJobKeys.includes(jobKey(job)) ? "♥" : "♡"}</button>
                           {job.source === "HiddenHire" ? (
                             <button type="button" onClick={() => applyToJob(job.id)} disabled={applyingJobId === job.id || appliedJobIds.includes(job.id)} className="hh-apply-button">{appliedJobIds.includes(job.id) ? "Applied ✓" : applyingJobId === job.id ? "Applying…" : "Apply Now →"}</button>
                           ) : job.applicationUrl ? (
