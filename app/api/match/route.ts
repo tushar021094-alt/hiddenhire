@@ -5,7 +5,6 @@ import { discoverJobs } from "@/lib/sources";
 import { usdRate } from "@/lib/currency";
 import type { Job, SearchFilters } from "@/lib/types";
 import { checkRateLimit, getClientIdentifier, rateLimitResponse } from "@/lib/rate-limit";
-import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { recordGrowthEvent } from "@/lib/growth-server";
 
 const MAX_ROLE_LENGTH = 200;
@@ -151,14 +150,8 @@ export async function POST(request: Request) {
 
     void recordGrowthEvent({ eventName: "search_started", path: "/api/match", metadata: { role: body.role, market: body.market, workplace: body.workplace } }).catch(() => undefined);
 
-    const auth = await getAuthenticatedUser();
-    if (!auth.user) {
-      return NextResponse.json(
-        { error: "Sign in or create a HiddenHire account to search live jobs.", code: "AUTH_REQUIRED" },
-        { status: 401 },
-      );
-    }
-
+    // Public job discovery is available without an account. Keep account-specific
+    // actions (applications, saved jobs and personalized tools) authenticated.
     const liveJobs = await discoverJobs();
     const sourceJobs = liveJobs.length ? liveJobs : demoJobs;
     const currencies = [...new Set(sourceJobs.map(job => job.currency).filter(Boolean))] as string[];
