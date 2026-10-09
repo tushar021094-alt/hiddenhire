@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     supabase.from("candidate_profiles").select("headline,target_roles").eq("profile_id", user.id).maybeSingle(),
     supabase
       .from("applications")
-      .select("id,status,created_at,updated_at,jobs(id,title,application_url,location,companies(name))")
+      .select("id,status,created_at,updated_at,jobs(id,title,location,companies(name))")
       .eq("candidate_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(20),
