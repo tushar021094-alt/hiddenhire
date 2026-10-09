@@ -689,7 +689,7 @@ export class GreenhouseJobSource implements JobSource {
 
     const responses = await Promise.allSettled(
       this.boards.map(async (board) => {
-        const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`, { next: { revalidate: 300 } });
+        const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`, { cache: "no-store" });
         if (!response.ok) return [];
         const data = await response.json();
         const jobs = Array.isArray(data.jobs) ? (data.jobs as GreenhouseJob[]) : [];
