@@ -43,6 +43,7 @@ export default function CareerExecution() {
   const [followUpDraft, setFollowUpDraft] = useState("");
   const [completedChecklist, setCompletedChecklist] = useState<string[]>([]);
   const [copyNotice, setCopyNotice] = useState("");
+  const [checklistSaveState, setChecklistSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   async function copyDraft(value: string, label: string) {
     try {
@@ -68,7 +69,15 @@ export default function CareerExecution() {
       setCoverLetterDraft(typeof nextPackage?.coverLetter === "string" ? nextPackage.coverLetter : "");
       setFollowUpDraft(typeof nextPackage?.followUpMessage === "string" ? nextPackage.followUpMessage : "");
       setCompletedChecklist([]);
-      if (nextPackage?.applicationId) setSelectedId(nextPackage.applicationId);
+      setChecklistSaveState("idle");
+      if (nextPackage?.applicationId) {
+        setSelectedId(nextPackage.applicationId);
+        const progressResponse = await fetch(`/api/career-execution/checklist?applicationId=${encodeURIComponent(nextPackage.applicationId)}`);
+        const progressData = await progressResponse.json();
+        if (progressResponse.ok && Array.isArray(progressData.completedItems)) {
+          setCompletedChecklist(progressData.completedItems.filter((item: unknown): item is string => typeof item === "string"));
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to build execution package.");
     } finally {
@@ -77,6 +86,26 @@ export default function CareerExecution() {
   }
 
   useEffect(() => { void load(); }, []);
+
+  async function updateChecklist(item: string, checked: boolean) {
+    if (!packageData?.applicationId) return;
+    const next = checked
+      ? [...new Set([...completedChecklist, item])]
+      : completedChecklist.filter((entry) => entry !== item);
+    setCompletedChecklist(next);
+    setChecklistSaveState("saving");
+    try {
+      const response = await fetch("/api/career-execution/checklist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId: packageData.applicationId, completedItems: next }),
+      });
+      if (!response.ok) throw new Error("Unable to save checklist progress.");
+      setChecklistSaveState("saved");
+    } catch {
+      setChecklistSaveState("error");
+    }
+  }
 
   const statusLabel = packageData?.mode === "interview"
     ? "INTERVIEW PREP"
@@ -147,7 +176,7 @@ export default function CareerExecution() {
 
             <div className="mt-4 rounded-lg border border-white/10 bg-black/10 p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/35">Submission checklist</p>
-              <div className="mt-2 space-y-2">{packageData.checklist.map((item) => <label key={item} className="flex cursor-pointer items-start gap-2 text-[10px] leading-5 text-white/60"><input type="checkbox" checked={completedChecklist.includes(item)} onChange={(event) => setCompletedChecklist((current) => event.target.checked ? [...current, item] : current.filter((entry) => entry !== item))} className="mt-1 accent-cyan-300" /><span className={completedChecklist.includes(item) ? "text-white/35 line-through" : ""}>{item}</span></label>)}<p className="text-[9px] text-white/35">{completedChecklist.length} of {packageData.checklist.length} completed</p></div>
+              <div className="mt-2 space-y-2">{packageData.checklist.map((item) => <label key={item} className="flex cursor-pointer items-start gap-2 text-[10px] leading-5 text-white/60"><input type="checkbox" checked={completedChecklist.includes(item)} onChange={(event) => void updateChecklist(item, event.target.checked)} className="mt-1 accent-cyan-300" /><span className={completedChecklist.includes(item) ? "text-white/35 line-through" : ""}>{item}</span></label>)}<p className="text-[9px] text-white/35">{completedChecklist.length} of {packageData.checklist.length} completed · {checklistSaveState === "saving" ? "Saving…" : checklistSaveState === "saved" ? "Progress saved" : checklistSaveState === "error" ? "Save failed — try toggling again" : "Progress syncs automatically"}</p></div>
             </div>
           </div>
 
