@@ -141,6 +141,19 @@ useEffect(() => {
         return;
       }
 
+      const savedResponse = await fetch("/api/saved-jobs");
+      if (savedResponse.ok) {
+        const savedPayload = await savedResponse.json();
+        if (active) {
+          setSavedJobKeys(
+            (savedPayload.savedJobs ?? []).map(
+              (saved: { source?: string | null; external_job_id?: string | null; job_id?: string | null }) =>
+                `${saved.source || "external"}|${saved.job_id || saved.external_job_id}`,
+            ),
+          );
+        }
+      }
+
       const [
   { data: profileData, error: profileError },
   { data: candidateData },
