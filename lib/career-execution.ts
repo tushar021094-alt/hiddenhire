@@ -77,13 +77,17 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     : null;
   const status = clean(input.application.status, "applied").toLowerCase();
   const tokens = roleTokens(role);
-  const focus = skills.slice(0, 5);
+  const description = clean(input.job.description).toLowerCase();
+  const domainTerms = ["excel", "accounting", "reconciliation", "budgeting", "forecasting", "financial reporting", "taxation", "audit", "accounts payable", "accounts receivable", "cash flow", "variance analysis", "payroll", "compliance", "stakeholder management", "leadership", "salesforce", "sql", "power bi", "financial analysis", "month-end closing", "general ledger", "business development", "customer relationship", "project management", "data analysis", "communication"];
+  const jobRequirements = unique([...tokens.filter((token) => description.includes(token.toLowerCase())), ...domainTerms.filter((term) => description.includes(term))]).slice(0, 6);
+  const relevantSkills = skills.filter((skill) => jobRequirements.some((term) => term.includes(skill.toLowerCase()) || skill.toLowerCase().includes(term)));
+  const focus = (relevantSkills.length ? relevantSkills : skills).slice(0, 5);
 
   const professionalSummary =
     clean(input.candidate.headline, experience !== null ? `${experience}-year professional` : "Professional candidate") +
     ` targeting ${role} opportunities. ` +
     (skills.length
-      ? `Relevant profile skills include ${skills.slice(0, 4).join(", ")}. Highlight concrete examples and outcomes you can verify${companyKnown ? ` for ${company}` : ""}.`
+      ? `Relevant profile skills include ${focus.slice(0, 4).join(", ")}. Highlight concrete examples and outcomes you can verify${companyKnown ? ` for ${company}` : ""}.`
       : "Add verified role-relevant skills and measurable achievements before using this summary.");
 
   const coverLetter = [
@@ -91,7 +95,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     "",
     `I am interested in the ${role} opportunity${companyKnown ? ` at ${company}` : ""}.`,
     skills.length
-      ? `My profile lists ${skills.slice(0, 4).join(", ")}. I would welcome the opportunity to discuss specific examples of how these skills align with the requirements of the role.`
+      ? `My profile lists ${focus.slice(0, 4).join(", ")}. I would welcome the opportunity to discuss specific examples of how these skills align with the requirements of the role.`
       : "I would welcome the opportunity to discuss how my background aligns with the requirements of this role. I will use examples grounded in my verified experience.",
     "",
     "I would appreciate the opportunity to discuss the position and the contribution I could make. I will be glad to share relevant examples and measurable results from my work history.",
@@ -122,12 +126,16 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     ],
     questions: [
       `What would success look like in the first 90 days for this ${role}?`,
-      "Which outcomes or metrics matter most for this position?",
-      "What is the biggest challenge the person joining this role will need to solve?",
+      jobRequirements.length
+        ? `The job description emphasizes ${jobRequirements.slice(0, 3).join(", ")}. Which of these is most important in the first 90 days?`
+        : "Which outcomes or metrics matter most for this position?",
+      jobRequirements.length
+        ? `How does the team currently measure success for ${jobRequirements[0]}?`
+        : "What is the biggest challenge the person joining this role will need to solve?",
     ],
     roleFocus: [
       skills.length
-        ? `Prepare a verified example showing how you used ${skills.slice(0, 3).join(", ")} in your work.`
+        ? `Prepare a verified example showing how you used ${focus.slice(0, 3).join(", ")} in your work.`
         : `Review the job description and identify role requirements supported by your actual experience.`,
       "Use concrete examples and numbers where you have verified evidence.",
       "Do not claim tools, responsibilities, qualifications or results that are not in your actual experience.",
