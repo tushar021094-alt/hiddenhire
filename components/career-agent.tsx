@@ -412,7 +412,7 @@ export default function CareerAgent({ targetRoles, preferredLocations, location,
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Hires</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.totals.hires ?? 0}</p><p className="text-[9px] text-white/35">{learningMetrics?.totals.hire_conversion_rate ?? 0}% of applications</p></div>
           <div className="rounded-lg border border-white/10 bg-black/10 p-3"><p className="text-[9px] uppercase tracking-wider text-white/35">Calibration</p><p className="mt-1 text-lg font-semibold">{learningMetrics?.calibration?.eligible ? (learningMetrics.calibration!.adjustment > 0 ? "+" : "") + learningMetrics.calibration.adjustment : "HOLD"}</p><p className="text-[9px] text-white/35">{learningMetrics?.calibration?.sampleSize ?? 0}/50 outcomes</p></div>
         </div>
-        {learningMetrics && <p className="mt-3 text-[9px] leading-4 text-white/40">{learningMetrics.calibration.reason}</p>}
+        {learningMetrics?.calibration && <p className="mt-3 text-[9px] leading-4 text-white/40">{learningMetrics.calibration.reason}</p>}
         {learningMetrics?.effectivenessPolicy?.recommendations?.length ? (
           <div className="mt-3 rounded-lg border border-white/10 bg-black/10 p-3">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-white/35">Action learning policy</p>
