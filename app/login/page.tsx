@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
+import { trackGrowthEvent } from "@/lib/growth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -62,6 +63,7 @@ export default function LoginPage() {
 
       // Force a document navigation so the newly written Supabase auth cookies are
       // included in the first server-rendered dashboard request.
+      trackGrowthEvent("login_completed");
       window.location.assign("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "That code could not be verified.");
