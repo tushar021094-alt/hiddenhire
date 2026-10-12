@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import HiddenHireLogo from "@/components/hiddenhire-logo";
 
 type Props = {
   name: string;
@@ -35,10 +36,7 @@ export default function DashboardHeader({ name, roleLabel, firstName }: Props) {
 
   return (
     <header className="hh-topbar">
-      <Link href="/" className="hh-brand" aria-label="HiddenHire home">
-        <span className="hh-brand-mark"><i /><i /><i /></span>
-        <span>Hidden<span>Hire</span></span>
-      </Link>
+      <HiddenHireLogo className="dashboard-brand" />
 
       <button
         type="button"
