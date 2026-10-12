@@ -8,6 +8,7 @@ import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/client";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
+import { trackGrowthEvent } from "@/lib/growth";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -29,6 +30,10 @@ export default function Home() {
   const cities=useMemo(()=>Array.from(new Set(selectedStates.flatMap(s=>citiesFor(jobCountry,s)))).sort(),[jobCountry,selectedStates]);
 
   /* eslint-disable react-hooks/set-state-in-effect -- intentional dependent filter defaults */
+  useEffect(() => {
+    trackGrowthEvent("landing_view");
+  }, []);
+
   useEffect(()=>{
     const nextCurrency=COUNTRY_CURRENCY[candidateCountry] ?? "USD";
     setSalaryCurrency(nextCurrency);
@@ -75,6 +80,7 @@ export default function Home() {
       setError("Enter a target role before searching.");
       return;
     }
+    trackGrowthEvent("search_started", { role: role.trim(), market, remoteOnly, workplace });
     setLoading(true); setSearched(true); setError("");
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
@@ -83,12 +89,14 @@ export default function Home() {
       })});
       const data=await response.json();
       if(response.status===401){
+        trackGrowthEvent("auth_prompt_shown", { action: "search" });
         setAuthRequired(true);
         setResults([]);
         setError("");
         return;
       }
       if(!response.ok) throw new Error(data.error ?? "Search failed");
+      trackGrowthEvent("match_results_viewed", { resultCount: Array.isArray(data.results) ? data.results.length : 0, mode: data.mode ?? null });
       setResults(data.results ?? []); setMode(data.mode ?? null); setEligibleCount(data.eligibleCount ?? 0); setSourceCount(data.sourceCount ?? 0); setLocationEligibleCount(data.locationEligibleCount ?? 0); setSalaryEligibleCount(data.salaryEligibleCount ?? 0);
     } catch(err) { setResults([]);setMode(null);setEligibleCount(0);setError(err instanceof Error?err.message:"Search failed"); }
     finally { setLoading(false); }
