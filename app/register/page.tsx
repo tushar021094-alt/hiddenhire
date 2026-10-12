@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
+import { trackGrowthEvent } from "@/lib/growth";
 
 type AccountRole = "candidate" | "employer" | "agency";
 
@@ -75,6 +76,7 @@ const router = useRouter();
       return;
     }
 
+    trackGrowthEvent("signup_started", { role });
     setLoading(true);
 
     try {
@@ -97,6 +99,7 @@ const router = useRouter();
       }
 
       if (data.session) {
+        trackGrowthEvent("signup_completed", { role });
         router.push("/dashboard");
         return;
       }
