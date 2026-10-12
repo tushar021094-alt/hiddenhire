@@ -283,3 +283,85 @@ nav a:hover { color:rgba(255,255,255,.9); }
 @media(max-width:1050px){.hh-jobs-page .hh-jobs-hero{grid-template-columns:minmax(0,1fr) 245px;padding:24px}.hh-jobs-page .hh-discovery-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.hh-jobs-page .hh-jobs-hero{grid-template-columns:1fr;padding:21px;gap:18px}.hh-jobs-page .hh-search-intel{max-width:none}.hh-jobs-page .hh-jobs-hero-art{right:0;width:210px;opacity:.22}.hh-jobs-page .hh-discovery-controls{padding:13px}.hh-jobs-page .hh-discovery-button{float:none;width:100%}.hh-jobs-page .hh-discovery-stats{gap:8px}.hh-jobs-page .hh-discovery-stats article{padding:11px;gap:8px}.hh-jobs-page .hh-discovery-stats strong{font-size:17px}.hh-jobs-page .hh-discovery-job{grid-template-columns:36px minmax(0,1fr);gap:10px}.hh-jobs-page .hh-discovery-job .hh-company-mark{width:36px;height:36px}.hh-jobs-page .hh-discovery-actions{grid-column:2;justify-self:start}.hh-jobs-page .hh-discovery-job-top{align-items:flex-start}.hh-jobs-page .hh-discovery-match{font-size:9px;padding:5px 6px}.hh-jobs-page .hh-discovery-empty{align-items:flex-start;flex-wrap:wrap}.hh-jobs-page .hh-discovery-empty .hh-job-action{margin-left:50px}}
 @media(max-width:420px){.hh-jobs-page .hh-discovery-stats article{align-items:flex-start;flex-direction:column}.hh-jobs-page .hh-discovery-job-top{flex-direction:column;gap:8px}.hh-jobs-page .hh-discovery-meta{gap:7px}.hh-jobs-page .hh-jobs-hero-copy h1{font-size:29px}}
+
+
+/* Career Execution + Agent Operations: Obsidian Network workspace */
+#execution,
+#execution-control {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(139,92,246,.19) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(139,92,246,.075), transparent 34%),
+    radial-gradient(ellipse at 0% 100%, rgba(53,224,208,.035), transparent 38%),
+    rgba(8,11,17,.94) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.035);
+}
+#execution > div:first-child,
+#execution-control .hh-panel-heading {
+  border-color: rgba(255,255,255,.085);
+}
+#execution h2,
+#execution-control h2 {
+  letter-spacing: -.035em;
+}
+#execution textarea {
+  min-height: 130px;
+  line-height: 1.75;
+  transition: border-color .18s ease, background .18s ease;
+}
+#execution textarea:focus {
+  background: rgba(5,7,11,.72);
+  border-color: rgba(53,224,208,.38);
+  box-shadow: 0 0 0 3px rgba(53,224,208,.055);
+}
+#execution input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  accent-color: #35e0d0;
+  cursor: pointer;
+}
+#execution button,
+#execution-control button {
+  transition: transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+}
+#execution button:hover:not(:disabled),
+#execution-control button:hover:not(:disabled) {
+  border-color: rgba(53,224,208,.34);
+  background-color: rgba(53,224,208,.065);
+}
+#execution button:active:not(:disabled),
+#execution-control button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+#execution-control .hh-panel-heading > span {
+  border: 1px solid rgba(53,224,208,.2);
+  border-radius: 999px;
+  background: rgba(53,224,208,.055);
+  padding: 7px 10px;
+  color: #8cf5e9;
+  font-size: 9px;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+#execution-control > p {
+  margin-top: 12px;
+  line-height: 1.75;
+}
+#execution-control > div:last-child > div {
+  transition: border-color .18s ease, background .18s ease;
+}
+#execution-control > div:last-child > div:hover {
+  border-color: rgba(139,92,246,.2);
+  background: rgba(139,92,246,.025);
+}
+@media (max-width: 640px) {
+  #execution,
+  #execution-control { border-radius: 15px !important; }
+  #execution > div:nth-child(2) > div { gap: 7px; }
+  #execution textarea { font-size: 12px; }
+  #execution-control .hh-panel-heading { align-items: flex-start; gap: 12px; }
+}
