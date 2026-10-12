@@ -58,7 +58,7 @@ export async function GET(request: Request) {
     events: eventCounts.get(eventName) ?? 0,
     uniqueActors: uniqueSessions.get(eventName)?.size ?? 0,
   }));
-  const landing = funnel.find((item) => item.eventName === "landing_view")?.events ?? 0;
+  const signupStarted = funnel.find((item) => item.eventName === "signup_started")?.events ?? 0;
   const signup = funnel.find((item) => item.eventName === "signup_completed")?.events ?? 0;
 
   const sourceRows = [...sources].map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count).slice(0, 8);
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
       events: rows.length,
       trackedEventTypes: eventCounts.size,
       uniqueSessions: new Set(rows.map((event) => event.session_id).filter(Boolean)).size,
-      signupCompletionRate: landing ? Math.round((signup / landing) * 1000) / 10 : null,
+      signupCompletionRate: signupStarted ? Math.round((signup / signupStarted) * 1000) / 10 : null,
     },
     funnel,
     topEvents: [...eventCounts].map(([eventName, count]) => ({ eventName, count })).sort((a, b) => b.count - a.count).slice(0, 10),
