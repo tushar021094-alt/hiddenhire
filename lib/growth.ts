@@ -12,7 +12,7 @@ type GrowthEventName =
 
 const SESSION_KEY = "hiddenhire-growth-session";
 
-function getSessionId() {
+export function getGrowthSessionId() {
   if (typeof window === "undefined") return null;
   const existing = window.localStorage.getItem(SESSION_KEY);
   if (existing) return existing;
@@ -30,7 +30,7 @@ export function trackGrowthEvent(
   const params = new URLSearchParams(window.location.search);
   const payload = {
     eventName,
-    sessionId: getSessionId(),
+    sessionId: getGrowthSessionId(),
     path: window.location.pathname,
     referrer: document.referrer || null,
     source: params.get("utm_source"),
