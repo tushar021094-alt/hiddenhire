@@ -99,21 +99,21 @@ export default function Home() {
       <div className="flex items-center gap-3"><div className="brand-mark">H</div><div className="text-lg font-bold tracking-tight">HiddenHire</div></div>
       <div className="hidden items-center gap-7 text-sm text-white/50 sm:flex"><a href="#how-it-works">How it works</a><a href="#sources">Sources</a><a href="#how-it-works">Matching</a></div>
       <div className="flex items-center gap-3">
-        <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55 lg:block">India + global job discovery</div>
+        <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55 lg:block">CAREER INTELLIGENCE · 01</div>
         <Link href="/login" className="rounded-full border border-cyan-300/30 bg-cyan-300/[0.08] px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/[0.16] hover:text-white">Sign in</Link>
       </div>
     </nav>
 
     <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-8 sm:pt-24">
       <div className="mx-auto max-w-4xl text-center">
-        <div className="eyebrow"><span className="pulse-dot"/> AI Career Intelligence</div>
-        <h1 className="mt-7 text-5xl font-bold tracking-[-0.055em] sm:text-7xl">Your next role,<span className="gradient-text block">found with intelligence.</span></h1>
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">Tell HiddenHire what you want. We combine your role, skills, experience, location and compensation into a focused job search.</p>
+        <div className="eyebrow"><span className="pulse-dot"/> THE HIDDEN NETWORK <span className="hero-eyebrow-divider">/</span> AI CAREER INTELLIGENCE</div>
+        <h1 className="mt-7 text-5xl font-bold tracking-[-0.055em] sm:text-7xl">The right opportunity,<span className="gradient-text block">rarely sits in plain sight.</span></h1>
+        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/55 sm:text-lg">A more intelligent way to move your career forward. Surface relevant opportunities, understand why they fit, and stay in control of every application.</p>
       </div>
 
       <form onSubmit={findJobs} className="search-panel mx-auto mt-12 max-w-6xl">
         <div className="panel-top">
-          <div><div className="text-sm font-semibold text-white">Your career search</div><div className="mt-1 text-xs text-white/40">HiddenHire turns your profile into a precise opportunity signal.</div></div>
+          <div><div className="text-sm font-semibold text-white">Your career search</div><div className="mt-1 text-xs text-white/40">Tune your signal. Discover opportunities beyond the obvious.</div></div>
           <button type="button" className="filter-toggle" onClick={()=>setShowFilters(v=>!v)}>{showFilters?"Hide filters":"Show filters"} <span>⌄</span></button>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
