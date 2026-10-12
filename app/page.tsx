@@ -8,7 +8,7 @@ import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/client";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
-import { trackGrowthEvent } from "@/lib/growth";
+import { getGrowthSessionId, trackGrowthEvent } from "@/lib/growth";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -83,7 +83,7 @@ export default function Home() {
     setLoading(true); setSearched(true); setError("");
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-        role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
+        sessionId:getGrowthSessionId(),role,skills:skills.split(",").map(s=>s.trim()).filter(Boolean),experience:Number(experience),candidateCountry,market,remoteOnly,workplace,
         minCtc:Number(salary),maxCtc:Number(maxSalary),ctcCurrency:salaryCurrency,jobCountry:jobCountry==="Any"?"":jobCountry,states:selectedStates,cities:selectedCities
       })});
       const data=await response.json();
