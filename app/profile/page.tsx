@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import HiddenHireLogo from "@/components/hiddenhire-logo";
 
 type ProfileData = {
   profile?: {
@@ -93,9 +94,7 @@ export default function ProfilePage() {
       <div className="workspace-shell">
         <header className="workspace-header">
           <div className="workspace-brand-row">
-            <Link href="/dashboard" className="workspace-brand">
-              Hidden<span>Hire</span>
-            </Link>
+            <HiddenHireLogo className="workspace-brand-logo" />
             <nav className="workspace-nav" aria-label="Candidate navigation">
               <Link href="/dashboard">Overview</Link>
               <Link href="/jobs">Discover</Link>
