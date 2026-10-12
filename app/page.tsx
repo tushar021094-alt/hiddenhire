@@ -80,7 +80,6 @@ export default function Home() {
       setError("Enter a target role before searching.");
       return;
     }
-    trackGrowthEvent("search_started", { role: role.trim(), market, remoteOnly, workplace });
     setLoading(true); setSearched(true); setError("");
     try {
       const response=await fetch("/api/match",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
