@@ -8,6 +8,40 @@ type Company={id:string;name:string;website:string|null};
 
 function cfg(){const base=process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!base||!key)throw new Error("Supabase server credentials are not configured.");return{base:base.replace(/\/$/,""),key};}
 async function db(path:string,init?:RequestInit){const{base,key}=cfg();const r=await fetch(`${base}/rest/v1/${path}`,{...init,headers:{apikey:key,Authorization:`Bearer ${key}`,"Content-Type":"application/json",Prefer:"return=representation",...(init?.headers??{})},cache:"no-store"});if(!r.ok)throw new Error(`Supabase request failed (${r.status}): ${(await r.text()).slice(0,500)}`);return r;}
+
+type SeedSource = { provider: "greenhouse" | "ashby"; identifier: string; company: string; website: string; canonicalUrl: string };
+const INITIAL_SOURCES: SeedSource[] = [
+  { provider: "greenhouse", identifier: "stripe", company: "Stripe", website: "https://stripe.com", canonicalUrl: "https://boards.greenhouse.io/stripe" },
+  { provider: "greenhouse", identifier: "cloudflare", company: "Cloudflare", website: "https://cloudflare.com", canonicalUrl: "https://boards.greenhouse.io/cloudflare" },
+  { provider: "greenhouse", identifier: "hubspot", company: "HubSpot", website: "https://hubspot.com", canonicalUrl: "https://boards.greenhouse.io/hubspot" },
+  { provider: "ashby", identifier: "vercel", company: "Vercel", website: "https://vercel.com", canonicalUrl: "https://jobs.ashbyhq.com/vercel" },
+  { provider: "ashby", identifier: "linear", company: "Linear", website: "https://linear.app", canonicalUrl: "https://jobs.ashbyhq.com/linear" },
+  { provider: "ashby", identifier: "notion", company: "Notion", website: "https://notion.so", canonicalUrl: "https://jobs.ashbyhq.com/notion" },
+];
+
+async function ensureInitialSources() {
+  for (const seed of INITIAL_SOURCES) {
+    const c = await company(seed.company, seed.website);
+    const payload = {
+      company_id: c.id,
+      provider: seed.provider,
+      identifier: seed.identifier,
+      canonical_url: seed.canonicalUrl,
+      careers_url: seed.canonicalUrl,
+      discovery_confidence: "high",
+      status: "active",
+      last_job_count: 0,
+      metadata: { seeded: true, reason: "initial production source bootstrap" },
+      updated_at: new Date().toISOString(),
+    };
+    await db("company_sources?on_conflict=provider%2Cidentifier%2Ccanonical_url", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(payload),
+    });
+  }
+}
+
 async function company(name:string,website:string){const q=await db(`companies?website=eq.${encodeURIComponent(website)}&select=id,name,website&limit=1`);const found=await q.json() as Company[];if(found[0])return found[0];const r=await db("companies",{method:"POST",body:JSON.stringify({name,website,verification_status:"pending"})});return (await r.json() as Company[])[0];}
 function st(p:DetectedProvider){return p==="structured-jobposting"?"careerpage":p==="workday"?"other":p;}
 async function register(c:string,d:Awaited<ReturnType<typeof discoverCompanySource>>){const p={company_id:c,provider:d.provider,identifier:d.sourceIdentifier??null,canonical_url:d.canonicalUrl,careers_url:d.careersUrl,discovery_confidence:d.confidence,status:"active",last_checked_at:new Date().toISOString(),metadata:{signals:d.signals}};const r=await db("company_sources?on_conflict=provider%2Cidentifier%2Ccanonical_url",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=representation"},body:JSON.stringify(p)});return(await r.json() as Source[])[0];}
@@ -15,4 +49,4 @@ async function fetchSource(s:Source):Promise<Job[]>{if(s.provider==="greenhouse"
 async function index(s:Source,jobs:Job[]){const rows=jobs.map(j=>({company_id:s.company_id,source_type:st(s.provider),external_job_id:j.id,title:j.title,description:j.description||j.title,location:j.location,city:j.city??null,region:j.region??null,country:j.country??null,remote:j.remote,workplace_type:j.workplaceType,salary_min:j.salaryMin??null,salary_max:j.salaryMax??null,currency:j.currency??null,status:"published",published_at:new Date().toISOString(),expires_at:new Date(Date.now()+30*86400000).toISOString(),updated_at:new Date().toISOString()}));for(let i=0;i<rows.length;i+=100)await db("jobs?on_conflict=source_type%2Cexternal_job_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(rows.slice(i,i+100))});return rows.length;}
 async function mark(s:Source,count:number,error?:string){await db(`company_sources?id=eq.${s.id}`,{method:"PATCH",body:JSON.stringify({status:error?"failing":"active",last_checked_at:new Date().toISOString(),last_success_at:error?null:new Date().toISOString(),last_job_count:count,last_error:error??null,updated_at:new Date().toISOString()})});}
 export async function discoverAndIndex(inputUrl:string){const d=await discoverCompanySource(inputUrl);const c=await company(d.company||new URL(d.canonicalUrl).hostname,new URL(d.canonicalUrl).origin);const s=await register(c.id,d);s.company_id=c.id;try{const jobs=await fetchSource(s),indexed=await index(s,jobs);await mark(s,indexed);return{discovery:d,company:c,source:s,fetched:jobs.length,indexed};}catch(e){const msg=e instanceof Error?e.message:"Unknown indexing error";await mark(s,0,msg);throw e;}}
-export async function refreshIndexedSources(){const r=await db("company_sources?status=eq.active&select=id,company_id,provider,identifier,canonical_url,careers_url,status");const sources=await r.json() as Source[];const results=[];for(const s of sources){try{const jobs=await fetchSource(s),indexed=await index(s,jobs);await mark(s,indexed);results.push({sourceId:s.id,provider:s.provider,fetched:jobs.length,indexed,status:"healthy"});}catch(e){const msg=e instanceof Error?e.message:"Unknown indexing error";await mark(s,0,msg);results.push({sourceId:s.id,provider:s.provider,fetched:0,indexed:0,status:"failing",error:msg});}}return{checkedAt:new Date().toISOString(),total:results.length,healthy:results.filter(r=>r.status==="healthy").length,failing:results.filter(r=>r.status==="failing").length,results};}
+export async function refreshIndexedSources(){await ensureInitialSources();const r=await db("company_sources?status=eq.active&select=id,company_id,provider,identifier,canonical_url,careers_url,status");const sources=await r.json() as Source[];const results=[];for(const s of sources){try{const jobs=await fetchSource(s),indexed=await index(s,jobs);await mark(s,indexed);results.push({sourceId:s.id,provider:s.provider,fetched:jobs.length,indexed,status:"healthy"});}catch(e){const msg=e instanceof Error?e.message:"Unknown indexing error";await mark(s,0,msg);results.push({sourceId:s.id,provider:s.provider,fetched:0,indexed:0,status:"failing",error:msg});}}return{checkedAt:new Date().toISOString(),total:results.length,healthy:results.filter(r=>r.status==="healthy").length,failing:results.filter(r=>r.status==="failing").length,results};}
