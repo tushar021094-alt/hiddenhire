@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import DashboardHeader from "@/components/dashboard-header";
+import { trackGrowthEvent } from "@/lib/growth";
 import JobAuthenticityBadge from "@/components/job-authenticity-badge";
 import FraudRiskBadge from "@/components/fraud-risk-badge";
 import type { FraudRiskSignal } from "@/lib/job-types";
@@ -124,6 +125,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
   }
 
   async function applyToJob(jobId: string) {
+  trackGrowthEvent("application_click", { jobId, applicationType: "native" });
   setApplyingJobId(jobId);
   setError("");
 
@@ -373,7 +375,7 @@ useEffect(() => {
                           {job.source === "HiddenHire" ? (
                             <button type="button" onClick={() => applyToJob(job.id)} disabled={applyingJobId === job.id || appliedJobIds.includes(job.id)} className="hh-apply-button">{appliedJobIds.includes(job.id) ? "Applied ✓" : applyingJobId === job.id ? "Applying…" : "Apply Now →"}</button>
                           ) : job.applicationUrl ? (
-                            <a href={job.applicationUrl} target="_blank" rel="noreferrer" className="hh-apply-button">View Details →</a>
+                            <a href={job.applicationUrl} target="_blank" rel="noreferrer" onClick={() => trackGrowthEvent("application_click", { jobId: job.id, source: job.source || "external" })} className="hh-apply-button">View Details →</a>
                           ) : null}
                         </div>
                       </article>
