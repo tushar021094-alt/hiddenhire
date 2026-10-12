@@ -80,6 +80,9 @@ export default function CareerExecution() {
         const progressData = await progressResponse.json();
         if (progressResponse.ok && Array.isArray(progressData.completedItems)) {
           setCompletedChecklist(progressData.completedItems.filter((item: unknown): item is string => typeof item === "string"));
+          if (progressData.answerDrafts && typeof progressData.answerDrafts === "object" && !Array.isArray(progressData.answerDrafts)) {
+            setAnswerDrafts((current) => ({ ...current, ...progressData.answerDrafts }));
+          }
         }
       }
     } catch (err) {
