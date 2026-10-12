@@ -122,7 +122,7 @@ const makeJob = (base: Omit<Job, "skills"> & { skills?: string[] }): Job => ({ .
 
 export async function fetchGreenhouseBoard(board: string): Promise<Job[]> {
   try {
-    const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`, { next: { revalidate: 900 } });
+    const response = await fetch(`https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`, { cache: "no-store" });
     if (!response.ok) return [];
     const data = (await response.json()) as { jobs?: GreenhouseJob[] };
     return (data.jobs ?? []).map(job => {
@@ -141,7 +141,7 @@ export async function fetchGreenhouseBoard(board: string): Promise<Job[]> {
 
 export async function fetchAshbyBoard(board: string): Promise<Job[]> {
   try {
-    const response = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board)}?includeCompensation=true`, { next: { revalidate: 900 } });
+    const response = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board)}?includeCompensation=true`, { cache: "no-store" });
     if (!response.ok) return [];
     const data = (await response.json()) as { jobs?: AshbyJob[] };
     return (data.jobs ?? []).filter(job => job.title && job.jobUrl).map(job => {
@@ -162,7 +162,7 @@ export async function fetchAshbyBoard(board: string): Promise<Job[]> {
 
 export async function fetchLeverBoard(board: string): Promise<Job[]> {
   try {
-    const response = await fetch(`https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`, { next: { revalidate: 900 } });
+    const response = await fetch(`https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`, { cache: "no-store" });
     if (!response.ok) return [];
     const data = (await response.json()) as LeverJob[];
     return (Array.isArray(data) ? data : []).filter(job => job.text && job.hostedUrl).map(job => {
@@ -222,7 +222,7 @@ function extractJsonLdJobs(html: string): JsonLdJob[] {
 
 export async function fetchCareerPage(url: string): Promise<Job[]> {
   try {
-    const response = await fetch(url, { next: { revalidate: 900 }, headers: { "user-agent": "HiddenHireJobIndexer/1.0" } });
+    const response = await fetch(url, { cache: "no-store", headers: { "user-agent": "HiddenHireJobIndexer/1.0" } });
     if (!response.ok) return [];
     const html = await response.text();
     return extractJsonLdJobs(html).map((job, index) => {
@@ -265,7 +265,7 @@ type WorkableJob = {
 
 export async function fetchWorkableAccount(subdomain: string): Promise<Job[]> {
   try {
-    const response = await fetch(`https://www.workable.com/api/accounts/${encodeURIComponent(subdomain)}?details=true`, { next: { revalidate: 900 } });
+    const response = await fetch(`https://www.workable.com/api/accounts/${encodeURIComponent(subdomain)}?details=true`, { cache: "no-store" });
     if (!response.ok) return [];
     const data = (await response.json()) as { name?: string; jobs?: WorkableJob[] };
     return (data.jobs ?? []).filter(job => job.title && (job.url || job.application_url)).map((job, index) => {
