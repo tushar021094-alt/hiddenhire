@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import FraudRiskBadge from "@/components/fraud-risk-badge";
+import HiddenHireLogo from "@/components/hiddenhire-logo";
 import type { FraudRiskSignal } from "@/lib/job-types";
 
 type Application = {
@@ -196,9 +197,7 @@ export default function ApplicationsPage() {
       <div className="workspace-shell">
         <header className="workspace-header">
           <div className="workspace-brand-row">
-            <Link href="/dashboard" className="workspace-brand">
-              Hidden<span>Hire</span>
-            </Link>
+            <HiddenHireLogo className="workspace-brand-logo" />
             <nav className="workspace-nav" aria-label="Candidate navigation">
               <Link href="/dashboard">Overview</Link>
               <Link href="/jobs">Discover</Link>
