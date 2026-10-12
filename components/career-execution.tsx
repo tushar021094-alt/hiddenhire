@@ -46,6 +46,7 @@ export default function CareerExecution() {
   const [completedChecklist, setCompletedChecklist] = useState<string[]>([]);
   const [copyNotice, setCopyNotice] = useState("");
   const [checklistSaveState, setChecklistSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [answerSaveState, setAnswerSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   async function copyDraft(value: string, label: string) {
     try {
