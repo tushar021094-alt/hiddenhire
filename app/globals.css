@@ -384,3 +384,11 @@ nav a:hover { color:rgba(255,255,255,.9); }
   .hh-wordmark-main { font-size:17px; }
   .hh-wordmark-sub { font-size:7px; letter-spacing:.16em; }
 }
+
+.hh-topbar .hh-brand-link { flex:none; }
+.hh-topbar .hh-brand { gap:10px; }
+.hh-topbar .hh-wordmark-main { font-size:17px; }
+.hh-topbar .hh-wordmark-sub { font-size:7px; letter-spacing:.16em; }
+.workspace-header .workspace-brand-logo { flex:none; color:inherit; text-decoration:none; }
+.workspace-header .workspace-brand-logo .hh-wordmark-main { font-size:18px; }
+.workspace-header .workspace-brand-logo .hh-wordmark-sub { color:#8E98AB; }
