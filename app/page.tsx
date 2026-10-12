@@ -7,6 +7,7 @@ import type { MatchResult } from "@/lib/types";
 import { CURRENCIES, formatMoney } from "@/lib/currency";
 import { COUNTRIES, statesFor, citiesFor } from "@/lib/locations";
 import { createClient } from "@/lib/supabase/client";
+import HiddenHireLogo from "@/components/hiddenhire-logo";
 
 const COUNTRY_CURRENCY: Record<string, string> = {
   India: "INR", "United States": "USD", "United Kingdom": "GBP", Canada: "CAD", Australia: "AUD",
@@ -96,7 +97,7 @@ export default function Home() {
   return <main className="landing-v2 min-h-screen overflow-hidden">
     <div className="hero-glow"/>
     <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
-      <div className="flex items-center gap-3"><div className="brand-mark">H</div><div className="text-lg font-bold tracking-tight">HiddenHire</div></div>
+      <HiddenHireLogo className="landing-brand" />
       <div className="hidden items-center gap-7 text-sm text-white/50 sm:flex"><a href="#how-it-works">How it works</a><a href="#sources">Sources</a><a href="#how-it-works">Matching</a></div>
       <div className="flex items-center gap-3">
         <div className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/55 lg:block">CAREER INTELLIGENCE · 01</div>
