@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import HiddenHireLogo from "@/components/hiddenhire-logo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -74,10 +75,7 @@ export default function LoginPage() {
       <div className="hero-glow" />
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="brand-mark">H</div>
-          <div className="text-lg font-bold tracking-tight">HiddenHire</div>
-        </Link>
+        <HiddenHireLogo className="landing-brand" />
 
         <Link
           href="/register"
