@@ -365,3 +365,22 @@ nav a:hover { color:rgba(255,255,255,.9); }
   #execution textarea { font-size: 12px; }
   #execution-control .hh-panel-heading { align-items: flex-start; gap: 12px; }
 }
+
+
+/* HiddenHire identity system — compact, legible across navigation and browser tabs */
+.hh-brand-link { display:inline-flex; text-decoration:none; color:inherit; }
+.hh-brand { display:inline-flex; align-items:center; gap:11px; min-width:0; }
+.hh-mark { display:inline-flex; flex:none; width:42px; height:42px; align-items:center; justify-content:center; border:1px solid rgba(139,92,246,.34); border-radius:13px; background:linear-gradient(145deg,rgba(139,92,246,.15),rgba(53,224,208,.055)); box-shadow:0 7px 26px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.07); }
+.hh-mark svg { width:100%; height:100%; }
+.hh-mark-compact { width:34px; height:34px; border-radius:10px; }
+.hh-wordmark { display:flex; flex-direction:column; gap:2px; line-height:1; }
+.hh-wordmark-main { color:#F2F4F8; font-size:18px; font-weight:750; letter-spacing:-.045em; }
+.hh-wordmark-sub { color:#8E98AB; font-size:8px; font-weight:700; letter-spacing:.19em; margin-top:4px; }
+.hh-brand-link:focus-visible { outline:2px solid #35E0D0; outline-offset:5px; border-radius:14px; }
+.landing-brand { transition:opacity .2s ease; }
+.landing-brand:hover { opacity:.88; }
+@media (max-width: 480px) {
+  .hh-mark { width:38px; height:38px; border-radius:11px; }
+  .hh-wordmark-main { font-size:17px; }
+  .hh-wordmark-sub { font-size:7px; letter-spacing:.16em; }
+}
