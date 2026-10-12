@@ -148,7 +148,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please provide a complete job profile." }, { status: 400 });
     }
 
-    void recordGrowthEvent({ eventName: "search_started", path: "/api/match", metadata: { role: body.role, market: body.market, workplace: body.workplace } }).catch(() => undefined);
+    const suppliedSessionId = (body as SearchFilters & { sessionId?: unknown }).sessionId;
+    const sessionId = typeof suppliedSessionId === "string" && suppliedSessionId.length >= 8 && suppliedSessionId.length <= 128 ? suppliedSessionId : null;
+    void recordGrowthEvent({ eventName: "search_started", sessionId, path: "/api/match", metadata: { role: body.role, market: body.market, workplace: body.workplace } }).catch(() => undefined);
 
     // Public job discovery is available without an account. Keep account-specific
     // actions (applications, saved jobs and personalized tools) authenticated.
