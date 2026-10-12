@@ -55,7 +55,7 @@ export default function GrowthAnalyticsPage() {
         <Metric label="Recorded events" value={data.totals.events.toLocaleString()} />
         <Metric label="Event types" value={data.totals.trackedEventTypes.toString()} />
         <Metric label="Unique sessions" value={data.totals.uniqueSessions.toLocaleString()} />
-        <Metric label="Signup / landing" value={data.totals.signupCompletionRate===null?"—":data.totals.signupCompletionRate+"%"} />
+        <Metric label="Signup completion" value={data.totals.signupCompletionRate===null?"—":data.totals.signupCompletionRate+"%"} />
       </section>
       <div className="grid gap-5 lg:grid-cols-2">
         <section className="hh-panel">
