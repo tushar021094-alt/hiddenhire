@@ -171,12 +171,18 @@ export default function Home() {
 }
 
 function JobCard({job}:{job:MatchResult}) {
+  const [descriptionExpanded,setDescriptionExpanded]=useState(false);
   const score=Math.max(0,Math.min(100,job.score));
   const salary=job.salaryMin?formatMoney(job.salaryMin,job.currency)+"–"+formatMoney(job.salaryMax??job.salaryMin,job.currency):"Not disclosed";
+  const description=job.description.trim();
+  const descriptionIsLong=description.length>280;
   return <article className="job-card">
-    <div className="flex items-start justify-between gap-5"><div className="min-w-0"><div className="company-line"><span className="company-logo">{job.company.slice(0,1).toUpperCase()}</span><span>{job.company}</span></div><h3 className="mt-4 text-xl font-semibold tracking-tight">{job.title}</h3><div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/40"><span>{job.location}</span><span>•</span><span>{job.remote?"Remote":job.workplaceType??"Location"}</span></div></div><div className="score-ring" style={{"--score":`${score*3.6}deg`} as CSSProperties}><strong>{score}</strong><span>MATCH</span></div></div>
+    <div className="flex items-start justify-between gap-5"><div className="min-w-0"><div className="company-line"><span className="company-logo">{job.company.slice(0,1).toUpperCase()}</span><span>{job.company}</span></div><h3 className="mt-4 break-words text-xl font-semibold tracking-tight">{job.title}</h3><div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/40"><span>{job.location}</span><span>•</span><span>{job.remote?"Remote":job.workplaceType??"Location"}</span></div></div><div className="score-ring shrink-0" style={{"--score":`${score*3.6}deg`} as CSSProperties}><strong>{score}</strong><span>MATCH</span></div></div>
     <div className="mt-6 grid grid-cols-2 gap-3"><Stat label="Salary" value={salary}/><Stat label="Source / country" value={`${job.source} · ${job.country??"Not disclosed"}`}/></div>
-    <p className="mt-5 text-sm leading-6 text-white/50">{job.description}</p>
+    <div className="mt-5">
+      <p className={`text-sm leading-6 text-white/50 whitespace-pre-line break-words ${descriptionExpanded?"":"line-clamp-4"}`}>{description||"The employer has not provided a description for this role."}</p>
+      {descriptionIsLong&&<button type="button" className="mt-2 text-xs font-medium text-cyan-200 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300" aria-expanded={descriptionExpanded} onClick={()=>setDescriptionExpanded(value=>!value)}>{descriptionExpanded?"Show less":"Read full description"}</button>}
+    </div>
     <div className="mt-5 rounded-xl border border-white/[0.07] bg-black/15 p-4"><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Why this matches</div><ul className="mt-2 space-y-2 text-sm text-white/65">{job.reasons.slice(0,4).map(r=><li key={r}><span className="mr-2 text-cyan-300">✓</span>{r}</li>)}</ul></div>
     {job.gaps.length>0&&<div className="mt-3 text-xs text-amber-300/70">Potential gap · {job.gaps.join(" · ")}</div>}
     <a href={job.url} target="_blank" rel="noreferrer" className="apply-button mt-5">View original application <span>↗</span></a>
