@@ -242,16 +242,16 @@ export default async function DashboardPage() {
                 <Link href="/admin/moderation" className="hh-nav-item"><span>⚑</span>Moderation Appeals</Link>
               </div>}
               {role !== "admin" && <>
-                <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
-                <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
+                <Link href={isRecruiter ? "/dashboard#insights" : "/dashboard#insights"} className="hh-nav-item"><span>◫</span>Insights</Link>
+                <Link href={isRecruiter ? "/recruiter/learning" : "/dashboard#learning"} className="hh-nav-item"><span>◇</span>Learning</Link>
               </>}
             </nav>
 
             {isRecruiter && <div className="hh-side-section">
               <small>FOR RECRUITERS</small>
               <Link href="/recruiter" className="hh-nav-item"><span>⚑</span>Post a Job</Link>
-              <Link href="/recruiter" className="hh-nav-item"><span>♙</span>Find Talent</Link>
-              <Link href="/recruiter" className="hh-nav-item"><span>▦</span>Recruiter Dashboard</Link>
+              <Link href="/recruiter/talent" className="hh-nav-item"><span>♙</span>Find Talent</Link>
+              <Link href="/dashboard#insights" className="hh-nav-item"><span>▦</span>Recruiter Dashboard</Link>
             </div>}
 
             {role === "candidate" && <div className="hh-pro-card">
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
               <div className="hh-hero-art" aria-hidden="true"><div className="hh-stars" /><div className="hh-planet" /><div className="hh-city"><i /><i /><i /><i /><i /></div></div>
               <div className="hh-hero-copy">
                 <p className="hh-eyebrow">{copy.eyebrow} <span className="hh-live-dot" /> LIVE</p>
-                <h1><TimeAwareGreeting firstName={firstName} /><br /><span>Your next opportunity is closer than you think.</span></h1>
+                <h1><TimeAwareGreeting firstName={firstName} /><br /><span>{copy.title}</span></h1>
                 <p>{copy.subtitle}</p>
                 <div className="hh-hero-pills"><span>✦ AI-powered matching</span><span>◎ Global opportunities</span><span>◈ Personalized insights</span></div>
               </div>
@@ -355,7 +355,7 @@ export default async function DashboardPage() {
 
               <div id="learning" className="hh-watch-section"><JobWatchManager targetRoles={Array.isArray(candidateProfile?.target_roles) ? candidateProfile.target_roles : []} preferredLocations={Array.isArray(candidateProfile?.preferred_locations) ? candidateProfile.preferred_locations : []} skills={skills} minimumSalary={Number(profile?.min_salary ?? 0)} currency="INR" remoteOnly={Boolean(profile?.remote_only)} /></div>
             </> : (
-              <section className="hh-recruiter-workspace">
+              <section id="insights" className="hh-recruiter-workspace scroll-mt-6">
                 {recruiterSla && <RecruiterSlaCard metrics={recruiterSla} />}
                 {recruiterQuality && <RecruiterQualityCard quality={recruiterQuality} />}
                 {marketplaceSafety && <MarketplaceSafetyCard metrics={marketplaceSafety} />}
