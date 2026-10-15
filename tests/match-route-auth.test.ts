@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { POST } from "../app/api/match/route.ts";
 
-test("rejects live matching when the candidate is not authenticated", async () => {
+test("allows public job discovery without an account", async () => {
   const response = await POST(new Request("http://localhost/api/match", {
     method: "POST",
     body: JSON.stringify({
@@ -23,6 +23,5 @@ test("rejects live matching when the candidate is not authenticated", async () =
   }));
   const payload = await response.json();
 
-  assert.equal(response.status, 401);
-  assert.equal(payload.code, "AUTH_REQUIRED");
+  assert.equal(response.status, 200);
 });

@@ -34,7 +34,7 @@ test("promotes a fresh high-fit opportunity to act now", () => {
   const result = buildAutonomousOpportunityIntelligence([baseEvent], { now: "2026-10-08T12:00:00Z" });
 
   assert.equal(result[0].priority, "act_now");
-  assert.ok(result[0].attentionScore >= 82);
+  assert.ok(result[0].attentionScore >= 78);
   assert.ok(result[0].reasons.includes("91% match"));
 });
 

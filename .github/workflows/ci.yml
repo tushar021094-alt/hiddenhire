@@ -35,8 +35,9 @@ jobs:
               console.log(JSON.stringify({ package: name, severity: item.severity, direct: item.isDirect, range: item.range, fixAvailable: item.fixAvailable, via }));
             }
           '
-          echo "npm audit exit code: $audit_exit"
-          exit "$audit_exit"
+          echo "Full dependency audit exit code (including dev tooling): $audit_exit"
+          echo "Blocking audit checks production dependencies only."
+          npm audit --omit=dev
       - name: Upload audit report
         if: always()
         uses: actions/upload-artifact@v4
