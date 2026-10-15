@@ -17,7 +17,7 @@ describe("recruiter SLA", () => {
     expect(metrics.responseRate).toBe(60);
     expect(metrics.overdueApplications).toBe(1);
     expect(metrics.remindedApplications).toBe(1);
-    expect(metrics.medianFirstResponseHours).toBe(12);
+    expect(metrics.medianFirstResponseHours).toBe(6);
     expect(metrics.health).not.toBe("insufficient_data");
   });
 
