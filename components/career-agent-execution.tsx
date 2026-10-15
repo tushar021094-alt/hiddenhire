@@ -39,7 +39,10 @@ export default function CareerAgentExecution() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   async function createTask(template: typeof taskTemplates[number]) {
     setBusyAction(template.action);
