@@ -47,6 +47,8 @@ type Application = {
   } | null;
 };
 
+const renderNow = Date.now();
+
 const statusLabels: Record<string, string> = {
   applied: "Applied",
   reviewing: "Under review",
@@ -304,9 +306,9 @@ export default function ApplicationsPage() {
                           {isActive(application.status) &&
                             application.status === "applied" &&
                             application.jobs?.source_type === "native" &&
-                            Date.now() - new Date(application.created_at).getTime() >= 5 * 86_400_000 && (
+                            renderNow - new Date(application.created_at).getTime() >= 5 * 86_400_000 && (
                               application.last_candidate_reminder_at &&
-                            Date.now() - new Date(application.last_candidate_reminder_at).getTime() < 3 * 86_400_000 ? (
+                            renderNow - new Date(application.last_candidate_reminder_at).getTime() < 3 * 86_400_000 ? (
                               <span className="rounded-full border border-amber-300/20 bg-amber-50 px-3 py-1 text-xs text-amber-700">
                                 Reminder sent · awaiting response
                               </span>
