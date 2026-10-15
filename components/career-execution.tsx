@@ -92,7 +92,10 @@ export default function CareerExecution() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   async function saveAnswerDrafts(drafts: Record<string, string>) {
     if (!packageData?.applicationId) return;
