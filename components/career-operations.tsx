@@ -18,7 +18,7 @@ export default function CareerOperations({ refreshKey = 0 }: Props) {
   const [readiness, setReadiness] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function enqueue(operation: CareerOperation) { await fetch("/api/career-operations/enqueue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation }) }); window.location.hash = "execution-control"; }
+  async function enqueue(operation: CareerOperation) { await fetch("/api/career-operations/enqueue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation }) }); document.getElementById("execution-control")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
 
   async function load() {
     try {
