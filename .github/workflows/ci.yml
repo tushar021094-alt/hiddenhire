@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "production-v1"]
+    branches: ["main", "production-v1", "chore/security-audit-ci"]
   pull_request:
     branches: ["main"]
 
@@ -19,3 +19,27 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: Audit dependencies
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > npm-audit.json
+          audit_exit=$?
+          node -e '
+            const fs = require("fs");
+            const report = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
+            console.log("Dependency audit summary:", JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+            for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+              const via = (item.via ?? []).map(v => typeof v === "string" ? v : v.title).join("; ");
+              console.log(JSON.stringify({ package: name, severity: item.severity, direct: item.isDirect, range: item.range, fixAvailable: item.fixAvailable, via }));
+            }
+          '
+          echo "npm audit exit code: $audit_exit"
+          exit "$audit_exit"
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hiddenhire-npm-audit
+          path: npm-audit.json
+          if-no-files-found: ignore
