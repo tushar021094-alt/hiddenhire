@@ -303,7 +303,7 @@ useEffect(() => {
               <Link href="/applications" className="hh-nav-item"><span>▤</span>Applications</Link>
               <Link href="/saved-jobs" className="hh-nav-item"><span>♡</span>Saved Jobs</Link>
               <Link href="/profile" className="hh-nav-item"><span>♙</span>Profile</Link>
-              <Link href="/dashboard#insights" className="hh-nav-item"><span>◫</span>Insights</Link>
+              <Link href="/dashboard#career-agent" className="hh-nav-item"><span>◫</span>Insights</Link>
               <Link href="/dashboard#learning" className="hh-nav-item"><span>◇</span>Learning</Link>
             </nav>
             <div className="hh-pro-card">
