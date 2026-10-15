@@ -31,14 +31,16 @@ export default function GrowthAnalyticsPage() {
   const [loading,setLoading] = useState(true);
   useEffect(() => {
     let active = true;
-    setLoading(true); setError("");
-    fetch("/api/admin/growth-analytics?days="+days).then(async response => {
+    const timer = window.setTimeout(() => {
+      setLoading(true); setError("");
+      fetch("/api/admin/growth-analytics?days="+days).then(async response => {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Unable to load analytics.");
       if (active) setData(body);
     }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : "Unable to load analytics."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+        .finally(() => { if (active) setLoading(false); });
+    }, 0);
+    return () => { active = false; window.clearTimeout(timer); };
   },[days]);
 
   const maxDaily = Math.max(1,...(data?.daily.map(item=>item.count) ?? []));
