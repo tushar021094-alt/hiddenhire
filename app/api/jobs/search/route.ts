@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     const auth = await getAuthenticatedUser();
-    if (!auth.user) {
+    if (!auth?.user) {
       return NextResponse.json(
         { error: "Sign in or create a HiddenHire account to search live jobs.", code: "AUTH_REQUIRED" },
         { status: 401 },

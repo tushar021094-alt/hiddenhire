@@ -97,8 +97,12 @@ export function evaluateJobAuthenticity(input: JobAuthenticityInput): JobAuthent
     ((verifiedCompany && verifiedRecruiter) || (sourceVerified && Boolean(input.companyWebsite))) &&
     flags.length === 0;
 
+  const hasSuspiciousLanguage = flags.includes("suspicious payment or contact language");
   const tier: JobAuthenticityTier =
-    verifiedJob ? "verified" : score >= 72 ? "likely_authentic" : score >= 52 ? "review" : "caution";
+    hasSuspiciousLanguage ? "caution" :
+    verifiedJob ? "verified" :
+    (sourceVerified && score >= 65) || score >= 72 ? "likely_authentic" :
+    score >= 52 ? "review" : "caution";
 
   if (tier === "likely_authentic") signals.push("no major authenticity conflict detected");
   if (tier === "review") signals.push("additional verification recommended");

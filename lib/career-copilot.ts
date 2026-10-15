@@ -85,7 +85,7 @@ export function buildCareerCopilot(input: CareerCopilotInput, now = Date.now()):
         title: `Follow up with ${company}`,
         reason: `${age} days have passed without a recorded progression.`,
         action: "Queue a follow-up for approval and use the existing application context.",
-        urgency: age >= 10 ? "high" : "medium",
+        urgency: age >= 7 ? "high" : "medium",
       },
       blockers: [],
       signals,

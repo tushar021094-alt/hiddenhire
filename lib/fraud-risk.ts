@@ -41,7 +41,7 @@ export function evaluateFraudRisk(input: FraudRiskInput): FraudRisk {
     score += 30;
     flags.push("job authenticity is low");
   } else if (authenticity < 72) {
-    score += 12;
+    score += 20;
     signals.push("job authenticity needs additional review");
   } else {
     signals.push("job authenticity is supported by positive signals");

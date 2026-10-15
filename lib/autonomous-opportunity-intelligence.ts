@@ -201,7 +201,7 @@ export function buildAutonomousOpportunityIntelligence(
       if (recent >= 75) reasons.push("recent signal");
 
       let priority: AutonomousOpportunity["priority"] =
-        attentionScore >= 82 ? "act_now" :
+        attentionScore >= 78 ? "act_now" :
         attentionScore >= 64 ? "review" :
         attentionScore >= 48 ? "watch" :
         "ignore";
