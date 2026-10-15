@@ -93,9 +93,8 @@ export function evaluateJobAuthenticity(input: JobAuthenticityInput): JobAuthent
   }
 
   const verifiedJob =
-    score >= 85 &&
-    ((verifiedCompany && verifiedRecruiter) || (sourceVerified && Boolean(input.companyWebsite))) &&
-    flags.length === 0;
+    flags.length === 0 &&
+    ((verifiedCompany && verifiedRecruiter) || (sourceVerified && Boolean(input.companyWebsite)));
 
   const hasSuspiciousLanguage = flags.includes("suspicious payment or contact language");
   const tier: JobAuthenticityTier =

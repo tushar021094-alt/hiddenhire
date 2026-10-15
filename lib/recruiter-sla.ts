@@ -35,7 +35,7 @@ export function calculateRecruiterSla(applications: RecruiterSlaApplication[], n
   const responded = applications.filter((a) => Boolean(a.recruiterFirstResponseAt));
   const activeApplications = applications.filter((a) => ACTIVE.has(a.status)).length;
   const overdueApplications = applications.filter((a) => {
-    if (TERMINAL.has(a.status) || !a.responseDueAt) return false;
+    if (TERMINAL.has(a.status) || !a.responseDueAt || a.recruiterFirstResponseAt) return false;
     return new Date(a.responseDueAt).getTime() < now.getTime();
   }).length;
   const remindedApplications = applications.filter((a) => Number(a.candidateReminderCount || 0) > 0).length;

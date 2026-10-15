@@ -130,7 +130,7 @@ export function optimizeMarketplace(input: MarketplaceOptimizationInput): Market
   } else if (score >= 62) {
     action = "prioritize";
     nextStep = "Keep eligible in normal ranking and direct attention to relevant candidates.";
-  } else if (score >= 40) {
+  } else if (score >= 25) {
     action = "improve";
     nextStep = "Improve job clarity, verification, response expectations, or application conversion before boosting.";
   } else {
