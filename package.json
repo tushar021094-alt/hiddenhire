@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "npm run test:node && npm run test:vitest",
-    "test:node": "node --import tsx --test $(grep -L 'from \"vitest\"' tests/*.test.ts)",
-    "test:vitest": "vitest run $(grep -l 'from \"vitest\"' tests/*.test.ts)"
+    "test:node": "node --import tsx --test $(grep -L -E 'from[[:space:]]*\"vitest\"' tests/*.test.ts)",
+    "test:vitest": "vitest run $(grep -l -E 'from[[:space:]]*\"vitest\"' tests/*.test.ts)"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -31,5 +31,10 @@
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "braces": "3.0.3",
+    "micromatch": "4.0.8",
+    "fast-glob": "3.3.3"
   }
 }
