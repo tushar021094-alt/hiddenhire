@@ -82,13 +82,38 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("full_name, role, location, skills, experience_years, min_salary, remote_only")
     .eq("id", user.id)
     .maybeSingle();
 
-  const { data: candidateProfile } = profile?.role === "candidate"
+  if (
+    profileError ||
+    !profile ||
+    !["candidate", "employer", "agency", "admin"].includes(profile.role)
+  ) {
+    console.error(
+      "Dashboard profile role could not be resolved",
+      profileError?.message ?? "Missing profile or unsupported role"
+    );
+    return (
+      <main className="hh-dashboard min-h-screen">
+        <div className="mx-auto max-w-2xl px-6 py-20">
+          <p className="hh-eyebrow">ACCOUNT SETUP</p>
+          <h1 className="mt-3 text-3xl font-semibold text-white">We couldn’t load your account type.</h1>
+          <p className="mt-4 text-sm leading-7 text-white/60">
+            HiddenHire couldn’t read the role saved to your profile. To avoid showing the wrong workspace, this dashboard is paused. Refresh the page; if the problem continues, sign out and sign back in or contact support.
+          </p>
+          <Link href="/" className="mt-6 inline-flex rounded-xl bg-cyan-300 px-5 py-3 text-sm font-semibold text-slate-950">
+            Return home
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const { data: candidateProfile } = profile.role === "candidate"
     ? await supabase
         .from("candidate_profiles")
         .select("target_roles, preferred_locations")
@@ -187,7 +212,7 @@ export default async function DashboardPage() {
     (job) => job.status === "published"
   ).length;
 
-  const role = (profile?.role ?? "candidate") as keyof typeof roleCopy;
+  const role = profile.role as keyof typeof roleCopy;
   const copy = roleCopy[role] ?? roleCopy.candidate;
   const name = profile?.full_name || user.email?.split("@")[0] || "there";
   const skills = Array.isArray(profile?.skills) ? profile.skills : [];
