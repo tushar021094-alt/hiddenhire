@@ -267,7 +267,7 @@ export default async function DashboardPage() {
                 <Link href="/admin/moderation" className="hh-nav-item"><span>⚑</span>Moderation Appeals</Link>
               </div>}
               {role !== "admin" && <>
-                <Link href={isRecruiter ? "/dashboard#insights" : "/dashboard#insights"} className="hh-nav-item"><span>◫</span>Insights</Link>
+                <Link href={isRecruiter ? "/dashboard#insights" : "/dashboard#career-agent"} className="hh-nav-item"><span>◫</span>Insights</Link>
                 <Link href={isRecruiter ? "/recruiter/learning" : "/dashboard#learning"} className="hh-nav-item"><span>◇</span>Learning</Link>
               </>}
             </nav>
@@ -276,7 +276,7 @@ export default async function DashboardPage() {
               <small>FOR RECRUITERS</small>
               <Link href="/recruiter" className="hh-nav-item"><span>⚑</span>Post a Job</Link>
               <Link href="/recruiter/talent" className="hh-nav-item"><span>♙</span>Find Talent</Link>
-              <Link href="/dashboard#insights" className="hh-nav-item"><span>▦</span>Recruiter Dashboard</Link>
+              <Link href="/dashboard" className="hh-nav-item"><span>▦</span>Recruiter Dashboard</Link>
             </div>}
 
             {role === "candidate" && <div className="hh-pro-card">
