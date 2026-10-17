@@ -90,7 +90,26 @@ export async function POST(request: Request) {
   if (!data?.savedJob) {
     return NextResponse.json({ error: "Unable to save this job right now." }, { status: 500 });
   }
-  return NextResponse.json({ success: true, savedJob: data.savedJob }, { status: data.created ? 201 : 200 });
+  const saved = data.savedJob as Record<string, unknown>;
+  const savedJob = {
+    id: saved.id,
+    profile_id: saved.profile_id,
+    external_job_id: saved.external_job_id,
+    job_id: saved.job_id,
+    source: saved.source,
+    job_url: saved.job_url,
+    score: saved.score,
+    status: saved.status,
+    created_at: saved.created_at,
+    title: saved.title,
+    company: saved.company,
+    location: saved.location,
+    remote: saved.remote,
+    salary_min: saved.salary_min,
+    salary_max: saved.salary_max,
+    currency: saved.currency,
+  };
+  return NextResponse.json({ success: true, savedJob }, { status: data.created ? 201 : 200 });
 }
 
 export async function DELETE(request: Request) {
