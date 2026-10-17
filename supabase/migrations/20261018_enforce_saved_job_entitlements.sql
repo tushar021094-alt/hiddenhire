@@ -17,6 +17,7 @@ declare
   v_select text;
   v_job_id text;
   v_external_job_id text;
+  v_payload jsonb;
 begin
   if v_user_id is null then
     raise exception 'authentication_required' using errcode = '28000';
@@ -25,6 +26,12 @@ begin
     raise exception 'invalid_job_payload' using errcode = '22023';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(v_user_id::text, 0));
+  v_payload := (p_job - 'id' - 'created_at') || jsonb_build_object(
+    'profile_id', v_user_id,
+    'external_job_id', case when p_is_native then null else p_job->>'external_job_id' end,
+    'job_id', case when p_is_native then p_job->>'job_id' else null end,
+    'status', 'saved'
+  );
   select role into v_role from public.profiles where id = v_user_id;
   if v_role is distinct from 'candidate' then
     return jsonb_build_object('forbidden', true);
@@ -62,12 +69,13 @@ begin
   select string_agg(format('%I', a.attname), ', ' order by a.attnum),
          string_agg(format('(jsonb_populate_record(null::public.saved_jobs, $1)).%I', a.attname), ', ' order by a.attnum)
     into v_columns, v_select
-  from jsonb_object_keys(p_job || jsonb_build_object('profile_id', v_user_id)) as k(key)
+  from jsonb_object_keys(v_payload) as k(key)
   join pg_attribute a on a.attrelid = 'public.saved_jobs'::regclass
-    and a.attname = k.key and a.attnum > 0 and not a.attisdropped;
+    and a.attname = k.key and a.attnum > 0 and not a.attisdropped
+    and k.key = any(array['profile_id','external_job_id','job_id','source','job_url','score','status','title','company','location','remote','salary_min','salary_max','currency']);
   if v_columns is null then raise exception 'no_valid_saved_job_columns' using errcode = '22023'; end if;
   execute format('insert into public.saved_jobs (%s) select %s returning to_jsonb(saved_jobs)', v_columns, v_select)
-    into v_saved using (p_job || jsonb_build_object('profile_id', v_user_id));
+    into v_saved using v_payload;
   return jsonb_build_object('savedJob', v_saved, 'created', true);
 end;
 $$;
