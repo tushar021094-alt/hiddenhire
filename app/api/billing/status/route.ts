@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
-import { PLAN_DEFINITIONS, planForAudience, type PlanId } from "@/lib/entitlements";
+import { isSubscriptionPeriodCurrent, PLAN_DEFINITIONS, planForAudience, type PlanId } from "@/lib/entitlements";
 
 export async function GET() {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
@@ -33,14 +33,16 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
 
-  const planId = subscription?.plan_id as PlanId | undefined;
+  const subscriptionIsCurrent = isSubscriptionPeriodCurrent(subscription?.current_period_end);
+  const effectiveSubscription = subscriptionIsCurrent ? subscription : null;
+  const planId = effectiveSubscription?.plan_id as PlanId | undefined;
   const plan = planForAudience(audience, planId);
 
   return NextResponse.json({
     audience,
     plan: plan.id,
     definition: PLAN_DEFINITIONS[plan.id],
-    subscription: subscription ?? null,
+    subscription: effectiveSubscription,
     checkoutReady: Boolean(
       process.env.RAZORPAY_KEY_ID &&
       process.env.RAZORPAY_KEY_SECRET &&

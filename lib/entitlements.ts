@@ -34,6 +34,16 @@ export function planForAudience(audience:"candidate"|"employer"|"agency", planId
   return PLAN_DEFINITIONS[id];
 }
 
+/** Returns whether a subscription period is still entitled to paid access.
+ * A missing end date means the provider has not supplied a fixed period end;
+ * a malformed date is treated as expired so invalid data cannot grant access.
+ */
+export function isSubscriptionPeriodCurrent(currentPeriodEnd: string | null | undefined, now = Date.now()): boolean {
+  if (!currentPeriodEnd) return true;
+  const end = new Date(currentPeriodEnd).getTime();
+  return Number.isFinite(end) && end > now;
+}
+
 export function canConsume(limit:number|undefined, used:number, amount=1) {
   if (limit === undefined || limit === Infinity) return true;
   return used + amount <= limit;
@@ -54,8 +64,7 @@ export async function getActivePlanId(supabase: SupabaseClient, profileId: strin
 
   if (data?.plan_id && data.plan_id in PLAN_DEFINITIONS) {
     const id = data.plan_id as PlanId;
-    const end = data.current_period_end ? new Date(data.current_period_end).getTime() : null;
-    if ((!end || end > Date.now()) && PLAN_DEFINITIONS[id].audience === "candidate") return id;
+    if (isSubscriptionPeriodCurrent(data.current_period_end) && PLAN_DEFINITIONS[id].audience === "candidate") return id;
   }
   return "candidate_free";
 }
