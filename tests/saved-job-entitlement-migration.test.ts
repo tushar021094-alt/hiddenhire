@@ -30,3 +30,8 @@ test("saved-job entitlement RPC is candidate-only and blocks direct-insert bypas
   assert.ok(migration.includes("grant execute on function public.save_job_with_entitlement(jsonb, boolean) to authenticated"));
   assert.ok(migration.includes("k.key = any(array['profile_id','external_job_id','job_id','source','job_url','score','status','title','company','location','remote','salary_min','salary_max','currency'])"));
 });
+
+
+test("saved-job RPC only inserts its explicit safe column allowlist", () => {
+  assert.ok(migration.includes("k.key = any(array['profile_id','external_job_id','job_id','source','job_url','score','status','title','company','location','remote','salary_min','salary_max','currency'])"));
+});
