@@ -82,4 +82,4 @@ $$;
 revoke all on function public.save_job_with_entitlement(jsonb, boolean) from public;
 grant execute on function public.save_job_with_entitlement(jsonb, boolean) to authenticated;
 revoke insert on public.saved_jobs from authenticated;
-revoke insert (profile_id, external_job_id, job_id, source, job_url, score, status) on public.saved_jobs from authenticated;
+revoke insert (id, profile_id, external_job_id, job_id, source, job_url, score, status, created_at, title, company, location, remote, salary_min, salary_max, currency) on public.saved_jobs from authenticated;

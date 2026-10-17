@@ -26,7 +26,7 @@ test("saved-job entitlement RPC treats existing saves as idempotent", () => {
 test("saved-job entitlement RPC is candidate-only and blocks direct-insert bypass", () => {
   assert.ok(migration.includes("v_role is distinct from 'candidate'"));
   assert.ok(migration.includes("revoke insert on public.saved_jobs from authenticated"));
-  assert.ok(migration.includes("revoke insert (profile_id, external_job_id, job_id, source, job_url, score, status)"));
+  assert.ok(migration.includes("revoke insert (id, profile_id, external_job_id, job_id, source, job_url, score, status, created_at, title, company, location, remote, salary_min, salary_max, currency)"));
   assert.ok(migration.includes("grant execute on function public.save_job_with_entitlement(jsonb, boolean) to authenticated"));
   assert.ok(migration.includes("k.key = any(array['profile_id','external_job_id','job_id','source','job_url','score','status','title','company','location','remote','salary_min','salary_max','currency'])"));
 });
