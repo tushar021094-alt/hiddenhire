@@ -392,3 +392,23 @@ nav a:hover { color:rgba(255,255,255,.9); }
 .workspace-header .workspace-brand-logo { flex:none; color:inherit; text-decoration:none; }
 .workspace-header .workspace-brand-logo .hh-wordmark-main { font-size:18px; }
 .workspace-header .workspace-brand-logo .hh-wordmark-sub { color:#8E98AB; }
+
+
+/* Candidate AI resume import */
+.resume-import-card{margin-bottom:18px;border:1px solid rgba(53,224,208,.15);border-radius:18px;background:radial-gradient(ellipse at 100% 0%,rgba(53,224,208,.045),transparent 42%),rgba(15,19,29,.84);padding:22px}
+.resume-import-card .profile-section-heading p{max-width:680px;margin-top:8px;color:#9098aa;font-size:12px;line-height:1.7}
+.resume-import-controls{display:flex;align-items:end;gap:12px;margin-top:18px}
+.resume-file-field{display:grid;flex:1;gap:8px;color:#aeb6c5;font-size:11px}
+.resume-file-field input{width:100%;min-width:0;border:1px solid rgba(255,255,255,.11);border-radius:10px;background:#0b0f17;padding:11px;color:#aeb6c5;font-size:12px}
+.resume-file-field input::file-selector-button{margin-right:12px;border:1px solid rgba(53,224,208,.2);border-radius:7px;background:rgba(53,224,208,.07);padding:7px 9px;color:#a5fff4;cursor:pointer}
+.resume-import-message{margin-top:12px;color:#fcd34d;font-size:12px;line-height:1.6}
+.resume-import-message.is-success{color:#72eee2}
+.resume-review{display:grid;gap:10px;margin-top:18px;padding:18px;border:1px solid rgba(255,255,255,.085);border-radius:13px;background:rgba(5,7,11,.38);color:#b9c1cf;font-size:12px;line-height:1.7}
+.resume-review-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.resume-review-heading h3{margin:0;color:#f2f4f8;font-size:15px}
+.resume-review-heading span{color:#72eee2;font-size:10px;white-space:nowrap}
+.resume-review p{margin:0;overflow-wrap:anywhere}
+.resume-review strong{color:#e3e8f0}
+.resume-review>div>p{margin-top:6px}
+.resume-muted{color:#7f899b;font-size:11px}
+@media(max-width:640px){.resume-import-card{padding:15px}.resume-import-controls{align-items:stretch;flex-direction:column}.resume-import-controls .workspace-primary-button{width:100%}.resume-review{padding:13px}.resume-review-heading{align-items:flex-start;flex-direction:column}}
