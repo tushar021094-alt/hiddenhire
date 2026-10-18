@@ -5,6 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
 
+type ResumeDraft = {
+  fullName: string | null;
+  headline: string | null;
+  targetRole: string | null;
+  skills: string[];
+  experienceYears: number | null;
+  country: string | null;
+  education: Array<{ qualification: string; institution: string | null; year: string | null }>;
+  workExperience: Array<{ title: string | null; company: string | null; startDate: string | null; endDate: string | null; summary: string | null }>;
+  certifications: string[];
+  missingFields: string[];
+};
+
 type ProfileData = {
   profile?: {
     skills?: string[] | null;
@@ -30,6 +43,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeMessage, setResumeMessage] = useState("");
+  const [resumeDraft, setResumeDraft] = useState<ResumeDraft | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -54,6 +70,46 @@ export default function ProfilePage() {
       setLoading(false);
     })();
   }, [router]);
+
+  async function importResume(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const input = form.elements.namedItem("resume") as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (!file) {
+      setResumeMessage("Choose a PDF resume first.");
+      return;
+    }
+    setResumeBusy(true);
+    setResumeMessage("");
+    setResumeDraft(null);
+    try {
+      const payload = new FormData();
+      payload.append("resume", file);
+      const response = await fetch("/api/profile/resume", { method: "POST", body: payload });
+      const data = await response.json() as { draft?: ResumeDraft; error?: string; notice?: string };
+      if (!response.ok || !data.draft) {
+        setResumeMessage(data.error || "Unable to read this resume.");
+        return;
+      }
+      setResumeDraft(data.draft);
+      setResumeMessage(data.notice || "Review the extracted details below, then choose which ones to apply.");
+    } catch {
+      setResumeMessage("Resume import failed. Your saved profile has not changed.");
+    } finally {
+      setResumeBusy(false);
+    }
+  }
+
+  function applyResumeDraft() {
+    if (!resumeDraft) return;
+    if (resumeDraft.targetRole) setRole(resumeDraft.targetRole);
+    if (resumeDraft.headline) setHeadline(resumeDraft.headline);
+    if (resumeDraft.skills.length) setSkills(resumeDraft.skills.join(", "));
+    if (resumeDraft.experienceYears !== null) setExperience(String(resumeDraft.experienceYears));
+    if (resumeDraft.country) setCountry(resumeDraft.country);
+    setResumeMessage("Draft applied to the editable form. Review it and select Save career profile to persist supported fields.");
+  }
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -116,6 +172,41 @@ export default function ProfilePage() {
             <strong>{role || "Target role not set"}</strong>
             <small>{remoteOnly ? "Remote-first search" : `${country || "India"} · Location flexible`}</small>
           </div>
+        </section>
+
+        <section className="profile-form-card resume-import-card">
+          <div className="profile-section-heading">
+            <div>
+              <span>OPTIONAL · AI ASSISTED SETUP</span>
+              <h2>Auto-fill with your resume</h2>
+              <p>Upload a PDF and HiddenHire will extract profile details for your review. Nothing is saved until you approve and save the form.</p>
+            </div>
+            <span className="profile-live-badge">AI IMPORT</span>
+          </div>
+          <form onSubmit={importResume} className="resume-import-controls">
+            <label className="resume-file-field">
+              <span>Resume PDF · up to 5 MB</span>
+              <input name="resume" type="file" accept="application/pdf,.pdf" />
+            </label>
+            <button type="submit" disabled={resumeBusy} className="workspace-primary-button">
+              {resumeBusy ? "Analyzing resume…" : "Upload & extract →"}
+            </button>
+          </form>
+          {resumeMessage && <p role="status" className={resumeDraft ? "resume-import-message is-success" : "resume-import-message"}>{resumeMessage}</p>}
+          {resumeDraft && <div className="resume-review">
+            <div className="resume-review-heading"><h3>Review extracted details</h3><span>Not saved yet</span></div>
+            <p><strong>Name:</strong> {resumeDraft.fullName || "Not found"} <span className="resume-muted">· name is shown for reference and is not changed by this form</span></p>
+            <p><strong>Target role:</strong> {resumeDraft.targetRole || "Not found"}</p>
+            <p><strong>Headline:</strong> {resumeDraft.headline || "Not found"}</p>
+            <p><strong>Experience:</strong> {resumeDraft.experienceYears === null ? "Not confidently detected" : `${resumeDraft.experienceYears} years`}</p>
+            <p><strong>Country:</strong> {resumeDraft.country || "Not found"}</p>
+            <p><strong>Skills:</strong> {resumeDraft.skills.length ? resumeDraft.skills.join(", ") : "No skills detected"}</p>
+            {resumeDraft.workExperience.length > 0 && <div><strong>Work history preview</strong>{resumeDraft.workExperience.map((item, index) => <p key={index}>{item.title || "Role not identified"}{item.company ? ` · ${item.company}` : ""}{item.startDate || item.endDate ? ` · ${item.startDate || "?"}–${item.endDate || "?"}` : ""}{item.summary ? <span className="resume-muted"> — {item.summary}</span> : null}</p>)}</div>}
+            {resumeDraft.education.length > 0 && <div><strong>Education preview</strong>{resumeDraft.education.map((item, index) => <p key={index}>{item.qualification}{item.institution ? ` · ${item.institution}` : ""}{item.year ? ` · ${item.year}` : ""}</p>)}</div>}
+            {resumeDraft.certifications.length > 0 && <p><strong>Certifications:</strong> {resumeDraft.certifications.join(", ")}</p>}
+            {resumeDraft.missingFields.length > 0 && <p className="resume-muted"><strong>Check manually:</strong> {resumeDraft.missingFields.join(", ")}</p>}
+            <button type="button" onClick={applyResumeDraft} className="workspace-secondary-button">Apply extracted fields to form</button>
+          </div>}
         </section>
 
         <form onSubmit={save} className="profile-layout">
