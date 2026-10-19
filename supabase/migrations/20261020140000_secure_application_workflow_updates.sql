@@ -28,7 +28,7 @@ BEGIN
   FROM public.profiles AS profile
   WHERE profile.id = actor_id;
 
-  IF actor_role <> 'candidate' THEN
+  IF actor_role IS DISTINCT FROM 'candidate' THEN
     RETURN jsonb_build_object('ok', false, 'code', 'FORBIDDEN');
   END IF;
 
@@ -140,7 +140,7 @@ BEGIN
   FROM public.profiles AS profile
   WHERE profile.id = actor_id;
 
-  IF actor_role NOT IN ('employer', 'agency') THEN
+  IF actor_role IS DISTINCT FROM 'employer' AND actor_role IS DISTINCT FROM 'agency' THEN
     RETURN jsonb_build_object('ok', false, 'code', 'FORBIDDEN');
   END IF;
 
