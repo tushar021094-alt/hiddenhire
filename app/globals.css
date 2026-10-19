@@ -1323,3 +1323,49 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .hh-execution-grid { grid-template-columns:minmax(0,1fr); }
 .hh-execution-grid > div { width:100%; }
 .hh-execution-grid > div + div { border-top:1px solid var(--hh-border); }
+
+
+/* Career Execution readability pass: preserve the compact visual language without sacrificing legibility. */
+.hh-execution-panel { color:var(--hh-text); font-size:14px; line-height:1.65; }
+.hh-execution-panel > div:first-child { padding:24px 26px; }
+.hh-execution-panel > div:first-child h2 { margin-top:7px; font-size:22px; line-height:1.3; font-weight:680; }
+.hh-execution-panel > div:first-child p { max-width:760px; color:var(--hh-muted); font-size:13px; line-height:1.7; }
+.hh-execution-panel .hh-execution-primary,
+.hh-execution-panel .hh-execution-secondary { min-width:0; padding:24px 26px; }
+.hh-execution-panel .hh-execution-primary :where(p, label, span),
+.hh-execution-panel .hh-execution-secondary :where(p, label, span) { line-height:1.65; }
+.hh-execution-panel .hh-execution-primary :where(label) { font-size:13px; color:#c5cfde; }
+.hh-execution-panel .hh-execution-primary :where(label span) { font-size:13px; }
+.hh-execution-panel .hh-execution-primary :where(p.text-\[9px\],p.text-\[10px\]) { font-size:11px; line-height:1.6; color:var(--hh-muted); }
+.hh-execution-panel .hh-execution-secondary > div { margin-bottom:22px; }
+.hh-execution-panel .hh-execution-secondary > div:last-child { margin-bottom:0; }
+.hh-execution-panel .hh-execution-secondary :where(textarea) {
+  min-height:150px;
+  padding:13px 14px;
+  border-color:var(--hh-border-strong);
+  background:rgba(2,6,12,.42);
+  color:#e4eaf3;
+  font-size:13px;
+  line-height:1.75;
+  letter-spacing:0;
+}
+.hh-execution-panel .hh-execution-secondary :where(textarea:focus) { border-color:rgba(53,224,208,.55); }
+.hh-execution-panel .hh-execution-secondary :where(button) {
+  min-height:38px;
+  margin-top:10px;
+  padding:9px 13px;
+  border-radius:9px;
+  font-size:12px;
+  font-weight:600;
+}
+.hh-execution-panel .hh-execution-secondary :where(p.text-\[9px\],p.text-\[10px\]) { font-size:12px; line-height:1.65; }
+.hh-execution-panel .hh-execution-secondary :where(p.text-\[9px\]) { margin-bottom:8px; }
+.hh-execution-panel .hh-execution-secondary :where(p.uppercase) { font-size:11px; line-height:1.5; letter-spacing:.14em; font-weight:750; }
+.hh-execution-panel .hh-execution-secondary :where(textarea[aria-label^="Sample answer"]) { min-height:180px; }
+@media (max-width:640px) {
+  .hh-execution-panel > div:first-child,
+  .hh-execution-panel .hh-execution-primary,
+  .hh-execution-panel .hh-execution-secondary { padding:17px; }
+  .hh-execution-panel > div:first-child h2 { font-size:20px; }
+  .hh-execution-panel .hh-execution-secondary :where(textarea) { min-height:135px; font-size:13px; }
+}
