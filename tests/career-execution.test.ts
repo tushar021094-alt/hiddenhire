@@ -49,3 +49,26 @@ test("does not invent candidate claims", () => {
   assert.match(result.interviewPlan.roleFocus.join(" "), /Do not claim/);
   assert.match(result.approval.submission, /submit the application yourself/);
 });
+
+
+test("interview preparation focuses on the selected role and actual responsibilities", () => {
+  const result = buildCareerExecutionPackage({
+    ...base,
+    application: { ...base.application, status: "interview" },
+    job: {
+      ...base.job,
+      description: "Responsibilities include monthly financial reporting, account reconciliation, budget monitoring, and month-end closing.",
+    },
+  });
+  const generatedText = [
+    result.interviewPlan.opening,
+    ...result.interviewPlan.stories,
+    ...result.interviewPlan.questions,
+    ...result.interviewPlan.sampleAnswers.map((answer) => answer.question + " " + answer.draft),
+  ].join(" ");
+
+  assert.match(generatedText, /Finance Manager/i);
+  assert.match(generatedText, /financial reporting|account reconciliations|budget preparation and monitoring|month-end close activities/i);
+  assert.doesNotMatch(generatedText, /Tell me about yourself|Describe a time you solved a difficult problem|How have you used Excel to deliver results/i);
+  assert.match(result.interviewPlan.sampleAnswers[0].evidenceNeeded, /verify/i);
+});
