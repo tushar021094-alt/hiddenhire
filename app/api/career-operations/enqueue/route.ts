@@ -40,41 +40,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A valid career operation is required." }, { status: 400 });
   }
 
+  const validKinds = ["application_follow_up", "interview_prepare", "application_check", "opportunity_review", "profile_improvement"];
+  if (!validKinds.includes(operation.kind)) return NextResponse.json({ error: "Unsupported career operation." }, { status: 400 });
+
   const action =
     operation.kind === "application_follow_up" ? "follow_up" :
     operation.kind === "interview_prepare" ? "prepare" :
-    operation.kind === "profile_improvement" ? "review" :
-    operation.kind === "opportunity_review" ? "review" : "review";
-
+    "review";
   const task = buildExecutionTask({
     id: operation.id,
     action,
-    title: operation.title,
-    summary: operation.summary,
-    requiresApproval: operation.requiresApproval,
+    title: operation.title.trim().slice(0, 180),
+    summary: operation.summary.trim().slice(0, 3000),
+    requiresApproval: typeof operation.requiresApproval === "boolean" ? operation.requiresApproval : true,
   });
 
-  const { data: existing } = await supabase
-    .from("career_execution_tasks")
-    .select("id,state")
-    .eq("user_id", user.id)
-    .eq("operation_id", operation.id)
-    .in("state", ["queued","awaiting_approval","approved","executing"])
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("create_career_execution_task", {
+    p_action: task.action,
+    p_title: task.title,
+    p_summary: task.summary,
+    p_requires_approval: task.requiresApproval,
+    p_application_id: null,
+    p_operation_id: operation.id,
+  });
+  if (error) {
+    console.error("Career operation task RPC failed", { code: error.code });
+    return NextResponse.json({ error: "Unable to queue this career operation right now." }, { status: 503 });
+  }
 
-  if (existing) return NextResponse.json({ task: existing, deduplicated: true, phase: 30 });
-
-  const { data, error } = await supabase.from("career_execution_tasks").insert({
-    user_id: user.id,
-    operation_id: operation.id,
-    action: task.action,
-    state: task.state,
-    title: task.title,
-    summary: task.summary,
-    requires_approval: task.requiresApproval,
-    max_attempts: task.maxAttempts,
-  }).select("*").single();
-
-  if (error) { console.error("Career operation task creation failed", { code: error.code }); return NextResponse.json({ error: "Unable to queue this career operation right now." }, { status: 500 }); }
-  return NextResponse.json({ task: data, deduplicated: false, phase: 30 });
+  const result = data as { ok?: boolean; code?: string; task?: unknown; deduplicated?: boolean } | null;
+  if (!result?.ok) {
+    return NextResponse.json({ error: "The career operation details are invalid." }, { status: result?.code === "FORBIDDEN" ? 403 : 400 });
+  }
+  return NextResponse.json({ task: result.task, deduplicated: result.deduplicated === true, phase: 30 }, { status: result.deduplicated ? 200 : 201 });
 }
