@@ -31,11 +31,10 @@ export function filterJobsForDiscovery(
   const normalizedQuery = rawQuery.trim().toLocaleLowerCase();
   const terms = normalizedQuery.split(/\s+/).filter(Boolean);
   return jobs.filter((job) => {
-    // Multi-word search is intentionally grounded in structured job metadata.
-    // Searching descriptions for every token caused unrelated Sales roles to
-    // match phrases like "Finance Executive" simply because both words
-    // appeared somewhere in a long description. Single-token searches retain
-    // description fallback for genuine skills/keyword discovery.
+    // Search all tokens against job text, but require at least one token to
+    // appear in the title for multi-word queries. Without this, an incidental
+    // phrase in a long description can make an unrelated job appear relevant.
+    const titleText = String(job.title ?? '').toLocaleLowerCase();
     const structuredText = [
       job.title,
       job.company,
@@ -43,10 +42,20 @@ export function filterJobsForDiscovery(
       job.country,
       ...(job.requiredSkills ?? []),
     ].filter(Boolean).join(' ').toLocaleLowerCase();
-    const searchableText = terms.length > 1
-      ? structuredText
-      : [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
+    const searchableText = [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
     if (terms.some((term) => !searchableText.includes(term))) return false;
+    if (terms.length > 1 && !terms.some((term) => titleText.includes(term))) return false;
+
+    // When the query expresses a finance/accounting intent, guard against
+    // product-sales listings that mention finance or treasury in their copy.
+    const financeIntent = /\\b(finance|financial|accounting|accountant|fp\\s*&?\\s*a|tax|audit|controller|treasury|cfo|bookkeep(?:er|ing))\\b/i.test(normalizedQuery);
+    if (financeIntent) {
+      const jobFunction = String(job.jobFunction ?? '').toLocaleLowerCase();
+      const financeRoleTitle = /\\b(finance|financial|accounting|accountant|fp\\s*&?\\s*a|tax|audit|controller|cfo|bookkeep(?:er|ing)|accounts payable|accounts receivable|treasury analyst|treasury manager)\\b/i.test(titleText);
+      const financeFunction = /\\b(finance|accounting|fp\\s*&?\\s*a|tax|audit|treasury|risk|controllership)\\b/i.test(jobFunction);
+      if (jobFunction === 'sales' && !financeRoleTitle) return false;
+      if (!financeRoleTitle && !financeFunction) return false;
+    }
 
     const workContext = [job.location, job.remotePolicy].filter(Boolean).join(' ');
     const hybrid = /hybrid/i.test(workContext);
