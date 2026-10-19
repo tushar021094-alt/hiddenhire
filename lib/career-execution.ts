@@ -149,7 +149,7 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
       },
       {
         question: "Describe a time you solved a difficult problem (STAR).",
-        draft: "Situation: [Describe the real work situation and context].\\nTask: [What were you responsible for?]\\nAction: [List the steps you personally took, tools used, and people you worked with].\\nResult: [State the verified outcome; include a metric only if you can substantiate it].\\nLearning: [What would you repeat or improve next time?]",
+        draft: "Situation: [Describe the real work situation and context].\nTask: [What were you responsible for?]\nAction: [List the steps you personally took, tools used, and people you worked with].\nResult: [State the verified outcome; include a metric only if you can substantiate it].\nLearning: [What would you repeat or improve next time?]",
         evidenceNeeded: "Fill every STAR section with a real example. Do not leave a placeholder in the final answer or invent numbers.",
       },
       {
