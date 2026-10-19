@@ -115,24 +115,30 @@ export default function ProfilePage() {
     event.preventDefault();
     setSaving(true);
     setMessage("");
-    const response = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role,
-        headline,
-        skills: skills.split(",").map((v) => v.trim()).filter(Boolean),
-        experience: Number(experience),
-        country,
-        remoteOnly,
-        minSalary: Number(minSalary),
-        salaryCurrency: currency,
-      }),
-    });
-    const data = await response.json() as { error?: string };
-    setMessage(response.ok ? "Career profile saved. Matching is now using your latest preferences." : (data.error || "Unable to save profile."));
-    setSaving(false);
-    if (response.ok) setTimeout(() => router.push("/dashboard"), 500);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role,
+          headline,
+          skills: skills.split(",").map((v) => v.trim()).filter(Boolean),
+          experience: Number(experience),
+          country,
+          remoteOnly,
+          minSalary: Number(minSalary),
+          salaryCurrency: currency,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      setMessage(response.ok
+        ? "Career profile saved. Your latest preferences are now stored."
+        : (data.error || "Unable to save profile."));
+    } catch {
+      setMessage("Network error while saving. Please check your connection and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
