@@ -104,7 +104,40 @@ test("search query filters by all query terms across job details before result l
   );
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "finance reconciliation").map((job) => job.id),
-    ["one", "two", "three"],
+    ["one", "two"],
+  );
+});
+
+test("multi-word role searches do not match unrelated roles through description text alone", () => {
+  const jobs = [
+    mockJob({ id: "finance-exec", title: "Finance Executive" }),
+    mockJob({
+      id: "stripe-account-exec",
+      title: "Account Executive, Product - Issuing & Treasury",
+      company: "Stripe",
+      jobFunction: "Sales",
+      requiredSkills: ["Product Sales", "MaaS"],
+      description: "Help businesses use financial products and manage finance workflows.",
+    }),
+    mockJob({
+      id: "finance-head",
+      title: "Head of Finance Business Partnering, Operations & Technology",
+      company: "Tide",
+      jobFunction: "Finance",
+      requiredSkills: ["Enablement", "GL"],
+      description: "Partner with executive leadership on finance operations.",
+    }),
+  ];
+
+  assert.deepEqual(
+    filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
+    ["finance-exec"],
+  );
+
+  // Single-term discovery may still find relevant wording in a description.
+  assert.deepEqual(
+    filterJobsForDiscovery(jobs, "financial").map((job) => job.id),
+    ["stripe-account-exec"],
   );
 });
 
