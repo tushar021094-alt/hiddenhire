@@ -1317,3 +1317,9 @@ button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .hh-operations-summary > div { padding:11px; }
   .hh-execution-panel > div:first-child,.hh-execution-grid > div { padding:16px; }
 }
+
+
+/* Execution content is intentionally stacked to avoid a tall, half-empty column beside long drafts. */
+.hh-execution-grid { grid-template-columns:minmax(0,1fr); }
+.hh-execution-grid > div { width:100%; }
+.hh-execution-grid > div + div { border-top:1px solid var(--hh-border); }
