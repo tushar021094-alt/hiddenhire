@@ -117,22 +117,20 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     name,
   ].join("\n");
 
+  const primaryResponsibility = jobRequirements[0] ?? focus[0] ?? `a core responsibility of the ${role} role`;
+  const secondaryResponsibility = jobRequirements[1] ?? focus[1] ?? `a key day-to-day responsibility in this role`;
   const interviewPlan = {
-    opening: `Prepare a 60-second introduction connecting your background to ${role}, with one verified measurable result rather than a generic career summary.`,
+    opening: `Prepare a concise introduction focused on your relevant responsibilities for the ${role} role, the skills you have actually used, and one result you can substantiate.`,
     stories: [
-      "Prepare one STAR story showing ownership and measurable impact.",
-      "Prepare one STAR story showing problem-solving under pressure.",
-      "Prepare one STAR story showing collaboration or stakeholder management.",
-      "Prepare one role-specific example that demonstrates the strongest relevant skill.",
+      `Prepare a specific example of how you handled ${primaryResponsibility} and what changed as a result.`,
+      `Prepare an example of a challenge involving ${secondaryResponsibility}, explaining the steps you personally took.`,
+      `Prepare an example that demonstrates collaboration with colleagues or stakeholders while delivering a role-related responsibility.`,
+      `Review the tools, processes, and decisions you have personally handled that are relevant to ${role}.`,
     ],
     questions: [
-      `What would success look like in the first 90 days for this ${role}?`,
-      jobRequirements.length
-        ? `The job description emphasizes ${jobRequirements.slice(0, 3).join(", ")}. Which of these is most important in the first 90 days?`
-        : "Which outcomes or metrics matter most for this position?",
-      jobRequirements.length
-        ? `How does the team currently measure success for ${jobRequirements[0]}?`
-        : "What is the biggest challenge the person joining this role will need to solve?",
+      `What are the most important day-to-day responsibilities for the person in this ${role} position?`,
+      `How does the team measure successful performance for ${primaryResponsibility}?`,
+      `What tools, systems, or processes does the team use for ${secondaryResponsibility}?`,
     ],
     roleFocus: [
       skills.length
@@ -143,19 +141,19 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     ],
     sampleAnswers: [
       {
-        question: `Tell me about yourself and why you fit the ${role} role.`,
-        draft: `I am a professional targeting ${role}${experience !== null ? ` with ${experience} years of experience` : ""}. My profile highlights ${focus.length ? focus.join(", ") : "skills relevant to this role"}. One example that demonstrates my fit is [describe a real responsibility or project], where I [explain your specific contribution] and achieved [verified outcome]. I am interested in this role because [connect your experience to a requirement in the job description].`,
-        evidenceNeeded: "Add one real responsibility or project, your personal contribution, a verifiable result, and the job requirement it supports.",
+        question: `Which responsibilities have you handled that best prepare you for this ${role} position?`,
+        draft: `In my role at [company/team], I was responsible for [relevant responsibility]. I personally [describe the actions, tools, and decisions you handled]. This contributed to [verified outcome]. That experience is relevant to this position because it aligns with [specific responsibility from the job description].`,
+        evidenceNeeded: "Add a real employer or project, the responsibility you owned, the actions you personally took, and an outcome you can verify.",
       },
       {
-        question: "Describe a time you solved a difficult problem (STAR).",
-        draft: "Situation: [Describe the real work situation and context].\nTask: [What were you responsible for?]\nAction: [List the steps you personally took, tools used, and people you worked with].\nResult: [State the verified outcome; include a metric only if you can substantiate it].\nLearning: [What would you repeat or improve next time?]",
-        evidenceNeeded: "Fill every STAR section with a real example. Do not leave a placeholder in the final answer or invent numbers.",
+        question: `How would you approach ${primaryResponsibility} in this role?`,
+        draft: `First, I would confirm the expected outcome, deadlines, and applicable process for ${primaryResponsibility}. I would review the relevant records and requirements, complete the work using the team's approved tools, and check the result for accuracy. I would raise discrepancies or risks early and keep the relevant stakeholders informed. I would adapt this approach to the team's procedures and the experience I can demonstrate.`,
+        evidenceNeeded: "Replace this general approach with the actual tools, controls, and steps you know or have used. Do not claim experience you do not have.",
       },
       {
-        question: `How have you used ${focus[0] ?? "a relevant skill"} to deliver results?`,
-        draft: `In my work at [company/team], I used ${focus[0] ?? "the relevant skill"} to [specific task or problem]. My responsibility was [your role]. I took these actions: [steps you personally completed]. The result was [verified outcome or measurable result]. This is relevant to the ${role} role because [link to a stated job requirement].`,
-        evidenceNeeded: `Provide the employer or project, task, your personal actions, and a verified outcome involving ${focus[0] ?? "the relevant skill"}.`,
+        question: `What experience do you have with ${secondaryResponsibility}?`,
+        draft: `I have experience with [specific task or process] at [company/team]. My part was to [actions you personally completed], using [relevant system or tool]. The result was [verified outcome]. Where I have not used the team's exact process, I would learn the documented workflow and follow its review and approval controls.`,
+        evidenceNeeded: `Provide a real example connected to ${secondaryResponsibility}, including your actions, relevant systems or tools, and a result you can substantiate.`,
       },
     ],
   };
