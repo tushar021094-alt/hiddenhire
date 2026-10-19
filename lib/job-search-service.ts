@@ -28,16 +28,24 @@ export function filterJobsForDiscovery(
   rawQuery = '',
   workMode: DiscoveryWorkMode = 'all',
 ): Job[] {
-  const terms = rawQuery.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  const normalizedQuery = rawQuery.trim().toLocaleLowerCase();
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
   return jobs.filter((job) => {
-    const searchableText = [
+    // Multi-word search is intentionally grounded in structured job metadata.
+    // Searching descriptions for every token caused unrelated Sales roles to
+    // match phrases like "Finance Executive" simply because both words
+    // appeared somewhere in a long description. Single-token searches retain
+    // description fallback for genuine skills/keyword discovery.
+    const structuredText = [
       job.title,
       job.company,
       job.location,
       job.country,
-      job.description,
       ...(job.requiredSkills ?? []),
     ].filter(Boolean).join(' ').toLocaleLowerCase();
+    const searchableText = terms.length > 1
+      ? structuredText
+      : [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
     if (terms.some((term) => !searchableText.includes(term))) return false;
 
     const workContext = [job.location, job.remotePolicy].filter(Boolean).join(' ');
