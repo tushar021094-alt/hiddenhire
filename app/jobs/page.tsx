@@ -360,7 +360,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
             </section>
 
             <section className="hh-discovery-controls">
-              <div className="hh-discovery-search"><span>⌕</span><input aria-label="Search opportunities" placeholder="Search by job title, company, skills..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !isSearching) void runSearch(searchQuery, workModeFilter, profile, candidate); }} /></div>
+              <div className="hh-discovery-search"><span>⌕</span><input type="search" maxLength={500} aria-label="Search opportunities" placeholder="Search by job title, company, skills..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !isSearching) void runSearch(searchQuery, workModeFilter, profile, candidate); }} /></div>
               <div className="hh-discovery-select">⌖ <span>{profile?.location || "Location"}</span>⌄</div>
               <div className="hh-discovery-select">▣ <span>{profile?.experience_years ? profile.experience_years + "+ yrs" : "All experience"}</span>⌄</div>
               <button type="button" className="hh-discovery-button" disabled={isSearching} onClick={() => void runSearch(searchQuery, workModeFilter, profile, candidate)}>{isSearching ? "Searching…" : "Search Jobs →"}</button>
@@ -368,20 +368,30 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
             </section>
 
             <div className="hh-discovery-stats">
-              <article><span>◫</span><div><strong>{jobs.length || "—"}</strong><small>Matched opportunities</small></div></article>
-              <article><span>▦</span><div><strong>{new Set(jobs.map(j => j.company).filter(Boolean)).size || "—"}</strong><small>Companies hiring</small></div></article>
-              <article><span>◎</span><div><strong>{jobs.filter(j => j.remote).length || "—"}</strong><small>Remote friendly</small></div></article>
-              <article><span>◉</span><div><strong>{jobs.filter(j => j.salaryMin || j.salaryMax).length || "—"}</strong><small>Salary disclosed</small></div></article>
+              <article><span>◫</span><div><strong>{jobs.length}</strong><small>Matched opportunities</small></div></article>
+              <article><span>▦</span><div><strong>{new Set(jobs.map(j => j.company).filter(Boolean)).size}</strong><small>Companies hiring</small></div></article>
+              <article><span>◎</span><div><strong>{jobs.filter(j => j.remote).length}</strong><small>Remote friendly</small></div></article>
+              <article><span>◉</span><div><strong>{jobs.filter(j => j.salaryMin || j.salaryMax).length}</strong><small>Salary disclosed</small></div></article>
             </div>
 
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
             {!loading && error && <div className="hh-discovery-alert">{error}</div>}
             {!loading && saveError && <div className="hh-discovery-alert">{saveError}</div>}
             {!loading && !error && message && jobs.length === 0 && (
-              <div className="hh-discovery-empty"><div className="hh-empty-icon">✦</div><div><strong>No strong matches yet.</strong><p>{message}</p></div><Link href="/onboarding" className="hh-job-action">Improve profile →</Link></div>
+              <div className="hh-discovery-empty">
+                <div className="hh-empty-icon">✦</div>
+                <div>
+                  <strong>{searchQuery.trim() || workModeFilter !== "all" ? "No jobs match your search." : "No strong matches yet."}</strong>
+                  <p>{message}</p>
+                </div>
+                {searchQuery.trim() || workModeFilter !== "all" ? (
+                  <button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); void runSearch("", "all", profile, candidate); }}>Reset search →</button>
+                ) : (
+                  <Link href="/onboarding" className="hh-job-action">Improve profile →</Link>
+                )}
+              </div>
             )}
 
-            {!loading && !error && jobs.length > 0 && visibleJobs.length === 0 && <div className="hh-discovery-empty"><div><strong>No jobs match these filters.</strong><p>Try a different search or reset your filters.</p></div><button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); void runSearch("", "all", profile, candidate); }}>Reset filters</button></div>}
             {!loading && !error && jobs.length > 0 && visibleJobs.length > 0 && (
               <div className="hh-discovery-grid">
                 <section className="hh-panel hh-discovery-results">
