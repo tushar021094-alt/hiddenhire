@@ -31,20 +31,23 @@ export function filterJobsForDiscovery(
   const normalizedQuery = rawQuery.trim().toLocaleLowerCase();
   const terms = normalizedQuery.split(/\s+/).filter(Boolean);
   return jobs.filter((job) => {
-    // Search all tokens against job text, but require at least one token to
-    // appear in the title for multi-word queries. Without this, an incidental
-    // phrase in a long description can make an unrelated job appear relevant.
+    // Multi-word role searches must be supported by structured job metadata.
+    // Free-form descriptions are too noisy: e.g. "executive leadership" in a
+    // finance-team description must not turn "Head of Finance..." into a
+    // match for the distinct "Finance Executive" query.
     const titleText = String(job.title ?? '').toLocaleLowerCase();
     const structuredText = [
       job.title,
       job.company,
       job.location,
       job.country,
+      job.jobFunction,
       ...(job.requiredSkills ?? []),
     ].filter(Boolean).join(' ').toLocaleLowerCase();
-    const searchableText = [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
+    const searchableText = terms.length > 1
+      ? structuredText
+      : [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
     if (terms.some((term) => !searchableText.includes(term))) return false;
-    if (terms.length > 1 && !terms.some((term) => titleText.includes(term))) return false;
 
     // When the query expresses a finance/accounting intent, guard against
     // product-sales listings that mention finance or treasury in their copy.
