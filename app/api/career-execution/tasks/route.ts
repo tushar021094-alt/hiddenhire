@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { buildExecutionTask, transitionExecutionTask } from "@/lib/career-agent-execution";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET() {
   const supabase = await createClient();
@@ -18,6 +19,8 @@ export async function GET() {
   if (profile?.role !== "candidate") {
     return NextResponse.json({ error: "Career execution is available only to candidate accounts." }, { status: 403 });
   }
+  const rate = checkRateLimit(`career-tasks:${user.id}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   const {data,error}=await supabase.from("career_execution_tasks").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50);
   if(error){ console.error("Career task read failed", { code: error.code }); return NextResponse.json({error:"Unable to load career tasks right now."},{status:500}); }
   return NextResponse.json({tasks:data??[],phase:30});
@@ -39,6 +42,8 @@ export async function POST(request:Request){
   if (profile?.role !== "candidate") {
     return NextResponse.json({ error: "Career execution is available only to candidate accounts." }, { status: 403 });
   }
+  const rate = checkRateLimit(`career-tasks:${user.id}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   const body=await request.json().catch(()=>({}));
   const task=buildExecutionTask({
     id:String(body.id??crypto.randomUUID()),
@@ -72,6 +77,8 @@ export async function PATCH(request:Request){
   if (profile?.role !== "candidate") {
     return NextResponse.json({ error: "Career execution is available only to candidate accounts." }, { status: 403 });
   }
+  const rate = checkRateLimit(`career-tasks:${user.id}`, 30, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
   const body=await request.json().catch(()=>({}));
   const taskId=String(body.taskId??"");
   const event=body.event as "approve"|"start"|"complete"|"fail"|"cancel";
