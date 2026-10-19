@@ -14,7 +14,7 @@ test("moderation case reads are restricted to the assigned recruiter and HiddenH
   );
   assert.match(
     migration,
-    /create policy moderation_cases_admin_or_owner_select[\\s\\S]*?for select\\s+to authenticated\\s+using\\s*\\(public\\.is_hiddenhire_admin\\(\\)\\s+OR\\s+recruiter_id\\s*=\\s*auth\\.uid\\(\\)\\)/i,
+    /create policy moderation_cases_admin_or_owner_select[\s\S]*?for select\s+to authenticated\s+using\s*\(public\.is_hiddenhire_admin\(\)\s+OR\s+recruiter_id\s*=\s*auth\.uid\(\)\)/i,
   );
   assert.doesNotMatch(
     migration,
