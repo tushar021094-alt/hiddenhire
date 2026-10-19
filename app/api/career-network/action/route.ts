@@ -40,16 +40,7 @@ export async function POST(request: Request) {
   }
 
   const operationId = `network:${relationshipKey}:${action}`;
-  const { data: existing } = await supabase
-    .from("career_execution_tasks")
-    .select("id,state")
-    .eq("user_id", user.id)
-    .eq("operation_id", operationId)
-    .in("state", ["queued", "awaiting_approval", "approved", "executing"])
-    .maybeSingle();
-
-  if (existing) return NextResponse.json({ task: existing, deduplicated: true });
-
+  const taskAction = action === "follow_up" ? "follow_up" : "prepare";
   const title = action === "prepare"
     ? `Prepare for ${companyName}`
     : action === "reconnect"
@@ -58,23 +49,28 @@ export async function POST(request: Request) {
 
   const task = buildExecutionTask({
     id: operationId,
-    action: action as "follow_up" | "prepare",
+    action: taskAction,
     title,
     summary,
     requiresApproval: true,
   });
 
-  const { data, error } = await supabase.from("career_execution_tasks").insert({
-    user_id: user.id,
-    operation_id: operationId,
-    action: task.action,
-    state: task.state,
-    title: task.title,
-    summary: task.summary,
-    requires_approval: task.requiresApproval,
-    max_attempts: task.maxAttempts,
-  }).select("*").single();
+  const { data, error } = await supabase.rpc("create_career_execution_task", {
+    p_action: task.action,
+    p_title: task.title,
+    p_summary: task.summary,
+    p_requires_approval: task.requiresApproval,
+    p_application_id: null,
+    p_operation_id: operationId,
+  });
+  if (error) {
+    console.error("Career network task RPC failed", { code: error.code });
+    return NextResponse.json({ error: "Unable to queue this career action right now." }, { status: 503 });
+  }
 
-  if (error) { console.error("Career network task creation failed", { code: error.code }); return NextResponse.json({ error: "Unable to queue this career action right now." }, { status: 500 }); }
-  return NextResponse.json({ task: data, deduplicated: false });
+  const result = data as { ok?: boolean; code?: string; task?: unknown; deduplicated?: boolean } | null;
+  if (!result?.ok) {
+    return NextResponse.json({ error: "Unable to queue this career action right now." }, { status: result?.code === "FORBIDDEN" ? 403 : 400 });
+  }
+  return NextResponse.json({ task: result.task, deduplicated: result.deduplicated === true });
 }
