@@ -11,6 +11,9 @@ const routes = [
   "../app/api/moderation/appeals/route.ts",
   "../app/api/moderation/review/route.ts",
   "../app/api/billing/checkout/route.ts",
+  "../app/api/career-execution/tasks/route.ts",
+  "../app/api/career-network/action/route.ts",
+  "../app/api/career-operations/enqueue/route.ts",
 ];
 
 test("API routes do not return raw database error messages", () => {
