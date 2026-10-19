@@ -37,8 +37,8 @@ test("saved-job RPC only inserts its explicit safe column allowlist", () => {
 });
 
 test("saved-job entitlement RPC requires a currently published native HiddenHire job", () => {
-  assert.ok(migration.includes("job.source_type is distinct from 'native'"));
-  assert.ok(migration.includes("job.status is distinct from 'published'"));
+  assert.ok(migration.includes("v_native_job_source is distinct from 'native'"));
+  assert.ok(migration.includes("v_native_job_status is distinct from 'published'"));
   assert.ok(migration.includes("'source', case when p_is_native then 'hiddenhire'"));
 });
 
