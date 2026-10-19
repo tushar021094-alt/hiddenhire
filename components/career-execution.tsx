@@ -79,6 +79,7 @@ export default function CareerExecution() {
       setPackageData(nextPackage);
       setCoverLetterDraft(typeof nextPackage?.coverLetter === "string" ? nextPackage.coverLetter : "");
       setFollowUpDraft(typeof nextPackage?.followUpMessage === "string" ? nextPackage.followUpMessage : "");
+      const currentQuestions = new Set<string>((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string }) => item.question));
       setAnswerDrafts(Object.fromEntries((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string; draft: string }) => [item.question, normalizeDraftText(item.draft)])));
       setCompletedChecklist([]);
       setChecklistSaveState("idle");
@@ -89,7 +90,7 @@ export default function CareerExecution() {
         if (progressResponse.ok && Array.isArray(progressData.completedItems)) {
           setCompletedChecklist(progressData.completedItems.filter((item: unknown): item is string => typeof item === "string"));
           if (progressData.answerDrafts && typeof progressData.answerDrafts === "object" && !Array.isArray(progressData.answerDrafts)) {
-            const normalizedSavedDrafts = Object.fromEntries(Object.entries(progressData.answerDrafts as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string").map(([question, draft]) => [question, normalizeDraftText(draft)]));
+            const normalizedSavedDrafts = Object.fromEntries(Object.entries(progressData.answerDrafts as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string" && currentQuestions.has(entry[0])).map(([question, draft]) => [question, normalizeDraftText(draft)]));
             setAnswerDrafts((current) => ({ ...current, ...normalizedSavedDrafts }));
           }
         }
@@ -113,7 +114,7 @@ export default function CareerExecution() {
       const response = await fetch("/api/career-execution/checklist", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: Object.fromEntries(Object.entries(drafts).map(([question, draft]) => [question, normalizeDraftText(draft)])) }),
+        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: Object.fromEntries(Object.entries(drafts).filter(([question]) => packageData.interviewPlan.sampleAnswers.some((item) => item.question === question)).map(([question, draft]) => [question, normalizeDraftText(draft)])) }),
       });
       if (!response.ok) throw new Error("Unable to save interview answers.");
       setAnswerSaveState("saved");
