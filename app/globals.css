@@ -816,3 +816,122 @@ nav a:hover { color:rgba(255,255,255,.9); }
   .profile-v2 .profile-form-footer { align-items: stretch; flex-direction: column-reverse; }
   .profile-v2 .profile-form-footer > * { width: 100%; }
 }
+
+
+/* HiddenHire design-system pass — typography, rhythm, and readable job metadata */
+:root {
+  --hh-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --hh-text-primary: #f2f4f8;
+  --hh-text-secondary: #a0a8b8;
+  --hh-text-muted: #7f899b;
+  --hh-accent: #72eee2;
+  --hh-line: rgba(255,255,255,.09);
+}
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { font-family: var(--hh-font-sans); font-feature-settings: "kern" 1, "liga" 1; }
+.hh-dashboard, .hh-dashboard button, .hh-dashboard input, .hh-dashboard select,
+.profile-v2, .profile-v2 button, .profile-v2 input, .profile-v2 select {
+  font-family: var(--hh-font-sans);
+}
+.hh-dashboard { font-size: 14px; line-height: 1.55; letter-spacing: -.008em; }
+.hh-dashboard h1, .hh-dashboard h2, .hh-dashboard h3,
+.profile-v2 h1, .profile-v2 h2, .profile-v2 h3 {
+  text-wrap: balance;
+}
+.hh-dashboard h1 { line-height: 1.08; letter-spacing: -.045em; font-weight: 720; }
+.hh-dashboard h2 { line-height: 1.25; letter-spacing: -.025em; font-weight: 650; }
+.hh-dashboard p { line-height: 1.65; }
+.hh-dashboard button, .hh-dashboard a { -webkit-tap-highlight-color: transparent; }
+.hh-jobs-page .hh-discovery-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  margin: 18px 0 4px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  background: rgba(5,7,11,.34);
+}
+.hh-jobs-page .hh-discovery-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ba5b7;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+.hh-jobs-page .hh-discovery-tabs button:hover {
+  color: #f2f4f8;
+  background: rgba(255,255,255,.045);
+}
+.hh-jobs-page .hh-discovery-tabs button.active {
+  color: #a5fff4;
+  border-color: rgba(53,224,208,.17);
+  background: rgba(53,224,208,.075);
+}
+.hh-jobs-page .hh-discovery-job-main { min-width: 0; }
+.hh-jobs-page .hh-discovery-job-top { gap: 16px; }
+.hh-jobs-page .hh-discovery-job-top > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 7px 10px;
+}
+.hh-jobs-page .hh-discovery-job-top > div:first-child > strong {
+  flex-basis: 100%;
+  color: #f2f4f8;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: -.018em;
+  overflow-wrap: anywhere;
+}
+.hh-jobs-page .hh-discovery-job-top > div:first-child > span {
+  color: #a0a8b8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.hh-jobs-page .hh-discovery-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 14px;
+  margin-top: 12px;
+  color: #9098aa;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.hh-jobs-page .hh-discovery-meta span { display: inline-flex; gap: 4px; align-items: baseline; }
+.hh-jobs-page .hh-discovery-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.hh-jobs-page .hh-discovery-tags i {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 7px;
+  background: rgba(255,255,255,.025);
+  padding: 5px 8px;
+  color: #b9c1cf;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.35;
+}
+.hh-jobs-page .hh-discovery-reason { font-size: 12px; line-height: 1.55; }
+.hh-jobs-page .hh-panel-heading { gap: 16px; }
+.hh-jobs-page .hh-panel-heading > span { flex: none; white-space: nowrap; }
+@media (max-width: 640px) {
+  .hh-dashboard { font-size: 14px; }
+  .hh-jobs-page .hh-discovery-tabs { gap: 5px; padding: 6px; }
+  .hh-jobs-page .hh-discovery-tabs button { min-height: 34px; padding: 7px 9px; font-size: 11px; }
+  .hh-jobs-page .hh-discovery-job-top > div:first-child > strong { font-size: 14px; }
+}
