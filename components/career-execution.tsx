@@ -140,7 +140,7 @@ export default function CareerExecution() {
       : "APPLICATION PACKAGE";
 
   return (
-    <section id="execution" className="rounded-xl border border-cyan-300/10 bg-[#071017] shadow-[0_18px_60px_rgba(0,0,0,.22)]">
+    <section id="execution" className="hh-execution-panel rounded-xl border border-cyan-300/10 bg-[#071017] shadow-[0_18px_60px_rgba(0,0,0,.22)]">
       <div className="border-b border-white/10 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -179,8 +179,8 @@ export default function CareerExecution() {
       ) : !packageData ? (
         <div className="px-5 py-8 text-xs text-white/35">No application is ready for execution yet. Once you apply to a role, HiddenHire can prepare the next step.</div>
       ) : (
-        <div className="grid gap-px bg-white/10 lg:grid-cols-[1.05fr_.95fr]">
-          <div className="bg-[#071017] p-5 sm:p-6">
+        <div className="hh-execution-grid grid gap-px bg-white/10 lg:grid-cols-[1.05fr_.95fr]">
+          <div className="hh-execution-primary bg-[#071017] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[9px] uppercase tracking-[.18em] text-cyan-200/60">{statusLabel}</p>
@@ -206,7 +206,7 @@ export default function CareerExecution() {
             </div>
           </div>
 
-          <div className="bg-[#071017] p-5 sm:p-6">
+          <div className="hh-execution-secondary bg-[#071017] p-5 sm:p-6">
             <div className="rounded-lg border border-cyan-300/10 bg-cyan-300/[.03] p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-cyan-200/60">Cover-letter draft</p>
               <textarea aria-label="Editable cover-letter draft" value={coverLetterDraft} onChange={(event) => setCoverLetterDraft(event.target.value)} rows={10} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[11px] leading-5 text-white/80 outline-none focus:border-cyan-300/40" /><button type="button" onClick={() => void copyDraft(coverLetterDraft, "Cover letter")} className="mt-2 rounded-lg border border-cyan-300/20 px-3 py-2 text-[10px] text-cyan-100">Copy cover letter</button>
