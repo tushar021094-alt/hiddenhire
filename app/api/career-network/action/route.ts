@@ -1,20 +1,39 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { buildExecutionTask } from "@/lib/career-agent-execution";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const actions = new Set(["follow_up", "prepare", "reconnect"]);
 
 export async function POST(request: Request) {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (authError || !user) {
-    return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
+    return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) {
+    console.error("Career network role lookup failed", { code: profileError.code });
+    return NextResponse.json({ error: "Unable to verify your account." }, { status: 500 });
+  }
+  if (profile?.role !== "candidate") {
+    return NextResponse.json({ error: "Career Network is available only to candidate accounts." }, { status: 403 });
+  }
+
+  const rate = checkRateLimit(`career-network-action:${user.id}`, 15, 60_000);
+  if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > 12_000) return NextResponse.json({ error: "Request is too large." }, { status: 413 });
   const body = await request.json().catch(() => ({}));
   const relationshipKey = typeof body.relationshipKey === "string" ? body.relationshipKey.trim() : "";
-  const companyName = typeof body.companyName === "string" ? body.companyName.trim() : "Career relationship";
+  const companyName = typeof body.companyName === "string" ? body.companyName.trim().slice(0, 180) : "Career relationship";
   const action = typeof body.action === "string" ? body.action : "";
-  const summary = typeof body.summary === "string" ? body.summary.trim() : "";
+  const summary = typeof body.summary === "string" ? body.summary.trim().slice(0, 3000) : "";
 
   if (!relationshipKey || !actions.has(action) || !summary) {
     return NextResponse.json({ error: "A valid relationship action is required." }, { status: 400 });
@@ -56,6 +75,6 @@ export async function POST(request: Request) {
     max_attempts: task.maxAttempts,
   }).select("*").single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) { console.error("Career network task creation failed", { code: error.code }); return NextResponse.json({ error: "Unable to queue this career action right now." }, { status: 500 }); }
   return NextResponse.json({ task: data, deduplicated: false });
 }
