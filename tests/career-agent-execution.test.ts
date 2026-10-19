@@ -15,4 +15,29 @@ describe("career agent execution", () => {
   it("cannot skip approval", () => {
     expect(transitionExecutionTask("awaiting_approval","start")).toBe("awaiting_approval");
   });
+
+  it("cannot disable approval for application or follow-up actions", () => {
+    for (const action of ["apply", "follow_up"] as const) {
+      const task = buildExecutionTask({
+        id: action,
+        action,
+        title: "External action",
+        summary: "Requires a person to approve it.",
+        requiresApproval: false,
+      });
+      expect(task.requiresApproval).toBe(true);
+      expect(task.state).toBe("awaiting_approval");
+    }
+  });
+  it("allows non-side-effecting review tasks to be queued when explicitly safe", () => {
+    const task = buildExecutionTask({
+      id: "review",
+      action: "review",
+      title: "Review profile",
+      summary: "Inspect the profile.",
+      requiresApproval: false,
+    });
+    expect(task.requiresApproval).toBe(false);
+    expect(task.state).toBe("queued");
+  });
 });
