@@ -87,6 +87,6 @@ export async function PATCH(request:Request){
   if(event==="complete")patch.completed_at=now;
   if(event==="fail"){patch.last_error="Execution failed during a user-requested task.";patch.attempts=Number(existing.attempts??0)+1;}
   const {data,error}=await supabase.from("career_execution_tasks").update(patch).eq("id",taskId).eq("user_id",user.id).select("*").single();
-  if(error)return NextResponse.json({error:error.message},{status:400});
+  if(error){ console.error("Career task update failed", { code: error.code }); return NextResponse.json({error:"Unable to update the career task right now."},{status:500}); }
   return NextResponse.json({task:data,phase:30});
 }
