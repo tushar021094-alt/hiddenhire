@@ -95,7 +95,7 @@ test("search query filters by all query terms across job details before result l
   const jobs = [
     mockJob({ id: "one", title: "Finance Executive", company: "Acme" }),
     mockJob({ id: "two", title: "Finance Manager", company: "Acme" }),
-    mockJob({ id: "three", title: "Accounts Executive", company: "Acme", description: "Finance team reporting and reconciliation." }),
+    mockJob({ id: "three", title: "Accounts Specialist", company: "Acme", description: "Finance team reporting and reconciliation." }),
   ];
 
   assert.deepEqual(
