@@ -40,7 +40,7 @@ export function filterJobsForDiscovery(
     ].filter(Boolean).join(' ').toLocaleLowerCase();
     if (terms.some((term) => !searchableText.includes(term))) return false;
 
-    const workContext = [job.location, job.remotePolicy, job.description].filter(Boolean).join(' ');
+    const workContext = [job.location, job.remotePolicy].filter(Boolean).join(' ');
     const hybrid = /hybrid/i.test(workContext);
     if (workMode === 'remote' && !job.remote) return false;
     if (workMode === 'onsite' && (job.remote || hybrid)) return false;
