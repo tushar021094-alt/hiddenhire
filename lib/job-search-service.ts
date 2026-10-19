@@ -1,4 +1,4 @@
-import type { CandidateProfile } from '@/lib/job-types';
+import type { CandidateProfile, Job } from '@/lib/job-types';
 import { createClient } from '@/lib/supabase/server';
 import { evaluateJobAuthenticity } from '@/lib/job-authenticity';
 import { evaluateFraudRisk } from '@/lib/fraud-risk';
@@ -19,6 +19,35 @@ const MAX_BODY_BYTES = 64_000;
 const MAX_TEXT_LENGTH = 500;
 const MAX_RESUME_LENGTH = 20_000;
 const MAX_ARRAY_ITEMS = 30;
+
+type DiscoveryWorkMode = 'all' | 'remote' | 'onsite' | 'hybrid';
+
+/** Apply text and work-mode filters to the full eligible inventory before ranking/capping results. */
+export function filterJobsForDiscovery(
+  jobs: Job[],
+  rawQuery = '',
+  workMode: DiscoveryWorkMode = 'all',
+): Job[] {
+  const terms = rawQuery.trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean);
+  return jobs.filter((job) => {
+    const searchableText = [
+      job.title,
+      job.company,
+      job.location,
+      job.country,
+      job.description,
+      ...(job.requiredSkills ?? []),
+    ].filter(Boolean).join(' ').toLocaleLowerCase();
+    if (terms.some((term) => !searchableText.includes(term))) return false;
+
+    const workContext = [job.location, job.remotePolicy, job.description].filter(Boolean).join(' ');
+    const hybrid = /hybrid/i.test(workContext);
+    if (workMode === 'remote' && !job.remote) return false;
+    if (workMode === 'onsite' && (job.remote || hybrid)) return false;
+    if (workMode === 'hybrid' && !hybrid) return false;
+    return true;
+  });
+}
 
 export function validSearchProfile(profile: Record<string, unknown>) {
   const role =
@@ -51,6 +80,20 @@ export function validSearchProfile(profile: Record<string, unknown>) {
     (!Number.isFinite(profile.minimumSalary) ||
       profile.minimumSalary < 0 ||
       profile.minimumSalary > 1_000_000_000)
+  ) {
+    return false;
+  }
+
+  if (
+    profile.searchQuery !== undefined &&
+    (typeof profile.searchQuery !== 'string' || profile.searchQuery.length > MAX_TEXT_LENGTH)
+  ) {
+    return false;
+  }
+
+  if (
+    profile.workModeFilter !== undefined &&
+    !['all', 'remote', 'onsite', 'hybrid'].includes(String(profile.workModeFilter))
   ) {
     return false;
   }
@@ -232,7 +275,14 @@ export async function searchJobs(
 const roleMatched = deduped.filter((job) =>
   isJobEligible(searchIntent, job),
 );
-  const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment, learningPolicy);
+  const searchQuery = typeof profile.searchQuery === 'string' ? profile.searchQuery.trim() : '';
+  const workModeFilter = profile.workModeFilter === 'remote' ||
+      profile.workModeFilter === 'onsite' ||
+      profile.workModeFilter === 'hybrid'
+    ? profile.workModeFilter
+    : 'all';
+  const discoveryFiltered = filterJobsForDiscovery(roleMatched, searchQuery, workModeFilter);
+  const ranked = sortMatches(candidateProfile, discoveryFiltered, calibrationAdjustment, learningPolicy);
   const returned = ranked.slice(0, 20);
 
   const duplicateCounts = new Map<string, number>();
@@ -354,9 +404,14 @@ const roleMatched = deduped.filter((job) =>
     totalCollected: collectedJobs.length,
     totalAfterDeduplication: deduped.length,
     totalEligible: roleMatched.length,
+    totalAfterSearchAndModeFilter: discoveryFiltered.length,
     totalRanked: ranked.length,
     returned: returned.length,
-    message: returned.length > 0 ? 'Real opportunities found.' : 'No strong matches found. Try expanding your search.',
+    message: returned.length > 0
+      ? 'Real opportunities found.'
+      : searchQuery
+        ? `No jobs match “${searchQuery}” with the current profile and filters. Try fewer keywords or change the work mode.`
+        : 'No strong matches found. Try expanding your search.',
     queries: expandedRoles,
     sources: registry.sources.map((source) => source.name),
     metrics: {
