@@ -131,12 +131,19 @@ test("multi-word role searches do not match unrelated roles through description 
 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
-    ["finance-exec"],
+    ["finance-exec", "finance-head"],
   );
 
-  // Single-term discovery may still find relevant wording in a description.
+  // A finance-intent query must not turn a Sales listing into a finance result
+  // merely because "financial" appears in its description.
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "financial").map((job) => job.id),
+    [],
+  );
+
+  // Generic single-term discovery may still match genuine description wording.
+  assert.deepEqual(
+    filterJobsForDiscovery(jobs, "workflows").map((job) => job.id),
     ["stripe-account-exec"],
   );
 });
