@@ -14,6 +14,7 @@ const routes = [
   "../app/api/career-execution/tasks/route.ts",
   "../app/api/career-network/action/route.ts",
   "../app/api/career-operations/enqueue/route.ts",
+  "../app/api/openai/route.ts",
 ];
 
 test("API routes do not return raw database error messages", () => {
