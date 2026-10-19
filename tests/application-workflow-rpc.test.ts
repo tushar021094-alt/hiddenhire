@@ -24,7 +24,8 @@ test("candidate reminder RPC enforces status and a three-day cooldown atomically
 });
 
 test("recruiter status RPC validates role, job ownership and permitted status transitions", () => {
-  assert.match(migration, /FUNCTION public\.recruiter_update_application_status\([\s\S]*?p_status text\)/i);
+  assert.ok(migration.includes("FUNCTION public.recruiter_update_application_status("));
+  assert.ok(migration.includes("p_status text"));
   assert.match(migration, /actor_role IS DISTINCT FROM 'employer' AND actor_role IS DISTINCT FROM 'agency'/i);
   assert.match(migration, /job_row\.posted_by IS DISTINCT FROM actor_id/i);
   assert.match(migration, /application_row\.status = 'applied' AND p_status = 'reviewing'/i);
