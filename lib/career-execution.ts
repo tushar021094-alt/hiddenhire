@@ -117,43 +117,78 @@ export function buildCareerExecutionPackage(input: CareerExecutionInput): Career
     name,
   ].join("\n");
 
-  const primaryResponsibility = jobRequirements[0] ?? focus[0] ?? `a core responsibility of the ${role} role`;
-  const secondaryResponsibility = jobRequirements[1] ?? focus[1] ?? `a key day-to-day responsibility in this role`;
+  const responsibilityLabels: Record<string, string> = {
+    excel: "Excel-based reporting and analysis",
+    accounting: "accounting processes",
+    reconciliation: "account reconciliations",
+    budgeting: "budget preparation and monitoring",
+    forecasting: "financial forecasting",
+    "financial reporting": "financial reporting",
+    taxation: "tax compliance and preparation",
+    audit: "audit preparation and controls",
+    "accounts payable": "accounts payable processing",
+    "accounts receivable": "accounts receivable and collections",
+    "cash flow": "cash-flow monitoring",
+    "variance analysis": "variance analysis",
+    payroll: "payroll processing and controls",
+    compliance: "financial compliance and controls",
+    "stakeholder management": "stakeholder coordination",
+    leadership: "team leadership and task prioritisation",
+    salesforce: "Salesforce workflows",
+    sql: "SQL queries and data analysis",
+    "power bi": "Power BI reporting and dashboards",
+    "financial analysis": "financial analysis",
+    "month-end closing": "month-end close activities",
+    "general ledger": "general ledger maintenance",
+    "business development": "business development activities",
+    "customer relationship": "customer relationship management",
+    "project management": "project planning and delivery",
+    "data analysis": "data analysis and reporting",
+    communication: "stakeholder communication",
+  };
+  const responsibilityPhrase = (term: string | undefined) =>
+    term ? responsibilityLabels[term.toLowerCase()] ?? term : `core responsibilities of the ${role} role`;
+  const roleRelevantTerms = unique([
+    ...domainTerms.filter((term) => description.includes(term)),
+    ...focus,
+  ]);
+  const primaryResponsibility = responsibilityPhrase(roleRelevantTerms[0]);
+  const secondaryResponsibility = responsibilityPhrase(roleRelevantTerms[1] ?? roleRelevantTerms[0]);
   const interviewPlan = {
-    opening: `Prepare a concise introduction focused on your relevant responsibilities for the ${role} role, the skills you have actually used, and one result you can substantiate.`,
+    opening: `Prepare a concise introduction focused on responsibilities relevant to the ${role} role, the tools and skills you have actually used, and one outcome you can substantiate.`,
     stories: [
-      `Prepare a specific example of how you handled ${primaryResponsibility} and what changed as a result.`,
-      `Prepare an example of a challenge involving ${secondaryResponsibility}, explaining the steps you personally took.`,
-      `Prepare an example that demonstrates collaboration with colleagues or stakeholders while delivering a role-related responsibility.`,
-      `Review the tools, processes, and decisions you have personally handled that are relevant to ${role}.`,
+      `Prepare a real example of delivering ${primaryResponsibility}. Be ready to explain your responsibility, the steps you took, and the verified outcome.`,
+      `Prepare a real example of resolving an issue while handling ${secondaryResponsibility}, including the checks or controls you used.`,
+      `Prepare an example of meeting a deadline while maintaining accuracy in ${primaryResponsibility}.`,
+      `Prepare an example of coordinating with a colleague or stakeholder to complete work related to ${secondaryResponsibility}.`,
     ],
     questions: [
-      `What are the most important day-to-day responsibilities for the person in this ${role} position?`,
-      `How does the team measure successful performance for ${primaryResponsibility}?`,
-      `What tools, systems, or processes does the team use for ${secondaryResponsibility}?`,
+      `Which deliverables are most important for the ${role} role during a typical week or month?`,
+      `How does the team measure the accuracy, timeliness, and quality of ${primaryResponsibility}?`,
+      `Which systems, reports, or approval controls are used for ${secondaryResponsibility}?`,
     ],
     roleFocus: [
       skills.length
-        ? `Prepare a verified example showing how you used ${focus.slice(0, 3).join(", ")} in your work.`
-        : `Review the job description and identify role requirements supported by your actual experience.`,
-      "Use concrete examples and numbers where you have verified evidence.",
-      "Do not claim tools, responsibilities, qualifications or results that are not in your actual experience.",
+        ? `Prepare a verified work example involving ${focus.slice(0, 3).join(", ")} and explain your personal contribution.`
+        : `Review the job description and select responsibilities supported by your actual experience.`,
+      "Use concrete outcomes only where you can verify them.",
+      "Do not claim tools, responsibilities, qualifications or results that are not part of your actual experience.",
     ],
     sampleAnswers: [
       {
-        question: `Which responsibilities have you handled that best prepare you for this ${role} position?`,
-        draft: `In my role at [company/team], I was responsible for [relevant responsibility]. I personally [describe the actions, tools, and decisions you handled]. This contributed to [verified outcome]. That experience is relevant to this position because it aligns with [specific responsibility from the job description].`,
-        evidenceNeeded: "Add a real employer or project, the responsibility you owned, the actions you personally took, and an outcome you can verify.",
+        question: `How have you handled ${primaryResponsibility} in a previous role?`,
+        draft: `At [company/team], I handled [specific task related to ${primaryResponsibility}]. I was responsible for [your responsibility] and personally [actions and tools you used]. This led to [verified outcome]. For the ${role} position, I would apply the relevant experience to [related duty from the job description].`,
+        evidenceNeeded: `Provide the employer or project, the task, your own actions, and an outcome you can verify for ${primaryResponsibility}. Replace every bracketed prompt before using the answer.`,
       },
       {
-        question: `How would you approach ${primaryResponsibility} in this role?`,
-        draft: `First, I would confirm the expected outcome, deadlines, and applicable process for ${primaryResponsibility}. I would review the relevant records and requirements, complete the work using the team's approved tools, and check the result for accuracy. I would raise discrepancies or risks early and keep the relevant stakeholders informed. I would adapt this approach to the team's procedures and the experience I can demonstrate.`,
-        evidenceNeeded: "Replace this general approach with the actual tools, controls, and steps you know or have used. Do not claim experience you do not have.",
+        question: `How would you maintain accuracy and meet deadlines while handling ${secondaryResponsibility}?`,
+        draft: `I would first confirm the required output, deadline, source records, and review process for ${secondaryResponsibility}. I would follow the team's documented workflow, check the work against source data or agreed controls, record any discrepancies, and escalate exceptions promptly. I would use [relevant tool or control you have actually used] and confirm completion against the team's criteria.`,
+        evidenceNeeded: "Replace the bracketed tool or control with something you know or have used. Keep the answer aligned with the employer's actual process.",
       },
       {
-        question: `What experience do you have with ${secondaryResponsibility}?`,
-        draft: `I have experience with [specific task or process] at [company/team]. My part was to [actions you personally completed], using [relevant system or tool]. The result was [verified outcome]. Where I have not used the team's exact process, I would learn the documented workflow and follow its review and approval controls.`,
-        evidenceNeeded: `Provide a real example connected to ${secondaryResponsibility}, including your actions, relevant systems or tools, and a result you can substantiate.`,
+        question: `What checks would you use to review work related to ${primaryResponsibility}?`,
+        draft: `I would compare the result with the source data and defined requirements, check for missing or inconsistent entries, validate key calculations or totals where applicable, and follow the required review or approval process. In practice, I would use [specific check or system you have used] and document or escalate any unresolved difference.`,
+        evidenceNeeded: `Add a relevant check, system, or control that you have genuinely used, and explain how it helped you identify or prevent an error.`,
       },
     ],
   };
