@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
 
-    const { user, error: authError } = await getAuthenticatedUser();
+    const { supabase, user, error: authError } = await getAuthenticatedUser();
     const rate = checkRateLimit(`openai:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
@@ -22,6 +22,19 @@ export async function POST(request: Request) {
         { error: authError || 'Authentication is required.' },
         { status: 401 },
       );
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profileError) {
+      console.error('OpenAI profile lookup failed', { code: profileError.code });
+      return NextResponse.json({ error: 'Unable to verify your account.' }, { status: 500 });
+    }
+    if (profile?.role !== 'candidate') {
+      return NextResponse.json({ error: 'Resume-to-job matching is available only to candidate accounts.' }, { status: 403 });
     }
 
     const rawBody = await request.text();
