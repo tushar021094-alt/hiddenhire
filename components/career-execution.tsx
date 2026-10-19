@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+ 
+// Normalize legacy drafts saved with literal escaped newlines so they render
+// as real lines in textareas, while leaving ordinary user text unchanged.
+function normalizeDraftText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\\r/g, "\n");
+}
+
 type ExecutionPackage = {
   applicationId: string;
   mode: "application" | "follow_up" | "interview";
@@ -71,7 +79,7 @@ export default function CareerExecution() {
       setPackageData(nextPackage);
       setCoverLetterDraft(typeof nextPackage?.coverLetter === "string" ? nextPackage.coverLetter : "");
       setFollowUpDraft(typeof nextPackage?.followUpMessage === "string" ? nextPackage.followUpMessage : "");
-      setAnswerDrafts(Object.fromEntries((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string; draft: string }) => [item.question, item.draft])));
+      setAnswerDrafts(Object.fromEntries((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string; draft: string }) => [item.question, normalizeDraftText(item.draft)])));
       setCompletedChecklist([]);
       setChecklistSaveState("idle");
       if (nextPackage?.applicationId) {
@@ -81,7 +89,8 @@ export default function CareerExecution() {
         if (progressResponse.ok && Array.isArray(progressData.completedItems)) {
           setCompletedChecklist(progressData.completedItems.filter((item: unknown): item is string => typeof item === "string"));
           if (progressData.answerDrafts && typeof progressData.answerDrafts === "object" && !Array.isArray(progressData.answerDrafts)) {
-            setAnswerDrafts((current) => ({ ...current, ...progressData.answerDrafts }));
+            const normalizedSavedDrafts = Object.fromEntries(Object.entries(progressData.answerDrafts as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string").map(([question, draft]) => [question, normalizeDraftText(draft)]));
+            setAnswerDrafts((current) => ({ ...current, ...normalizedSavedDrafts }));
           }
         }
       }
@@ -104,7 +113,7 @@ export default function CareerExecution() {
       const response = await fetch("/api/career-execution/checklist", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: drafts }),
+        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: Object.fromEntries(Object.entries(drafts).map(([question, draft]) => [question, normalizeDraftText(draft)])) }),
       });
       if (!response.ok) throw new Error("Unable to save interview answers.");
       setAnswerSaveState("saved");
@@ -231,7 +240,7 @@ export default function CareerExecution() {
                   {packageData.interviewPlan.sampleAnswers.map((item) => (
                     <div key={item.question} className="rounded-lg border border-white/10 bg-black/15 p-3">
                       <p className="text-[11px] font-semibold leading-5 text-white/80">{item.question}</p>
-                      <textarea aria-label={`Sample answer: ${item.question}`} value={answerDrafts[item.question] ?? item.draft} onChange={(event) => { setAnswerSaveState("idle"); setAnswerDrafts((current) => ({ ...current, [item.question]: event.target.value })); }} onBlur={() => void saveAnswerDrafts(answerDrafts)} rows={6} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[10px] leading-5 text-white/75 outline-none focus:border-violet-300/40" />
+                      <textarea aria-label={`Sample answer: ${item.question}`} value={answerDrafts[item.question] ?? item.draft} onChange={(event) => { setAnswerSaveState("idle"); setAnswerDrafts((current) => ({ ...current, [item.question]: event.target.value })); }} onBlur={(event) => void saveAnswerDrafts({ ...answerDrafts, [item.question]: event.currentTarget.value })} rows={6} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[10px] leading-5 text-white/75 outline-none focus:border-violet-300/40" />
                       <p className="mt-2 text-[10px] leading-5 text-amber-100/60">Evidence to add: {item.evidenceNeeded}</p>
                       <button type="button" onClick={() => void copyDraft(answerDrafts[item.question] ?? item.draft, "Interview answer")} className="mt-2 rounded-lg border border-violet-300/20 px-3 py-2 text-[10px] text-violet-100">Copy answer</button>
                     </div>
