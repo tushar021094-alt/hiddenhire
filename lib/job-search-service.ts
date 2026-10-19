@@ -28,7 +28,7 @@ export function filterJobsForDiscovery(
   rawQuery = '',
   workMode: DiscoveryWorkMode = 'all',
 ): Job[] {
-  const terms = rawQuery.trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean);
+  const terms = rawQuery.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
   return jobs.filter((job) => {
     const searchableText = [
       job.title,
