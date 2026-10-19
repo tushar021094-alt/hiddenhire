@@ -41,7 +41,6 @@ export function filterJobsForDiscovery(
       job.company,
       job.location,
       job.country,
-      job.jobFunction,
       ...(job.requiredSkills ?? []),
     ].filter(Boolean).join(' ').toLocaleLowerCase();
     const searchableText = terms.length > 1
