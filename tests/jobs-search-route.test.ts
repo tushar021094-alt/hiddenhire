@@ -131,7 +131,7 @@ test("multi-word role searches do not match unrelated roles through description 
 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
-    ["finance-exec", "finance-head"],
+    ["finance-exec"],
   );
 
   // A finance-intent query must not turn a Sales listing into a finance result
@@ -158,4 +158,30 @@ test("work-mode filtering distinguishes remote, hybrid, and on-site roles", () =
   assert.deepEqual(filterJobsForDiscovery(jobs, "", "remote").map((job) => job.id), ["remote"]);
   assert.deepEqual(filterJobsForDiscovery(jobs, "", "hybrid").map((job) => job.id), ["hybrid"]);
   assert.deepEqual(filterJobsForDiscovery(jobs, "", "onsite").map((job) => job.id), ["onsite"]);
+});
+
+test("multi-word role search does not use free-text descriptions to complete a title match", () => {
+  const jobs = [
+    mockJob({
+      id: "finance-head",
+      title: "Head of Finance Business Partnering, Operations & Technology",
+      company: "Tide",
+      jobFunction: "Finance",
+      requiredSkills: ["Enablement", "GL"],
+      description: "Partner with executive leadership on finance operations.",
+    }),
+    mockJob({
+      id: "finance-executive",
+      title: "Finance Executive",
+      company: "Acme",
+      jobFunction: "Finance",
+      requiredSkills: ["Excel", "Reconciliation"],
+      description: "Support monthly close and account reconciliations.",
+    }),
+  ];
+
+  assert.deepEqual(
+    filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
+    ["finance-executive"],
+  );
 });
