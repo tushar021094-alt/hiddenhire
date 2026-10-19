@@ -7,14 +7,14 @@ const migration = readFileSync(
   "utf8",
 );
 
-test("moderation case reads are restricted to HiddenHire admins", () => {
+test("moderation case reads are restricted to the assigned recruiter and HiddenHire admins", () => {
   assert.match(
     migration,
     /drop policy if exists moderation_cases_authenticated_select\s+on public\.moderation_cases/i,
   );
   assert.match(
     migration,
-    /create policy moderation_cases_admin_select[\s\S]*?for select\s+to authenticated\s+using\s*\(public\.is_hiddenhire_admin\(\)\)/i,
+    /create policy moderation_cases_admin_or_owner_select[\\s\\S]*?for select\\s+to authenticated\\s+using\\s*\\(public\\.is_hiddenhire_admin\\(\\)\\s+OR\\s+recruiter_id\\s*=\\s*auth\\.uid\\(\\)\\)/i,
   );
   assert.doesNotMatch(
     migration,
