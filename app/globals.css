@@ -935,3 +935,95 @@ body { font-family: var(--hh-font-sans); font-feature-settings: "kern" 1, "liga"
   .hh-jobs-page .hh-discovery-tabs button { min-height: 34px; padding: 7px 9px; font-size: 11px; }
   .hh-jobs-page .hh-discovery-job-top > div:first-child > strong { font-size: 14px; }
 }
+
+
+/* Explicitly scoped overrides for the live Job Discovery markup */
+body .hh-dashboard.hh-jobs-page .hh-discovery-tabs {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px !important;
+  margin: 18px 0 12px !important;
+  padding: 8px !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  border-radius: 12px !important;
+  background: rgba(7,10,16,.72) !important;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-tabs > button {
+  display: inline-flex !important;
+  width: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 9px 14px !important;
+  min-height: 36px;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  border-radius: 8px !important;
+  background: rgba(255,255,255,.025) !important;
+  color: #aab4c5 !important;
+  font-family: var(--hh-font-sans);
+  font-size: 12px !important;
+  font-weight: 550;
+  line-height: 1.4 !important;
+  white-space: nowrap;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-tabs > button.active {
+  border-color: rgba(68,226,211,.36) !important;
+  background: rgba(68,226,211,.11) !important;
+  color: #9cf8ed !important;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-job-top > div:first-child {
+  display: flex !important;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 10px !important;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-job-top > div:first-child > strong {
+  display: block;
+  flex: 0 0 100%;
+  margin: 0 0 2px;
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-job-top > div:first-child > span {
+  display: inline-flex;
+  margin: 0;
+  line-height: 1.5;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-meta {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 8px 16px !important;
+  margin-top: 12px !important;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-tags {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px !important;
+  margin-top: 12px !important;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-tags > i {
+  display: inline-flex !important;
+  max-width: 100%;
+  padding: 5px 9px !important;
+  border: 1px solid rgba(255,255,255,.11) !important;
+  border-radius: 7px !important;
+  background: rgba(255,255,255,.04) !important;
+  color: #c3ccda !important;
+  font-size: 11px !important;
+  font-style: normal !important;
+  line-height: 1.45 !important;
+  overflow-wrap: anywhere;
+}
+body .hh-dashboard.hh-jobs-page .hh-discovery-reason {
+  margin-top: 10px;
+  color: #b3bdcd;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  body .hh-dashboard.hh-jobs-page .hh-discovery-tabs { gap: 5px !important; padding: 6px !important; }
+  body .hh-dashboard.hh-jobs-page .hh-discovery-tabs > button { padding: 8px 10px !important; font-size: 11px !important; }
+}
