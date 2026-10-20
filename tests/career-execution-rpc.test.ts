@@ -67,3 +67,9 @@ test("safe queued tasks expose a Start control without bypassing Apply or Follow
 test("career task template submissions include stable operation ids for deduplication", () => {
   assert.ok(executionComponent.includes('operationId: `agent-task:${template.action}`'));
 });
+
+
+test("career task queue distinguishes a new task from an idempotent duplicate", () => {
+  assert.match(executionComponent, /data\.deduplicated === true[\s\S]*?no duplicate was created/);
+  assert.match(executionComponent, /Task queued and waiting for your approval/);
+});
