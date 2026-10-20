@@ -277,3 +277,23 @@ create index if not exists audit_events_entity_idx on audit_events(entity_type,e
 
 -- RLS should be enabled and policies bound to auth.uid() when Supabase Auth is connected.
 -- This migration intentionally does not create permissive policies.
+
+-- Role helper used by private recruiter verification storage policies.
+-- Keep the function's lookup pinned to a trusted schema and make it callable
+-- only by authenticated users whose policies use the result.
+create or replace function public.current_profile_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+  select profile.role
+  from public.profiles as profile
+  where profile.id = auth.uid()
+  limit 1;
+$function$;
+
+revoke all on function public.current_profile_role() from public, anon;
+grant execute on function public.current_profile_role() to authenticated;
+
