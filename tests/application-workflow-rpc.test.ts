@@ -15,21 +15,23 @@ test("candidate reminder RPC validates candidate role and application ownership"
   assert.match(migration, /FOR UPDATE/i);
 });
 
-test("candidate reminder RPC enforces status and a three-day cooldown atomically", () => {
+test("candidate reminder RPC enforces status, five-day eligibility and a three-day cooldown atomically", () => {
   assert.match(migration, /application_row\.status NOT IN \('applied', 'reviewing', 'shortlisted'\)/i);
+  assert.match(migration, /application_row\.created_at \+ interval '5 days'/i);
+  assert.match(migration, /'code', 'TOO_EARLY'/i);
   assert.match(migration, /last_candidate_reminder_at \+ interval '3 days'/i);
   assert.match(migration, /candidate_reminder_count = next_count/i);
   assert.match(migration, /last_candidate_reminder_at = current_time_at/i);
   assert.match(migration, /'application_reminder'/i);
 });
 
-test("recruiter status RPC validates role, job ownership and permitted status transitions", () => {
+test("recruiter status RPC validates role, job ownership and UI-supported status choices", () => {
   assert.ok(migration.includes("FUNCTION public.recruiter_update_application_status("));
   assert.ok(migration.includes("p_status text"));
   assert.match(migration, /actor_role IS DISTINCT FROM 'employer' AND actor_role IS DISTINCT FROM 'agency'/i);
   assert.match(migration, /job_row\.posted_by IS DISTINCT FROM actor_id/i);
-  assert.match(migration, /application_row\.status = 'applied' AND p_status = 'reviewing'/i);
-  assert.match(migration, /application_row\.status = 'interview' AND p_status IN \('hired', 'rejected'\)/i);
+  assert.ok(migration.includes("p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired')"));
+  assert.doesNotMatch(migration, /INVALID_TRANSITION/i);
   assert.match(migration, /'application_status'/i);
 });
 
