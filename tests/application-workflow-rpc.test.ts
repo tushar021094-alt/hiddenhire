@@ -67,3 +67,22 @@ test("recruiter selector offers only forward transitions allowed by the database
 test("candidate withdraw action is offered only while the database trigger allows withdrawal", () => {
   assert.match(candidateApplicationsPage, /\["applied", "reviewing", "shortlisted"\]\.includes\(application\.status\)/);
 });
+
+
+test("candidate withdrawal is owner-checked inside an RPC and allows only withdrawable stages", () => {
+  assert.match(migration, /FUNCTION public\\.candidate_withdraw_application\\(p_application_id uuid\\)/i);
+  assert.match(migration, /application\\.candidate_id = actor_id/i);
+  assert.match(migration, /application_row\\.status NOT IN \\('applied', 'reviewing', 'shortlisted'\\)/i);
+  assert.match(migration, /SET status = 'withdrawn'/i);
+  assert.match(migration, /'code', 'NOT_FOUND'/i);
+  assert.match(migration, /'code', 'INVALID_STATUS'/i);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\\.candidate_withdraw_application\\(uuid\\) FROM PUBLIC, anon/i);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.candidate_withdraw_application\\(uuid\\) TO authenticated/i);
+});
+
+test("authenticated clients cannot bypass application workflow RPCs with direct status updates", () => {
+  assert.match(migration, /REVOKE UPDATE \\(status\\) ON TABLE public\\.applications FROM PUBLIC, anon, authenticated/i);
+  const applicationsRoute = readFileSync(new URL("../app/api/applications/route.ts", import.meta.url), "utf8");
+  assert.match(applicationsRoute, /rpc\\(\\s*"candidate_withdraw_application"/i);
+  assert.doesNotMatch(applicationsRoute, /from\\(["']applications["']\\)\\s*\\.update\\(\\{\\s*status:\\s*["']withdrawn["']/i);
+});
