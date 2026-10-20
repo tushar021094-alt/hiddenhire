@@ -11,7 +11,7 @@ declare
 begin
   if jsonb_typeof(p_evidence) <> 'object' then return false; end if;
 
-  foreach field_name in array[
+  foreach field_name in array ARRAY[
     'mobile','recruiter_name','designation','organisation_type','company_name',
     'company_website','company_domain','legal_company_name','cin','llpin',
     'company_pan','registered_address','gst_registered','gstin','proprietor_name',
@@ -38,7 +38,7 @@ begin
       select value from jsonb_array_elements(p_evidence->'verification_documents')
     loop
       if jsonb_typeof(document) <> 'object' then return false; end if;
-      foreach field_name in array['type','path','file_name','mime_type'] loop
+      foreach field_name in array ARRAY['type','path','file_name','mime_type'] loop
         if jsonb_typeof(document->field_name) is not null
            and jsonb_typeof(document->field_name) <> 'string' then
           return false;
