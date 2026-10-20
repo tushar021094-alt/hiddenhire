@@ -240,6 +240,7 @@ export async function PATCH(request: Request) {
         code?: string;
         message?: string;
         nextEligibleAt?: string;
+        eligibleAt?: string;
         reminder?: unknown;
       } | null;
 
@@ -249,6 +250,12 @@ export async function PATCH(request: Request) {
             error: "A reminder was already sent recently.",
             nextEligibleAt: result.nextEligibleAt,
           }, { status: 429 });
+        }
+        if (result?.code === "TOO_EARLY") {
+          return NextResponse.json({
+            error: "Reminders become available five days after you apply.",
+            eligibleAt: result.eligibleAt,
+          }, { status: 409 });
         }
         if (result?.code === "NOT_FOUND") {
           return NextResponse.json({ error: "Application not found." }, { status: 404 });
