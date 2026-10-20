@@ -22,7 +22,9 @@ test("candidate reminder RPC enforces status, five-day eligibility and a three-d
   assert.match(migration, /last_candidate_reminder_at \+ interval '3 days'/i);
   assert.match(migration, /candidate_reminder_count = next_count/i);
   assert.match(migration, /last_candidate_reminder_at = current_time_at/i);
-  assert.match(migration, /'application_reminder'/i);
+  const reminderRpc = migration.split("CREATE OR REPLACE FUNCTION public.recruiter_update_application_status")[0];
+  assert.match(reminderRpc, /last_candidate_reminder_at = current_time_at/i);
+  assert.doesNotMatch(reminderRpc, /INSERT INTO public\.notifications/i);
 });
 
 test("recruiter status RPC validates role, job ownership and UI-supported status choices", () => {
