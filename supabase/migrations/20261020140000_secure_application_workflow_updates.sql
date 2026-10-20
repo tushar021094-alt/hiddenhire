@@ -179,8 +179,16 @@ BEGIN
     );
   END IF;
 
-  -- Keep status choices aligned with the recruiter UI; p_status is validated above.
-  -- Row ownership and status allowlisting are enforced in this transaction.
+  -- Mirror validate_application_status_transition(): expose only forward recruiter
+  -- transitions. This keeps the RPC's response codes consistent with the database trigger.
+  IF NOT (
+    (application_row.status = 'applied' AND p_status = 'reviewing')
+    OR (application_row.status = 'reviewing' AND p_status IN ('shortlisted', 'interview', 'rejected'))
+    OR (application_row.status = 'shortlisted' AND p_status IN ('interview', 'rejected', 'hired'))
+    OR (application_row.status = 'interview' AND p_status IN ('hired', 'rejected'))
+  ) THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'INVALID_TRANSITION');
+  END IF;
 
   first_response_at := coalesce(application_row.recruiter_first_response_at, current_time_at);
   response_count := coalesce(application_row.recruiter_response_count, 0) + 1;
