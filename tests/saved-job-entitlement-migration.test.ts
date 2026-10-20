@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const migration = readFileSync(
-  join(process.cwd(), "supabase/migrations/20261020150000_enforce_saved_job_entitlements.sql"),
+  join(process.cwd(), "supabase/migrations/20261020172600_enforce_saved_job_entitlements.sql"),
   "utf8",
 );
 
