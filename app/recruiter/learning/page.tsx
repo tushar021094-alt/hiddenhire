@@ -14,7 +14,23 @@ export default async function RecruiterLearningPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role !== "employer" && profile?.role !== "agency") redirect("/dashboard");
+  if (profile?.role !== "employer" && profile?.role !== "agency") {
+    return (
+      <main className="hh-dashboard min-h-screen">
+        <div className="hh-shell mx-auto max-w-3xl px-6 py-16">
+          <p className="hh-eyebrow">RECRUITER PLAYBOOK</p>
+          <h1 className="mt-3 text-3xl font-semibold text-white">Recruiter access is not enabled for this account</h1>
+          <p className="mt-4 text-sm leading-7 text-white/60">
+            {profile?.role === "candidate"
+              ? "This account is currently configured as a candidate. Recruiter learning resources are restricted to Employer and Agency accounts, so HiddenHire has stopped here rather than silently redirecting you to another workspace."
+              : "HiddenHire could not confirm an Employer or Agency role for this account. Access is paused to avoid opening the wrong workspace."}
+          </p>
+          <p className="mt-3 text-sm leading-7 text-white/45">If this should be a recruiter account, the saved profile role needs an authorized correction. It has not been changed automatically.</p>
+          <Link href="/dashboard" className="mt-6 inline-flex rounded-xl border border-white/10 px-5 py-3 text-sm text-white/75">Open current workspace</Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="hh-dashboard min-h-screen">
