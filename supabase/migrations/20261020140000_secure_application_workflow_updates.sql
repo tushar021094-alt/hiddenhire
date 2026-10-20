@@ -234,6 +234,89 @@ BEGIN
 END;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.candidate_withdraw_application(p_application_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  actor_id uuid := auth.uid();
+  actor_role text;
+  application_row public.applications%rowtype;
+  current_time_at timestamptz := clock_timestamp();
+BEGIN
+  IF actor_id IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'AUTH_REQUIRED');
+  END IF;
+
+  SELECT profile.role INTO actor_role
+  FROM public.profiles AS profile
+  WHERE profile.id = actor_id;
+
+  IF actor_role IS DISTINCT FROM 'candidate' THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'FORBIDDEN');
+  END IF;
+
+  SELECT application.* INTO application_row
+  FROM public.applications AS application
+  WHERE application.id = p_application_id
+    AND application.candidate_id = actor_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'NOT_FOUND');
+  END IF;
+
+  IF application_row.status = 'withdrawn' THEN
+    RETURN jsonb_build_object(
+      'ok', true,
+      'code', 'UNCHANGED',
+      'message', 'The application has already been withdrawn.',
+      'application', jsonb_build_object(
+        'id', application_row.id,
+        'job_id', application_row.job_id,
+        'candidate_id', application_row.candidate_id,
+        'status', application_row.status,
+        'created_at', application_row.created_at,
+        'updated_at', application_row.updated_at
+      )
+    );
+  END IF;
+
+  IF application_row.status NOT IN ('applied', 'reviewing', 'shortlisted') THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'INVALID_STATUS');
+  END IF;
+
+  UPDATE public.applications
+  SET status = 'withdrawn',
+      updated_at = current_time_at
+  WHERE id = application_row.id
+  RETURNING * INTO application_row;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'code', 'OK',
+    'message', 'Application withdrawn.',
+    'application', jsonb_build_object(
+      'id', application_row.id,
+      'job_id', application_row.job_id,
+      'candidate_id', application_row.candidate_id,
+      'status', application_row.status,
+      'created_at', application_row.created_at,
+      'updated_at', application_row.updated_at
+    )
+  );
+END;
+$function$;
+
+-- Status changes must pass through the owner-checked RPCs. RLS policies alone
+-- cannot keep status-derived response metadata and notifications in sync.
+REVOKE UPDATE (status) ON TABLE public.applications FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION public.candidate_withdraw_application(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.candidate_withdraw_application(uuid) TO authenticated;
+
 REVOKE ALL ON FUNCTION public.candidate_remind_application(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.candidate_remind_application(uuid) TO authenticated;
 
