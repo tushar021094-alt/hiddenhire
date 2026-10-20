@@ -8,13 +8,22 @@ const insertAt = api.indexOf('.from("jobs")');
 const postInsert = api.slice(insertAt);
 
 test("candidate discovery failure does not turn an already-created job into a failed request", () => {
-  assert.match(postInsert, /candidateDiscoveryError[\s\S]*?job,[\s\S]*?warning:[\s\S]*?\{ status: 201 \}/);
-  assert.doesNotMatch(postInsert, /if \(candidateDiscoveryError\)[\s\S]*?\{ status: 500 \}/);
+  const branchStart = postInsert.indexOf("if (candidateDiscoveryError)");
+  const branchEnd = postInsert.indexOf('const { data: company', branchStart);
+  assert.ok(branchStart >= 0 && branchEnd > branchStart);
+  const discoveryBranch = postInsert.slice(branchStart, branchEnd);
+  assert.match(discoveryBranch, /job,[\s\S]*?warning:[\s\S]*?\{ status: 201 \}/);
+  assert.doesNotMatch(discoveryBranch, /status: 500/);
 });
 
 test("candidate matching errors preserve the created job and return an actionable warning", () => {
-  assert.match(postInsert, /catch \{[\s\S]*?mode: "native",[\s\S]*?job,[\s\S]*?matches: \[\],[\s\S]*?warning:[\s\S]*?\{ status: 201 \}/);
-  assert.match(postInsert, /Job was saved, but candidate matching could not finish/);
+  const matchingStart = postInsert.indexOf("try {\n  const candidateMatches");
+  const matchingEnd = postInsert.indexOf("\n} catch {\n  return NextResponse.json(", matchingStart);
+  assert.ok(matchingStart >= 0 && matchingEnd > matchingStart);
+  const matchingBlock = postInsert.slice(matchingStart, matchingEnd);
+  assert.match(matchingBlock, /job,[\s\S]*?matches: candidateMatches,[\s\S]*?\{ status: 201 \}/);
+  assert.ok(postInsert.includes("The job was saved, but candidate matching could not finish."));
+  assert.match(postInsert, /\n\} catch \{[\s\S]*?mode: "native",[\s\S]*?job,[\s\S]*?matches: \[\],[\s\S]*?\{ status: 201 \}/);
 });
 
 test("recruiter UI displays partial-success warnings without discarding the job result", () => {
