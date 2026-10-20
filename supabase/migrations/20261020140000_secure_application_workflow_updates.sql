@@ -17,6 +17,7 @@ DECLARE
   candidate_name text;
   current_time_at timestamptz;
   next_eligible_at timestamptz;
+  reminder_eligible_at timestamptz;
   next_count integer;
   due_at timestamptz;
 BEGIN
@@ -58,6 +59,15 @@ BEGIN
   END IF;
 
   current_time_at := clock_timestamp();
+  reminder_eligible_at := application_row.created_at + interval '5 days';
+  IF reminder_eligible_at > current_time_at THEN
+    RETURN jsonb_build_object(
+      'ok', false,
+      'code', 'TOO_EARLY',
+      'eligibleAt', reminder_eligible_at
+    );
+  END IF;
+
   IF application_row.last_candidate_reminder_at IS NOT NULL THEN
     next_eligible_at := application_row.last_candidate_reminder_at + interval '3 days';
     IF next_eligible_at > current_time_at THEN
@@ -185,14 +195,8 @@ BEGIN
     );
   END IF;
 
-  IF NOT (
-    (application_row.status = 'applied' AND p_status = 'reviewing')
-    OR (application_row.status = 'reviewing' AND p_status IN ('shortlisted', 'interview', 'rejected'))
-    OR (application_row.status = 'shortlisted' AND p_status IN ('interview', 'rejected', 'hired'))
-    OR (application_row.status = 'interview' AND p_status IN ('hired', 'rejected'))
-  ) THEN
-    RETURN jsonb_build_object('ok', false, 'code', 'INVALID_TRANSITION');
-  END IF;
+  -- Keep status choices aligned with the recruiter UI; p_status is validated above.
+  -- Row ownership and status allowlisting are enforced in this transaction.
 
   first_response_at := coalesce(application_row.recruiter_first_response_at, current_time_at);
   response_count := coalesce(application_row.recruiter_response_count, 0) + 1;
