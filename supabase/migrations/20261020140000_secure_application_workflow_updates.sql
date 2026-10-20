@@ -154,7 +154,7 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'code', 'FORBIDDEN');
   END IF;
 
-  IF p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired') THEN
+  IF p_status IS NULL OR p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired') THEN
     RETURN jsonb_build_object('ok', false, 'code', 'INVALID_STATUS');
   END IF;
 
