@@ -25,3 +25,10 @@ test("public relation privilege cleanup preserves normal CRUD grants", () => {
   assert.doesNotMatch(migration, /REVOKE ALL ON ALL TABLES IN SCHEMA public/i);
   assert.doesNotMatch(migration, /REVOKE SELECT, INSERT, UPDATE, DELETE/i);
 });
+
+test("private reminder trigger function is not exposed as an independently callable RPC", () => {
+  assert.match(
+    migration,
+    /REVOKE ALL ON FUNCTION private\.notify_application_reminder\(\) FROM PUBLIC, anon, authenticated/i,
+  );
+});
