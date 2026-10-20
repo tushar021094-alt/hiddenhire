@@ -69,20 +69,21 @@ test("candidate withdraw action is offered only while the database trigger allow
 });
 
 
+
 test("candidate withdrawal is owner-checked inside an RPC and allows only withdrawable stages", () => {
-  assert.match(migration, /FUNCTION public\\.candidate_withdraw_application\\(p_application_id uuid\\)/i);
-  assert.match(migration, /application\\.candidate_id = actor_id/i);
-  assert.match(migration, /application_row\\.status NOT IN \\('applied', 'reviewing', 'shortlisted'\\)/i);
-  assert.match(migration, /SET status = 'withdrawn'/i);
-  assert.match(migration, /'code', 'NOT_FOUND'/i);
-  assert.match(migration, /'code', 'INVALID_STATUS'/i);
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\\.candidate_withdraw_application\\(uuid\\) FROM PUBLIC, anon/i);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\\.candidate_withdraw_application\\(uuid\\) TO authenticated/i);
+  assert.ok(migration.includes("FUNCTION public.candidate_withdraw_application(p_application_id uuid)"));
+  assert.ok(migration.includes("application.candidate_id = actor_id"));
+  assert.ok(migration.includes("application_row.status NOT IN ('applied', 'reviewing', 'shortlisted')"));
+  assert.ok(migration.includes("SET status = 'withdrawn'"));
+  assert.ok(migration.includes("'code', 'NOT_FOUND'"));
+  assert.ok(migration.includes("'code', 'INVALID_STATUS'"));
+  assert.ok(migration.includes("REVOKE ALL ON FUNCTION public.candidate_withdraw_application(uuid) FROM PUBLIC, anon"));
+  assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.candidate_withdraw_application(uuid) TO authenticated"));
 });
 
 test("authenticated clients cannot bypass application workflow RPCs with direct status updates", () => {
-  assert.match(migration, /REVOKE UPDATE \\(status\\) ON TABLE public\\.applications FROM PUBLIC, anon, authenticated/i);
+  assert.ok(migration.includes("REVOKE UPDATE (status) ON TABLE public.applications FROM PUBLIC, anon, authenticated"));
   const applicationsRoute = readFileSync(new URL("../app/api/applications/route.ts", import.meta.url), "utf8");
-  assert.match(applicationsRoute, /rpc\\(\\s*"candidate_withdraw_application"/i);
-  assert.doesNotMatch(applicationsRoute, /from\\(["']applications["']\\)\\s*\\.update\\(\\{\\s*status:\\s*["']withdrawn["']/i);
+  assert.ok(applicationsRoute.includes('"candidate_withdraw_application"'));
+  assert.doesNotMatch(applicationsRoute, /\.from\(["']applications["']\)\s*\.update\(\{\s*status:\s*["']withdrawn["']/i);
 });
