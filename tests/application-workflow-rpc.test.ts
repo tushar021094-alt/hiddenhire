@@ -6,6 +6,14 @@ const migration = readFileSync(
   new URL("../supabase/migrations/20261020140000_secure_application_workflow_updates.sql", import.meta.url),
   "utf8",
 );
+const recruiterStatusControl = readFileSync(
+  new URL("../app/recruiter/jobs/[id]/application-status-control.tsx", import.meta.url),
+  "utf8",
+);
+const candidateApplicationsPage = readFileSync(
+  new URL("../app/applications/page.tsx", import.meta.url),
+  "utf8",
+);
 
 test("candidate reminder RPC validates candidate role and application ownership", () => {
   assert.match(migration, /FUNCTION public\.candidate_remind_application\(p_application_id uuid\)/i);
@@ -33,7 +41,11 @@ test("recruiter status RPC validates role, job ownership and UI-supported status
   assert.match(migration, /actor_role IS DISTINCT FROM 'employer' AND actor_role IS DISTINCT FROM 'agency'/i);
   assert.match(migration, /job_row\.posted_by IS DISTINCT FROM actor_id/i);
   assert.ok(migration.includes("p_status IS NULL OR p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired')"));
-  assert.doesNotMatch(migration, /INVALID_TRANSITION/i);
+  assert.match(migration, /application_row\.status = 'applied' AND p_status = 'reviewing'/i);
+  assert.match(migration, /application_row\.status = 'reviewing' AND p_status IN \('shortlisted', 'interview', 'rejected'\)/i);
+  assert.match(migration, /application_row\.status = 'shortlisted' AND p_status IN \('interview', 'rejected', 'hired'\)/i);
+  assert.match(migration, /application_row\.status = 'interview' AND p_status IN \('hired', 'rejected'\)/i);
+  assert.match(migration, /'code', 'INVALID_TRANSITION'/i);
   assert.match(migration, /'application_status'/i);
 });
 
@@ -42,4 +54,16 @@ test("application workflow RPC execution is authenticated-only", () => {
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.candidate_remind_application\(uuid\) TO authenticated/i);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.recruiter_update_application_status\(uuid, text\) FROM PUBLIC, anon/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.recruiter_update_application_status\(uuid, text\) TO authenticated/i);
+});
+
+test("recruiter selector offers only forward transitions allowed by the database trigger", () => {
+  assert.match(recruiterStatusControl, /applied:\s*\["applied",\s*"reviewing"\]/);
+  assert.match(recruiterStatusControl, /reviewing:\s*\["reviewing",\s*"shortlisted",\s*"interview",\s*"rejected"\]/);
+  assert.match(recruiterStatusControl, /shortlisted:\s*\["shortlisted",\s*"interview",\s*"rejected",\s*"hired"\]/);
+  assert.match(recruiterStatusControl, /interview:\s*\["interview",\s*"rejected",\s*"hired"\]/);
+  assert.match(recruiterStatusControl, /disabled=\{saving \|\| statusLocked\}/);
+});
+
+test("candidate withdraw action is offered only while the database trigger allows withdrawal", () => {
+  assert.match(candidateApplicationsPage, /\["applied", "reviewing", "shortlisted"\]\.includes\(application\.status\)/);
 });
