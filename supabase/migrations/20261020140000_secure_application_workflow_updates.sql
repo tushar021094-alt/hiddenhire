@@ -14,7 +14,6 @@ DECLARE
   actor_role text;
   application_row public.applications%rowtype;
   job_row public.jobs%rowtype;
-  candidate_name text;
   current_time_at timestamptz;
   next_eligible_at timestamptz;
   reminder_eligible_at timestamptz;
@@ -89,24 +88,9 @@ BEGIN
       updated_at = current_time_at
   WHERE id = application_row.id;
 
-  SELECT profile.full_name INTO candidate_name
-  FROM public.profiles AS profile
-  WHERE profile.id = actor_id;
-
-  INSERT INTO public.notifications (profile_id, type, title, body, data)
-  VALUES (
-    job_row.posted_by,
-    'application_reminder',
-    'Candidate requested an application update',
-    coalesce(nullif(candidate_name, ''), 'A candidate') ||
-      ' requested an update on the application for "' || job_row.title || '".',
-    jsonb_build_object(
-      'application_id', application_row.id,
-      'job_id', job_row.id,
-      'status', application_row.status,
-      'reminder_count', next_count
-    )
-  );
+  -- The existing AFTER UPDATE application_reminder_notification trigger writes
+  -- the recruiter notification when last_candidate_reminder_at changes. Do not
+  -- insert a second notification here.
 
   RETURN jsonb_build_object(
     'ok', true,
