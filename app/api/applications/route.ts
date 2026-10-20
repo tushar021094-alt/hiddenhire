@@ -332,18 +332,45 @@ export async function PATCH(request: Request) {
     }
 
     if (profile?.role === "candidate" && status === "withdrawn") {
-      const { data: application, error: updateError } = await supabase
-        .from("applications")
-        .update({ status: "withdrawn" })
-        .eq("id", applicationId)
-        .select("id, job_id, candidate_id, status, created_at, updated_at")
-        .single();
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "candidate_withdraw_application",
+        { p_application_id: applicationId },
+      );
 
-      if (updateError) {
-        return NextResponse.json({ error: "Unable to update the application status." }, { status: 500 });
+      if (rpcError) {
+        console.error("Candidate application withdrawal RPC failed", { code: rpcError.code });
+        return NextResponse.json({ error: "Application withdrawals are temporarily unavailable. Please try again later." }, { status: 503 });
       }
 
-      return NextResponse.json({ success: true, application });
+      const result = rpcResult as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        application?: unknown;
+      } | null;
+
+      if (!result?.ok) {
+        if (result?.code === "NOT_FOUND") {
+          return NextResponse.json({ error: "Application not found." }, { status: 404 });
+        }
+        if (result?.code === "FORBIDDEN") {
+          return NextResponse.json({ error: "Only candidate accounts can withdraw an application." }, { status: 403 });
+        }
+        if (result?.code === "AUTH_REQUIRED") {
+          return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+        }
+        return NextResponse.json({
+          error: result?.code === "INVALID_STATUS"
+            ? "This application can no longer be withdrawn at its current stage."
+            : "Unable to update this application at its current stage.",
+        }, { status: 409 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        application: result.application,
+        message: result.message,
+      });
     }
 
     return NextResponse.json({ error: "You are not allowed to set this application status." }, { status: 403 });
