@@ -30,7 +30,7 @@ test("recruiter status RPC validates role, job ownership and UI-supported status
   assert.ok(migration.includes("p_status text"));
   assert.match(migration, /actor_role IS DISTINCT FROM 'employer' AND actor_role IS DISTINCT FROM 'agency'/i);
   assert.match(migration, /job_row\.posted_by IS DISTINCT FROM actor_id/i);
-  assert.ok(migration.includes("p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired')"));
+  assert.ok(migration.includes("p_status IS NULL OR p_status NOT IN ('reviewing', 'shortlisted', 'interview', 'rejected', 'hired')"));
   assert.doesNotMatch(migration, /INVALID_TRANSITION/i);
   assert.match(migration, /'application_status'/i);
 });
