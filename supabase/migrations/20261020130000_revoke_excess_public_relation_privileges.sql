@@ -16,3 +16,8 @@ REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES
   FROM anon, authenticated;
+
+-- This SECURITY DEFINER routine is a trigger function in the unexposed private
+-- schema, not an application RPC. Trigger execution does not require exposing it
+-- as an independently callable API function.
+REVOKE ALL ON FUNCTION private.notify_application_reminder() FROM PUBLIC, anon, authenticated;
