@@ -62,3 +62,8 @@ test("career-task RPCs are callable only by authenticated users", () => {
 test("safe queued tasks expose a Start control without bypassing Apply or Follow-up approvals", () => {
   assert.match(executionComponent, /task\.state === "queued" && !task\.requires_approval && !\["apply", "follow_up"\]\.includes\(task\.action\)/);
 });
+
+
+test("career task template submissions include stable operation ids for deduplication", () => {
+  assert.ok(executionComponent.includes('operationId: `agent-task:${template.action}`'));
+});
