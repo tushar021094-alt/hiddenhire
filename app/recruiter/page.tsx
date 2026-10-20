@@ -49,20 +49,47 @@ type CandidateMatch = {
 
 export default function RecruiterPage(){
   const router = useRouter();
+  const [accessState, setAccessState] = useState<"checking" | "allowed" | "blocked" | "error">("checking");
+  const [accountRole, setAccountRole] = useState("");
 
   useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    let active = true;
+    async function checkAccess() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.replace("/login");
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!active) return;
+        if (authError || profileError || !profile) {
+          setAccessState("error");
+          return;
+        }
+
+        setAccountRole(profile.role);
+        setAccessState(profile.role === "employer" || profile.role === "agency" ? "allowed" : "blocked");
+      } catch {
+        if (active) setAccessState("error");
       }
     }
 
-    void checkAuth();
+    void checkAccess();
+    return () => {
+      active = false;
+    };
   }, [router]);
  const [form,setForm]=useState({
   title:"Finance Manager",
@@ -101,6 +128,27 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
   }catch(e){setError(e instanceof Error?e.message:"Matching failed")}finally{setLoading(false)}
  }
  const set=(k:keyof typeof form,v:string)=>setForm(x=>({...x,[k]:v}));
+
+ if (accessState !== "allowed") {
+  const heading = accessState === "checking"
+    ? "Checking recruiter access"
+    : accessState === "blocked"
+      ? "Recruiter access is not enabled for this account"
+      : "We couldn’t verify this account";
+  const message = accessState === "blocked"
+    ? `This account is currently saved with the role “${accountRole}”. Posting jobs is available only to Employer or Agency accounts. HiddenHire has not changed your account role automatically.`
+    : accessState === "checking"
+      ? "Verifying your signed-in account and saved role before opening recruiter tools."
+      : "We could not safely confirm your account type. Refresh the page; if the problem continues, sign in again or contact support.";
+  return <main className="app-v2 recruiter-v2 min-h-screen bg-[#08090d] px-5 py-10 text-white"><div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-white/[.03] p-8">
+   <p className="text-xs font-semibold uppercase tracking-[.2em] text-cyan-300">Recruiter workspace</p>
+   <h1 className="mt-4 text-3xl font-bold">{heading}</h1>
+   <p className="mt-4 text-sm leading-7 text-white/60">{message}</p>
+   {accessState === "blocked" && <p className="mt-3 text-sm leading-7 text-white/45">If this should be an employer or agency account, the saved profile role needs an authorized correction. Please do not create another account just to work around a role mismatch.</p>}
+   <div className="mt-6 flex flex-wrap gap-3"><a href="/dashboard" className="rounded-xl border border-white/10 px-4 py-3 text-sm text-white/75">Open current workspace</a><a href="/login" className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950">Go to sign in</a></div>
+  </div></main>;
+ }
+
  return <main className="app-v2 recruiter-v2 min-h-screen bg-[#08090d] px-5 py-10 text-white"><div className="mx-auto max-w-6xl">
   <div className="mb-10"><div className="text-xs font-semibold uppercase tracking-[.2em] text-cyan-300">Recruiter workspace</div>
    <h1 className="mt-3 text-4xl font-bold">Post a job. Let HiddenHire find the candidates.</h1>
