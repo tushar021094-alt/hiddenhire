@@ -12,6 +12,7 @@ const apiPaths = [
   "../app/api/career-operations/enqueue/route.ts",
 ];
 const apiSources = apiPaths.map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
+const executionComponent = readFileSync(new URL("../components/career-agent-execution.tsx", import.meta.url), "utf8");
 
 test("career task table mutations are revoked from direct authenticated clients", () => {
   assert.match(migration, /REVOKE ALL ON TABLE public\.career_execution_tasks FROM anon, authenticated/i);
@@ -56,4 +57,8 @@ test("career-task RPCs are callable only by authenticated users", () => {
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.create_career_execution_task\(text, text, text, boolean, uuid, text\) TO authenticated/i);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.transition_career_execution_task\(uuid, text\) FROM PUBLIC, anon/i);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.transition_career_execution_task\(uuid, text\) TO authenticated/i);
+});
+
+test("safe queued tasks expose a Start control without bypassing Apply or Follow-up approvals", () => {
+  assert.match(executionComponent, /task\.state === "queued" && !task\.requires_approval && !\["apply", "follow_up"\]\.includes\(task\.action\)/);
 });
