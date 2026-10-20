@@ -93,5 +93,25 @@ end;
 $$;
 revoke all on function public.save_job_with_entitlement(jsonb, boolean) from public;
 grant execute on function public.save_job_with_entitlement(jsonb, boolean) to authenticated;
-revoke insert on public.saved_jobs from authenticated;
-revoke insert (id, profile_id, external_job_id, job_id, source, job_url, score, status, created_at, title, company, location, remote, salary_min, salary_max, currency) on public.saved_jobs from authenticated;
+-- Remove table- and column-level INSERT grants without assuming a fixed
+-- saved_jobs shape: deployed schemas may have different optional display fields.
+REVOKE INSERT ON TABLE public.saved_jobs FROM anon, authenticated;
+DO $migration$
+DECLARE
+  v_columns text;
+BEGIN
+  SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
+    INTO v_columns
+  FROM pg_attribute AS a
+  WHERE a.attrelid = 'public.saved_jobs'::regclass
+    AND a.attnum > 0
+    AND NOT a.attisdropped;
+
+  IF v_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE INSERT (%s) ON TABLE public.saved_jobs FROM anon, authenticated',
+      v_columns
+    );
+  END IF;
+END;
+$migration$;
