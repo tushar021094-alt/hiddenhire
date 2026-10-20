@@ -122,7 +122,7 @@ export default function CareerAgentExecution() {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {task.state === "awaiting_approval" && <button type="button" onClick={() => void transition(task, "approve")} className="rounded-lg border border-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100">Approve</button>}
-              {task.state === "approved" && <button type="button" onClick={() => void transition(task, "start")} className="rounded-lg border border-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100">Start</button>}
+              {(task.state === "approved" || (task.state === "queued" && !task.requires_approval && !["apply", "follow_up"].includes(task.action))) && <button type="button" onClick={() => void transition(task, "start")} className="rounded-lg border border-cyan-400/20 px-3 py-1.5 text-xs text-cyan-100">Start</button>}
               {task.state === "executing" && <button type="button" onClick={() => void transition(task, "complete")} className="rounded-lg border border-emerald-400/20 px-3 py-1.5 text-xs text-emerald-100">Mark complete</button>}
               {!["completed", "cancelled"].includes(task.state) && <button type="button" onClick={() => void transition(task, "cancel")} className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/55">Cancel</button>}
             </div>
