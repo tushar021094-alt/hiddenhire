@@ -92,6 +92,7 @@ async function normalizeJob(input: RecruiterJobInput) {
 export async function POST(request: Request) {
   const rate = checkRateLimit(`recruiter-jobs:${getClientIdentifier(request)}`, 10, 60_000);
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+  let persistedJob: unknown = null;
   try {
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > MAX_BODY_BYTES) {
@@ -446,6 +447,10 @@ if (profile.role === "agency") {
       );
     }
 
+    // Once the database confirms creation, later matching errors must not make
+    // the client believe no job exists or encourage a duplicate retry.
+    persistedJob = job;
+
     const { data: candidates, error: candidateDiscoveryError } =
   await supabase.rpc(
     "recruiter_candidate_discovery_for_job",
@@ -557,6 +562,19 @@ try {
   );
 }
 } catch {
+  if (persistedJob) {
+    return NextResponse.json(
+      {
+        mode: "native",
+        job: persistedJob,
+        candidateCount: 0,
+        matches: [],
+        warning: "The job was saved, but candidate matching could not finish. Open Find Talent to retry.",
+      },
+      { status: 201 }
+    );
+  }
+
   return NextResponse.json(
     { error: "Job creation failed. Please try again." },
     { status: 500 }
