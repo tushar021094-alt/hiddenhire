@@ -31,3 +31,13 @@ test("recruiter UI displays partial-success warnings without discarding the job 
   assert.match(page, /setWarning\(typeof d\.warning === "string" \? d\.warning : ""\)/);
   assert.match(page, /role="status"[\s\S]*?\{warning\}/);
 });
+
+
+test("unexpected post-insert errors preserve the persisted job as a partial success", () => {
+  const outerCatchStart = postInsert.lastIndexOf("} catch {");
+  assert.ok(outerCatchStart >= 0);
+  const outerCatch = postInsert.slice(outerCatchStart);
+  assert.match(outerCatch, /if \(persistedJob\)/);
+  assert.match(outerCatch, /job: persistedJob/);
+  assert.match(outerCatch, /warning:[\s\S]*?\{ status: 201 \}/);
+});
