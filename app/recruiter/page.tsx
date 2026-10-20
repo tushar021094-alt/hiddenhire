@@ -111,8 +111,9 @@ const [ai, setAi] = useState<AiNormalized | null>(null);
 const [matches, setMatches] = useState<CandidateMatch[]>([]);
  const [loading, setLoading] = useState(false);
 const [error, setError] = useState("");
+const [warning, setWarning] = useState("");
  async function submit(e:React.FormEvent){
-  e.preventDefault();setLoading(true);setError("");
+  e.preventDefault();setLoading(true);setError("");setWarning("");
   try{
    const r=await fetch("/api/recruiter/jobs",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({...form,skills:form.skills.split(",").map(s=>s.trim()).filter(Boolean),salaryMin:Number(form.salaryMin),salaryMax:Number(form.salaryMax),experienceMin:Number(form.experienceMin),experienceMax:Number(form.experienceMax)})});
@@ -125,6 +126,7 @@ if (!r.ok) {
 setJob(d.job);
 setAi(d.aiNormalized);
 setMatches(Array.isArray(d.matches) ? d.matches : []);
+setWarning(typeof d.warning === "string" ? d.warning : "");
   }catch(e){setError(e instanceof Error?e.message:"Matching failed")}finally{setLoading(false)}
  }
  const set=(k:keyof typeof form,v:string)=>setForm(x=>({...x,[k]:v}));
@@ -203,7 +205,8 @@ setMatches(Array.isArray(d.matches) ? d.matches : []);
    <label className="flex items-center gap-3 text-sm text-white/70 md:col-span-2"><input type="checkbox" checked={form.remote} onChange={e=>setForm(x=>({...x,remote:e.target.checked}))}/> Remote role</label>
    <button disabled={loading} className="rounded-xl bg-white px-5 py-3 font-semibold text-black md:col-span-2">{loading?"AI is understanding the job and finding candidates…":"Post job & find candidates →"}</button>
   </form>
-  {error&&<div className="mt-5 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm text-red-200">{error}</div>}
+  {error&&<div role="alert" className="mt-5 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm text-red-200">{error}</div>}
+  {warning&&<div role="status" className="mt-5 rounded-xl border border-amber-300/20 bg-amber-300/[.05] p-4 text-sm text-amber-100">{warning}</div>}
 
    {job && (
   <section className="mt-10">
