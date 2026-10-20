@@ -56,7 +56,9 @@ export default function CareerAgentExecution() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || "Unable to queue this task.");
-      setNotice("Task queued and waiting for your approval.");
+      setNotice(data.deduplicated === true
+        ? "An active task with this action already exists; no duplicate was created."
+        : "Task queued and waiting for your approval.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to queue this task.");
