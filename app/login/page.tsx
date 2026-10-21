@@ -25,11 +25,11 @@ export default function LoginPage() {
       const supabase = createClient();
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
-  email: email.trim(),
-  options: {
-    shouldCreateUser: false,
-  },
-});
+        email: email.trim(),
+        options: {
+          shouldCreateUser: false,
+        },
+      });
       if (otpError) {
         throw otpError;
       }
@@ -37,7 +37,16 @@ export default function LoginPage() {
       setOtpSent(true);
       setMessage("We sent an 8-digit code to your email address.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send a sign-in code.");
+      const errorMessage = err instanceof Error ? err.message : "";
+      if (/signups not allowed for otp/i.test(errorMessage)) {
+        // Do not expose Supabase's account-existence-specific response verbatim.
+        // A first-time Preview user should register, while existing users can retry.
+        setError(
+          "We couldn't send a sign-in code. If you are new to this Preview, select Create account first. If you already registered, check the email address and try again.",
+        );
+      } else {
+        setError(errorMessage || "Could not send a sign-in code.");
+      }
     } finally {
       setLoading(false);
     }
