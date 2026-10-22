@@ -19,3 +19,13 @@ test("OTP sign-in response gives useful account-creation guidance instead of raw
 test("OTP sign-in explicitly redirects to the current app origin callback", () => {
   assert.match(loginPage, /emailRedirectTo:\s*`\$\{window\.location\.origin\}\/auth\/callback`/);
 });
+
+
+test("login OTP input matches Supabase six-digit email tokens", () => {
+  assert.match(loginPage, /6-digit sign-in code/);
+  assert.match(loginPage, /label="6-digit code"/);
+  assert.match(loginPage, /pattern="\[0-9\]\{6\}"/);
+  assert.match(loginPage, /slice\(0, 6\)/);
+  assert.match(loginPage, /placeholder="123456"/);
+  assert.doesNotMatch(loginPage, /8-digit code|12345678|slice\(0, 8\)/);
+});
