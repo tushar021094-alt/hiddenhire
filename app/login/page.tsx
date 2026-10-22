@@ -28,6 +28,9 @@ export default function LoginPage() {
         email: email.trim(),
         options: {
           shouldCreateUser: false,
+          // Use the currently hosted environment rather than Supabase's Site URL
+          // (which can still be localhost during local development).
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (otpError) {
