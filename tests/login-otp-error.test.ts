@@ -14,3 +14,8 @@ test("OTP sign-in response gives useful account-creation guidance instead of raw
   assert.doesNotMatch(loginPage, /setError\(err instanceof Error \? err\.message : "Could not send a sign-in code\."\)/);
   assert.match(loginPage, /href="\/register"/);
 });
+
+
+test("OTP sign-in explicitly redirects to the current app origin callback", () => {
+  assert.match(loginPage, /emailRedirectTo:\s*`\$\{window\.location\.origin\}\/auth\/callback`/);
+});
