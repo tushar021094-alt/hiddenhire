@@ -308,7 +308,7 @@ export default function ProfilePage() {
             <div>
               <span>OPTIONAL · AI ASSISTED SETUP</span>
               <h2>Auto-fill with your resume</h2>
-              <p>Upload a PDF and HiddenHire will extract profile details for your review. Nothing is saved until you approve and save the form.</p>
+              <p>Upload a PDF to extract your career details, suggest target roles and estimate a salary range. Review the results, then save supported profile fields in one action.</p>
             </div>
             <span className="profile-live-badge">AI IMPORT</span>
           </div>
@@ -323,18 +323,40 @@ export default function ProfilePage() {
           </form>
           {resumeMessage && <p role="status" className={resumeDraft ? "resume-import-message is-success" : "resume-import-message"}>{resumeMessage}</p>}
           {resumeDraft && <div className="resume-review">
-            <div className="resume-review-heading"><h3>Review extracted details</h3><span>Not saved yet</span></div>
-            <p><strong>Name:</strong> {resumeDraft.fullName || "Not found"} <span className="resume-muted">· name is shown for reference and is not changed by this form</span></p>
-            <p><strong>Target role:</strong> {resumeDraft.targetRole || "Not found"}</p>
+            <div className="resume-review-heading"><h3>Review extracted details</h3><span>{resumeSaved ? "Saved to profile" : "Not saved yet"}</span></div>
+            <p><strong>Name:</strong> {resumeDraft.fullName || "Not found"} <span className="resume-muted">· will update your profile name when saved</span></p>
+            <p><strong>Best-fit target role:</strong> {resumeDraft.recommendedTargetRoles[0] || resumeDraft.targetRole || "Not confidently detected"}</p>
+            {resumeDraft.recommendedTargetRoles.length > 0 && <p><strong>Alternative role targets:</strong> {resumeDraft.recommendedTargetRoles.join(", ")}</p>}
             <p><strong>Headline:</strong> {resumeDraft.headline || "Not found"}</p>
             <p><strong>Experience:</strong> {resumeDraft.experienceYears === null ? "Not confidently detected" : `${resumeDraft.experienceYears} years`}</p>
             <p><strong>Country:</strong> {resumeDraft.country || "Not found"}</p>
             <p><strong>Skills:</strong> {resumeDraft.skills.length ? resumeDraft.skills.join(", ") : "No skills detected"}</p>
+            {resumeDraft.resumeSummary && <p><strong>Resume summary:</strong> {resumeDraft.resumeSummary}</p>}
+            {resumeDraft.salaryRecommendation && <div className="resume-import-message">
+              <strong>Indicative annual salary range:</strong>{" "}
+              {resumeDraft.salaryRecommendation.currency}{" "}
+              {resumeDraft.salaryRecommendation.minimumAnnual === null ? "—" : resumeDraft.salaryRecommendation.minimumAnnual.toLocaleString()}{" "}
+              –{" "}
+              {resumeDraft.salaryRecommendation.maximumAnnual === null ? "—" : resumeDraft.salaryRecommendation.maximumAnnual.toLocaleString()}
+              <p>{resumeDraft.salaryRecommendation.rationale || "Based on the resume's role and experience signals."}</p>
+              <p className="resume-muted">Confidence: {resumeDraft.salaryRecommendation.confidence}. AI estimate only—not a live-market salary survey or guaranteed offer.</p>
+            </div>}
             {resumeDraft.workExperience.length > 0 && <div><strong>Work history preview</strong>{resumeDraft.workExperience.map((item, index) => <p key={index}>{item.title || "Role not identified"}{item.company ? ` · ${item.company}` : ""}{item.startDate || item.endDate ? ` · ${item.startDate || "?"}–${item.endDate || "?"}` : ""}{item.summary ? <span className="resume-muted"> — {item.summary}</span> : null}</p>)}</div>}
             {resumeDraft.education.length > 0 && <div><strong>Education preview</strong>{resumeDraft.education.map((item, index) => <p key={index}>{item.qualification}{item.institution ? ` · ${item.institution}` : ""}{item.year ? ` · ${item.year}` : ""}</p>)}</div>}
             {resumeDraft.certifications.length > 0 && <p><strong>Certifications:</strong> {resumeDraft.certifications.join(", ")}</p>}
             {resumeDraft.missingFields.length > 0 && <p className="resume-muted"><strong>Check manually:</strong> {resumeDraft.missingFields.join(", ")}</p>}
-            <button type="button" onClick={applyResumeDraft} className="workspace-secondary-button">Apply extracted fields to form</button>
+            <button type="button" onClick={applyResumeDraft} disabled={resumeSaving || resumeSaved} className="workspace-primary-button">
+              {resumeSaving ? "Saving resume profile…" : resumeSaved ? "Saved to profile ✓" : "Apply suggestions & save profile →"}
+            </button>
+          </div>}
+          {!resumeDraft && savedResumeDetails && <div className="resume-review">
+            <div className="resume-review-heading"><h3>Resume details on file</h3><span>Saved</span></div>
+            {savedResumeDetails.resumeSummary && <p><strong>Summary:</strong> {savedResumeDetails.resumeSummary}</p>}
+            {savedResumeDetails.recommendedTargetRoles.length > 0 && <p><strong>AI role suggestions:</strong> {savedResumeDetails.recommendedTargetRoles.join(", ")}</p>}
+            {savedResumeDetails.salaryRecommendation && <p><strong>Indicative salary range:</strong> {savedResumeDetails.salaryRecommendation.currency} {savedResumeDetails.salaryRecommendation.minimumAnnual?.toLocaleString() || "—"} – {savedResumeDetails.salaryRecommendation.maximumAnnual?.toLocaleString() || "—"} per year <span className="resume-muted">(AI estimate, not live-market data)</span></p>}
+            {savedResumeDetails.workExperience.length > 0 && <div><strong>Work history</strong>{savedResumeDetails.workExperience.map((item, index) => <p key={index}>{item.title || "Role not identified"}{item.company ? ` · ${item.company}` : ""}{item.startDate || item.endDate ? ` · ${item.startDate || "?"}–${item.endDate || "?"}` : ""}{item.summary ? <span className="resume-muted"> — {item.summary}</span> : null}</p>)}</div>}
+            {savedResumeDetails.education.length > 0 && <div><strong>Education</strong>{savedResumeDetails.education.map((item, index) => <p key={index}>{item.qualification}{item.institution ? ` · ${item.institution}` : ""}{item.year ? ` · ${item.year}` : ""}</p>)}</div>}
+            {savedResumeDetails.certifications.length > 0 && <p><strong>Certifications:</strong> {savedResumeDetails.certifications.join(", ")}</p>}
           </div>}
         </section>
 
