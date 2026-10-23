@@ -37,12 +37,15 @@ test("resume import API requires Plus, uses a persistent monthly quota, and caps
   assert.match(resumeRoute, /p_feature_key: "resume_import"/);
   assert.match(resumeRoute, /max_output_tokens: 4000/);
   assert.match(resumeRoute, /detail: "low"/);
+  assert.match(resumeRoute, /gpt-6-luna/);
   assert.match(resumeRoute, /checkRateLimit\(`resume-import:/);
 });
 
 test("OpenAI-generated job-match explanations require a monthly Plus quota and cap output tokens", () => {
   assert.match(openaiRoute, /p_feature_key: "resume_job_match"/);
-  assert.match(openaiRoute, /max_tokens: 600/);
+  assert.match(openaiRoute, /max_output_tokens: 600/);
+  assert.match(openaiRoute, /responses\.create/);
+  assert.match(openaiRoute, /gpt-6-luna/);
 });
 
 test("quota function checks role and live paid subscription, atomically limits monthly usage, and blocks direct access", () => {
