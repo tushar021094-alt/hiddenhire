@@ -119,7 +119,7 @@ function normalizeCountryPreference(value: string): string {
   const normalized = normalizeLocation(value)
     .toLowerCase()
     .replace(/[.,]/g, " ")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 
   if (/^(?:in|india|republic of india)$/.test(normalized)) return "india";
