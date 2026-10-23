@@ -7,7 +7,12 @@ export type DiscoveryViewJob = {
   postedDate?: string | null;
   score?: number | null;
   currency?: string | null;
+  salaryCurrency?: string | null;
 };
+
+function currencyOf(job: DiscoveryViewJob): string {
+  return String(job.currency || job.salaryCurrency || "").trim().toUpperCase();
+}
 
 function disclosedSalary(job: DiscoveryViewJob): number {
   const max = typeof job.salaryMax === "number" ? job.salaryMax : 0;
@@ -35,8 +40,8 @@ export function getVisibleDiscoveryJobs<T extends DiscoveryViewJob>(
     // Undisclosed salaries must not be shown as "high salary" recommendations.
     visible = visible.filter((job) => disclosedSalary(job) > 0);
     visible.sort((a, b) => {
-      const aCurrency = String(a.currency || "").toUpperCase();
-      const bCurrency = String(b.currency || "").toUpperCase();
+      const aCurrency = currencyOf(a);
+      const bCurrency = currencyOf(b);
       const preferred = preferredCurrency.toUpperCase();
       const aPreferred = aCurrency === preferred ? 1 : 0;
       const bPreferred = bCurrency === preferred ? 1 : 0;
