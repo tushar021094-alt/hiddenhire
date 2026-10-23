@@ -14,7 +14,9 @@ test("candidate profile form submits all editable fields to the profile API", ()
 
 test("profile API persists base profile fields and career target/headline for the signed-in candidate", () => {
   assert.match(route, /current\?\.role !== "candidate"/);
-  assert.match(route, /from\("profiles"\)\.update\(\{ skills, experience_years: experience, country: country \|\| null, remote_only: remoteOnly, min_salary: minSalary, salary_currency: salaryCurrency \}\)/);
+  assert.match(route, /const profileUpdate: JsonRecord = \{/);
+  assert.match(route, /profileUpdate\.full_name = fullName/);
+  assert.match(route, /from\("profiles"\)\.update\(profileUpdate\)/);
   assert.match(route, /from\("candidate_profiles"\)\.upsert\(/);
   assert.match(route, /target_roles:\s*\[role\]/);
   assert.match(route, /headline:\s*headline \|\| null/);
