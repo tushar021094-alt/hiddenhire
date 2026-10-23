@@ -52,6 +52,14 @@ type CandidateProfile = {
   job_search_mode: string | null;
 };
 
+type SearchStats = {
+  collected: number;
+  eligible: number;
+  afterFilters: number;
+  sources: number;
+  unavailableSources: number;
+};
+
 export default function JobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -63,6 +71,7 @@ export default function JobsPage() {
   const [saveError, setSaveError] = useState("");
   const [message, setMessage] = useState("");
   const [searchNotice, setSearchNotice] = useState("");
+  const [searchStats, setSearchStats] = useState<SearchStats | null>(null);
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
@@ -158,6 +167,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     if (!targetRoles.length) {
       setJobs([]);
       setMessage("Complete your candidate profile to activate Match Radar.");
+      setSearchStats(null);
       setLoading(false);
       setIsSearching(false);
       return;
@@ -167,6 +177,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     setError("");
     setMessage("");
     setSearchNotice("");
+    setSearchStats(null);
 
     try {
       const remoteOnly = mode === "remote"
@@ -228,6 +239,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
       if (!response.ok) {
         setError(payload?.error || payload?.message || "Unable to load matched jobs.");
         setJobs([]);
+        setSearchStats(null);
       } else {
         const results = Array.isArray(payload?.results) ? payload.results : [];
         setJobs(
@@ -245,6 +257,14 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
           : [];
         const totalCollected = Number(payload?.totalCollected ?? metrics?.totalCollected ?? 0);
         const totalEligible = Number(payload?.totalEligible ?? metrics?.totalEligible ?? 0);
+        const sourceCounts = metrics?.sources && typeof metrics.sources === "object" ? metrics.sources : {};
+        setSearchStats({
+          collected: Math.max(0, totalCollected),
+          eligible: Math.max(0, totalEligible),
+          afterFilters: Math.max(0, Number(payload?.totalAfterSearchAndModeFilter ?? results.length)),
+          sources: Object.keys(sourceCounts).length,
+          unavailableSources: sourceErrors.length,
+        });
         let resultMessage = payload?.message || "";
         if (results.length === 0 && totalCollected === 0) {
           resultMessage = sourceErrors.length
@@ -260,6 +280,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     } catch (err) {
       if (signal?.aborted) return;
       setJobs([]);
+      setSearchStats(null);
       setError(err instanceof Error ? err.message : "Unable to load matched jobs.");
     } finally {
       if (!signal?.aborted) {
@@ -433,6 +454,11 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
                 <div>
                   <strong>{searchNotice.startsWith("No exact matches") && jobs.length === 0 ? "No exact matches or profile recommendations yet." : searchQuery.trim() || workModeFilter !== "all" ? "No jobs match your search." : "No strong matches yet."}</strong>
                   <p>{message}</p>
+                  {searchStats && (
+                    <p role="status" className="mt-2 text-xs opacity-80">
+                      Search diagnostics: {searchStats.collected} live listings collected · {searchStats.eligible} passed profile filters · {searchStats.afterFilters} passed your search filters · {searchStats.unavailableSources} sources unavailable.
+                    </p>
+                  )}
                 </div>
                 {searchQuery.trim() || workModeFilter !== "all" ? (
                   <button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); void runSearch("", "all", profile, candidate); }}>Reset search →</button>
