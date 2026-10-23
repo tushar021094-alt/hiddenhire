@@ -373,7 +373,7 @@ export default async function DashboardPage() {
                       <p>Advanced AI insights, priority opportunities and deeper career intelligence.</p>
                       <ul><li>Advanced match intelligence</li><li>Priority opportunity signals</li><li>Deeper career insights</li></ul>
                     </div>
-                    <div className="hh-plan-price"><strong>₹199</strong><span>/ month</span><a href="#pricing">Upgrade to Pro <span>→</span></a></div>
+                    <div className="hh-plan-price"><strong>₹299</strong><span>/ month</span><a href="#pricing">Upgrade to Pro <span>→</span></a></div>
                   </article>
                 </div>
               </section>
