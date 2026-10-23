@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   POST,
@@ -37,6 +38,13 @@ function mockJob(overrides: Partial<Job> = {}): Job {
     ...overrides,
   };
 }
+
+test("empty title searches automatically fall back to saved-profile recommendations", () => {
+  const jobsPage = readFileSync(new URL("../app/jobs/page.tsx", import.meta.url), "utf8");
+  assert.match(jobsPage, /payload\?\.results\.length === 0/);
+  assert.match(jobsPage, /searchQuery: ""/);
+  assert.match(jobsPage, /personalized recommendations based on your saved profile/);
+});
 
 test('normalizes the candidate profile before demo ranking', async () => {
   const response = await POST(new Request('http://localhost/api/jobs/search', {
