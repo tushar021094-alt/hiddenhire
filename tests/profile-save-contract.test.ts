@@ -41,3 +41,12 @@ test("profile warns when the target role conflicts with the professional headlin
   assert.match(page, /Your target role and headline point to different roles/);
   assert.match(page, /Job Discovery uses <strong>Target role<\/strong> for ranking/);
 });
+
+test("preferred city filters are separate from the selected country", () => {
+  assert.match(page, /label="Preferred locations"/);
+  assert.match(page, /preferredLocations: parsePreferredLocations\(preferredLocations\)/);
+  assert.match(page, /setPreferredLocations\(loadedPreferredLocations\.join\(", "\)\)/);
+  assert.match(route, /function normalizePreferredLocations/);
+  assert.match(route, /careerUpdate\.preferred_locations = normalizePreferredLocations\(input\.preferredLocations\)/);
+  assert.doesNotMatch(route, /preferred_locations:\s*country\s*\?\s*\[country\]/);
+});
