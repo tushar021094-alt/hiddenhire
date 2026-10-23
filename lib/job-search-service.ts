@@ -52,13 +52,13 @@ export function filterJobsForDiscovery(
     // "Finance Executive": good matches are often listed as Billing Analyst,
     // MIS Executive, Accounts Executive, Finance Operations, or SAP FICO roles.
     const normalizedRoleQuery = normalizedQuery
-      .replace(/\\b(?:jobs?|roles?|positions?|openings?)\\b/g, '')
-      .replace(/\\s+/g, ' ')
+      .replace(/\b(?:jobs?|roles?|positions?|openings?)\b/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
-    const financeRoleFamilyQuery = /^(?:(?:senior|lead)\\s+)?(?:(?:finance|financial)\\s+(?:executive|exec|officer|analyst|manager|specialist|associate|operations(?:\\s+executive)?)|(?:accounting|accounts?)\\s+(?:executive|exec|officer|analyst|specialist|associate|manager)|(?:billing|invoicing|invoice processing|mis)\\s+(?:executive|exec|officer|analyst|specialist|associate|manager))$/i.test(normalizedRoleQuery);
+    const financeRoleFamilyQuery = /^(?:(?:senior|lead)\s+)?(?:(?:finance|financial)\s+(?:executive|exec|officer|analyst|manager|specialist|associate|operations(?:\s+executive)?)|(?:accounting|accounts?)\s+(?:executive|exec|officer|analyst|specialist|associate|manager)|(?:billing|invoicing|invoice processing|mis)\s+(?:executive|exec|officer|analyst|specialist|associate|manager))$/i.test(normalizedRoleQuery);
     const jobFunctionText = String(job.jobFunction ?? '').trim().toLocaleLowerCase();
-    const classifiedFinanceFunction = /^(?:finance|accounting|fp\\s*&?\\s*a|audit|tax|treasury|risk|controllership)$/i.test(jobFunctionText);
-    const financeFamilyTitle = /\\b(?:finance|financial|accounting|accountant|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|financial controller|fp\\s*&?\\s*a|tax analyst|auditor|treasury analyst|treasury manager)\\b/i.test(
+    const classifiedFinanceFunction = /^(?:finance|accounting|fp\s*&?\s*a|audit|tax|treasury|risk|controllership)$/i.test(jobFunctionText);
+    const financeFamilyTitle = /\b(?:finance|financial|accounting|accountant|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|financial controller|fp\s*&?\s*a|tax analyst|auditor|treasury analyst|treasury manager)\b/i.test(
       [job.title, ...(job.requiredSkills ?? [])].filter(Boolean).join(' '),
     );
     const matchesQuery = financeRoleFamilyQuery
