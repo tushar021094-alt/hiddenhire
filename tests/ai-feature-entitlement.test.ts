@@ -7,6 +7,8 @@ const pricing = readFileSync(new URL("../app/pricing/page.tsx", import.meta.url)
 const profilePage = readFileSync(new URL("../app/profile/page.tsx", import.meta.url), "utf8");
 const resumeRoute = readFileSync(new URL("../app/api/profile/resume/route.ts", import.meta.url), "utf8");
 const openaiRoute = readFileSync(new URL("../app/api/openai/route.ts", import.meta.url), "utf8");
+const executionRoute = readFileSync(new URL("../app/api/career-execution/route.ts", import.meta.url), "utf8");
+const executionComponent = readFileSync(new URL("../components/career-execution.tsx", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261023175122_enforce_ai_feature_quotas.sql", import.meta.url), "utf8");
 const schema = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
@@ -25,6 +27,9 @@ test("resume auto-fill is shown only when billing status identifies an active Ca
   assert.match(profilePage, /setCanUseResumeAI\(billingData\.plan === "candidate_plus"\)/);
   assert.match(profilePage, /canUseResumeAI \? \(/);
   assert.match(profilePage, /Explore Candidate Plus/);
+  assert.match(executionRoute, /getActivePlanId\\(supabase, user\\.id\\) !== "candidate_plus"/);
+  assert.match(executionComponent, /href="\\/pricing"/);
+  assert.match(pricing, /Application execution packs/);
 });
 
 test("resume import API requires Plus, uses a persistent monthly quota, and caps output tokens", () => {
