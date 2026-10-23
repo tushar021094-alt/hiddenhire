@@ -1113,3 +1113,20 @@ button, input, select, textarea { font-family: inherit; }
   .hh-operations-panel { padding: 15px; }
   .hh-execution-panel > div:first-child, .hh-execution-grid > div { padding: 15px; }
 }
+
+
+.profile-v2 .profile-target-role-guidance {
+  grid-column: 1 / -1;
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(53,224,208,.18);
+  border-radius: 10px;
+  background: rgba(53,224,208,.045);
+  color: #a9b7c9;
+  font-size: 11px;
+  line-height: 1.65;
+}
+.profile-v2 .profile-target-role-guidance strong {
+  color: #80f0e5;
+  font-weight: 650;
+}
