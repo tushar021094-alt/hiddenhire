@@ -33,7 +33,7 @@ test("resume extraction returns target-role options and qualified annual salary 
   assert.match(resumeRoute, /recommendedTargetRoles/);
   assert.match(resumeRoute, /minimumAnnual/);
   assert.match(resumeRoute, /maximumAnnual/);
-  assert.match(resumeRoute, /not live-market salary data/i);
+  assert.match(resumeRoute, /not verified live-market salary data/i);
   assert.match(resumeRoute, /if \(!process\.env\.OPENAI_API_KEY\)/);
 });
 
