@@ -281,9 +281,22 @@ create table if not exists audit_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.ai_feature_usage (
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  feature_key text not null check (feature_key in ('resume_import','resume_job_match')),
+  period_start date not null,
+  used_count integer not null default 0 check (used_count >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (profile_id, feature_key, period_start)
+);
+
+alter table public.ai_feature_usage enable row level security;
+revoke all on table public.ai_feature_usage from anon, authenticated;
+
 insert into plans(id,audience,name,price_minor,currency) values
  ('candidate_free','candidate','Free',0,'INR'),
- ('candidate_plus','candidate','Plus',19900,'INR'),
+ ('candidate_plus','candidate','Candidate Plus',29900,'INR'),
  ('employer_free','employer','Free',0,'INR'),
  ('employer_starter','employer','Starter',199900,'INR'),
  ('employer_growth','employer','Growth',499900,'INR')
