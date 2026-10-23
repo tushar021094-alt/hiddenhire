@@ -42,7 +42,7 @@ function mockJob(overrides: Partial<Job> = {}): Job {
 
 test("empty title searches automatically fall back to saved-profile recommendations", () => {
   const jobsPage = readFileSync(new URL("../app/jobs/page.tsx", import.meta.url), "utf8");
-  assert.ok(jobsPage.includes("payload.results.length === 0"));
+  assert.ok(jobsPage.includes("initialResults.length === 0"));
   assert.ok(jobsPage.includes('searchQuery: ""'));
   assert.ok(jobsPage.includes("personalized recommendations based on your saved profile"));
 });
