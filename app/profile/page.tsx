@@ -418,11 +418,9 @@ export default function ProfilePage() {
                 <input value={skills} onChange={(e) => setSkills(e.target.value)} />
               </Field>
             </div>
-            {role.trim() && headline.trim() && !headline.toLocaleLowerCase().includes(role.trim().toLocaleLowerCase()) && (
-              <p role="status" className="resume-import-message">
-                Your target role and headline point to different roles. Job Discovery uses <strong>Target role</strong> for ranking. If your main goal is Finance Executive / SAP Billing, set the target role to that rather than Finance Manager.
-              </p>
-            )}
+            <p className="profile-target-role-guidance">
+              <strong>Plan your next move:</strong> Target role is the position you want next and is used to rank jobs. Your headline and skills should describe your current responsibilities and strengths. They do not need to match the target role.
+            </p>
           </section>
 
           <section className="profile-form-card">
