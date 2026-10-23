@@ -21,11 +21,13 @@ test("OTP sign-in explicitly redirects to the current app origin callback", () =
 });
 
 
-test("login OTP input matches Supabase six-digit email tokens", () => {
-  assert.match(loginPage, /6-digit sign-in code/);
-  assert.match(loginPage, /label="6-digit code"/);
-  assert.match(loginPage, /pattern="\[0-9\]\{6\}"/);
-  assert.match(loginPage, /slice\(0, 6\)/);
-  assert.match(loginPage, /placeholder="123456"/);
-  assert.doesNotMatch(loginPage, /8-digit code|12345678|slice\(0, 8\)/);
+test("login OTP input matches the eight-digit codes currently sent by staging Auth", () => {
+  assert.match(loginPage, /8-digit sign-in code/);
+  assert.match(loginPage, /label="8-digit code"/);
+  assert.match(loginPage, /pattern="\\[0-9\\]\\{8\\}"/);
+  assert.match(loginPage, /slice\\(0, 8\\)/);
+  assert.match(loginPage, /placeholder="12345678"/);
+  assert.match(loginPage, /minLength=\\{8\\}/);
+  assert.match(loginPage, /maxLength=\\{8\\}/);
+  assert.doesNotMatch(loginPage, /6-digit code|placeholder="123456"|slice\\(0, 6\\)/);
 });
