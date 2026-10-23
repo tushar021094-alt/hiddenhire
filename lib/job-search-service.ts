@@ -238,6 +238,18 @@ export function buildDiscoveryQueries(
 }
 
 
+export function hasUsableApplicationUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const candidate = value.trim();
+  if (!candidate || candidate === "#") return false;
+  try {
+    const parsed = new URL(candidate);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeApplicationUrl(url: string) {
   try {
     const parsed = new URL(url);
@@ -290,7 +302,9 @@ export async function searchJobs(
   const inventoryQuery = { ...queries[0], targetRole: '', targetJobTitle: '' };
   const collected = await registry.fetchJobsWithMetrics(inventoryQuery);
   const collectedJobs = collected.jobs;
-  const deduped = deduplicateJobs(collectedJobs);
+  const uniqueJobs = deduplicateJobs(collectedJobs);
+  const deduped = uniqueJobs.filter((job) => hasUsableApplicationUrl(job.applicationUrl));
+  const totalWithoutUsableApplicationUrl = uniqueJobs.length - deduped.length;
   const searchIntent = buildCandidateSearchIntent({
   ...candidateProfile,
   targetRoles: Array.isArray(profile.targetRoles)
@@ -439,16 +453,20 @@ const roleMatched = deduped.filter((job) =>
     results: enrichedResults,
     count: returned.length,
     totalCollected: collectedJobs.length,
-    totalAfterDeduplication: deduped.length,
+    totalAfterDeduplication: uniqueJobs.length,
+    totalAfterApplicationUrlValidation: deduped.length,
+    totalWithoutUsableApplicationUrl,
     totalEligible: roleMatched.length,
     totalAfterSearchAndModeFilter: discoveryFiltered.length,
     totalRanked: ranked.length,
     returned: returned.length,
     message: returned.length > 0
       ? 'Real opportunities found.'
-      : searchQuery
-        ? `No jobs match “${searchQuery}” with the current profile and filters. Try fewer keywords or change the work mode.`
-        : 'No strong matches found. Try expanding your search.',
+      : collectedJobs.length > 0 && deduped.length === 0
+        ? `Received ${collectedJobs.length} live listings, but none had a usable application URL. HiddenHire withheld them to avoid dead application links.`
+        : searchQuery
+          ? `No jobs match “${searchQuery}” with the current profile and filters. Try fewer keywords or change the work mode.`
+          : 'No strong matches found. Try expanding your search.',
     queries: expandedRoles,
     sources: registry.sources.map((source) => source.name),
     metrics: {
