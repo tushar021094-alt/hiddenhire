@@ -69,6 +69,58 @@ test("candidate intent normalizes preferred locations", () => {
   ]);
 });
 
+test("country saved as a location preference does not filter out Indian cities", () => {
+  const countryOnlyIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+    preferredLocations: ["India"],
+    preferredCountries: ["India"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      countryOnlyIntent,
+      job({
+        title: "Finance Executive",
+        jobFunction: "Finance",
+        location: "Noida",
+        country: "India",
+        remote: false,
+        remoteStatus: "FALSE",
+      }),
+    ),
+    true,
+  );
+});
+
+test("country-only preference rejects non-remote roles outside the selected country", () => {
+  const countryOnlyIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+    preferredLocations: ["India"],
+    preferredCountries: ["India"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      countryOnlyIntent,
+      job({
+        title: "Finance Executive",
+        jobFunction: "Finance",
+        location: "Austin, Texas",
+        country: "United States",
+        remote: false,
+        remoteStatus: "FALSE",
+        indiaEligible: true,
+        indiaEligibilityStatus: "UNKNOWN",
+      }),
+    ),
+    false,
+  );
+});
+
 test("native Finance job passes the function gate", () => {
   assert.equal(
     isJobEligible(intent, job({
