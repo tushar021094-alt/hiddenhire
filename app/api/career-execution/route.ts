@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { getActivePlanId } from "@/lib/entitlements";
 import { buildCareerExecutionPackage } from "@/lib/career-execution";
 
 function companyName(value: unknown) {
@@ -14,6 +15,10 @@ export async function GET(request: Request) {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (authError || !user) {
     return NextResponse.json({ error: authError || "Authentication is required." }, { status: 401 });
+  }
+
+  if (await getActivePlanId(supabase, user.id) !== "candidate_plus") {
+    return NextResponse.json({ error: "Application execution packs are part of Candidate Plus. Free accounts can still manage applications and complete profile details manually." }, { status: 403 });
   }
 
   const url = new URL(request.url);
