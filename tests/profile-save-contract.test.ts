@@ -42,11 +42,19 @@ test("profile warns when the target role conflicts with the professional headlin
   assert.match(page, /Job Discovery uses <strong>Target role<\/strong> for ranking/);
 });
 
-test("preferred city filters are separate from the selected country", () => {
+test("country is selected from a global dropdown and locations are multi-select chips", () => {
+  assert.match(page, /COUNTRY_OPTIONS\.map/);
+  assert.match(page, /aria-label="Primary country"/);
+  assert.doesNotMatch(page, /<Field label="Country"[^]*?<input value=\{country\}/);
   assert.match(page, /label="Preferred locations"/);
-  assert.match(page, /preferredLocations: parsePreferredLocations\(preferredLocations\)/);
-  assert.match(page, /setPreferredLocations\(loadedPreferredLocations\.join\(", "\)\)/);
+  assert.match(page, /setPreferredLocations\(loadedPreferredLocations\)/);
+  assert.match(page, /function addPreferredLocation/);
+  assert.match(page, /function removePreferredLocation/);
+  assert.match(page, /profile-location-selected-list/);
+  assert.match(page, /LOCATION_SUGGESTIONS\[country\]/);
+  assert.ok(page.includes("preferredLocations,"));
   assert.match(route, /function normalizePreferredLocations/);
+  assert.match(route, /!isCountryName\(location\)/);
   assert.match(route, /careerUpdate\.preferred_locations = normalizePreferredLocations\(input\.preferredLocations\)/);
   assert.doesNotMatch(route, /preferred_locations:\s*country\s*\?\s*\[country\]/);
 });
