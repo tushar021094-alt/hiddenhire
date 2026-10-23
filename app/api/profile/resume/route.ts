@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { getActivePlanId } from "@/lib/entitlements";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -67,6 +69,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Resume import is available only for candidate accounts." }, { status: 403 });
     }
 
+    if (await getActivePlanId(supabase, user.id) !== "candidate_plus") {
+      return NextResponse.json({ error: "AI resume import is part of Candidate Plus. Your profile can still be completed and edited manually." }, { status: 403 });
+    }
+
+    const rate = checkRateLimit(`resume-import:${user.id}`, 3, 60_000);
+    if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: "Resume AI is not configured yet. You can continue using manual profile entry." }, { status: 503 });
     }
@@ -81,6 +90,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Resume must be smaller than 5 MB." }, { status: 413 });
     }
 
+    const { data: quotaData, error: quotaError } = await supabase.rpc("consume_candidate_ai_quota", { p_feature_key: "resume_import" });
+    if (quotaError) {
+      console.error("Resume AI quota check failed", { code: quotaError.code });
+      return NextResponse.json({ error: "AI resume usage could not be verified. Please try again later." }, { status: 503 });
+    }
+    const quota = quotaData as { allowed?: boolean; reason?: string; limit?: number; used?: number } | null;
+    if (!quota?.allowed) {
+      if (quota?.reason === "upgrade_required") {
+        return NextResponse.json({ error: "AI resume import is part of Candidate Plus. Your profile can still be completed and edited manually." }, { status: 403 });
+      }
+      if (quota?.reason === "monthly_limit_reached") {
+        return NextResponse.json({ error: `You have used all ${quota.limit ?? 5} AI resume imports for this month. Your allowance resets next month.`, usage: { used: quota.used, limit: quota.limit } }, { status: 429 });
+      }
+      return NextResponse.json({ error: "Unable to verify your AI usage allowance. Please try again later." }, { status: 503 });
+    }
+
     const bytes = Buffer.from(await file.arrayBuffer());
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const profileCountry = trimmedString(profile.country, 100) || "India";
@@ -90,6 +115,7 @@ export async function POST(request: Request) {
     const profileExperience = typeof profile.experience_years === "number" ? profile.experience_years : null;
     const response = await client.responses.create({
       model: process.env.OPENAI_RESUME_MODEL || "gpt-4.1-mini",
+      max_output_tokens: 4000,
       input: [{
         role: "user",
         content: [
