@@ -123,6 +123,7 @@ export async function POST(request: Request) {
             type: "input_file",
             filename: "candidate-resume.pdf",
             file_data: `data:application/pdf;base64,${bytes.toString("base64")}`,
+            detail: "low",
           },
           {
             type: "input_text",
