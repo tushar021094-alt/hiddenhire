@@ -36,3 +36,8 @@ test("new profiles do not inherit an unrelated Finance Manager title or invented
   assert.match(page, /const \[skills, setSkills\] = useState\(""\)/);
   assert.match(page, /const \[experience, setExperience\] = useState\(""\)/);
 });
+
+test("profile warns when the target role conflicts with the professional headline", () => {
+  assert.match(page, /Your target role and headline point to different roles/);
+  assert.match(page, /Job Discovery uses <strong>Target role<\/strong> for ranking/);
+});
