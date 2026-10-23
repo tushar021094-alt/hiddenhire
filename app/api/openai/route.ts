@@ -92,11 +92,11 @@ export async function POST(request: Request) {
     }
 
     const openai = new OpenAI({ apiKey });
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.2,
-      max_tokens: 600,
-      messages: [
+    const response = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || 'gpt-6-luna',
+      reasoning: { effort: 'none' },
+      max_output_tokens: 600,
+      input: [
         {
           role: 'system',
           content:
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       ],
     });
 
-    const summary = response.choices[0]?.message?.content ?? 'No summary generated.';
+    const summary = response.output_text ?? 'No summary generated.';
     return NextResponse.json({ fallback: false, summary });
   } catch (error) {
     console.error('OpenAI route error', error);
