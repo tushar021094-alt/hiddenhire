@@ -208,7 +208,7 @@ export default function ProfilePage() {
     const nextHeadline = resumeDraft.headline || headline;
     const nextSkills = resumeDraft.skills.length ? resumeDraft.skills : skills.split(",").map((item) => item.trim()).filter(Boolean);
     const nextExperience = resumeDraft.experienceYears ?? (experience.trim() ? Number(experience) : 0);
-    const nextCountry = resumeDraft.country || country || "India";
+    const nextCountry = canonicalCountryName(resumeDraft.country || country) || country || "India";
     const nextCurrency = resumeDraft.salaryRecommendation?.currency || currency;
     const nextMinimumSalary = resumeDraft.salaryRecommendation?.minimumAnnual ?? (minSalary.trim() ? Number(minSalary) : 0);
 
