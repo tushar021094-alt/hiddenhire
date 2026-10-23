@@ -43,7 +43,20 @@ create table if not exists candidate_profiles (
   profile_id uuid primary key references profiles(id) on delete cascade,
   resume_url text,
   job_search_mode text not null default 'active' check (job_search_mode in ('active','passive','not_looking')),
-  profile_boost_until timestamptz
+  profile_boost_until timestamptz,
+  headline text,
+  target_roles text[] not null default '{}',
+  preferred_locations text[] not null default '{}',
+  education jsonb not null default '[]'::jsonb,
+  work_experience jsonb not null default '[]'::jsonb,
+  certifications text[] not null default '{}',
+  resume_summary text,
+  recommended_target_roles text[] not null default '{}',
+  suggested_salary_min numeric,
+  suggested_salary_max numeric,
+  suggested_salary_currency text,
+  salary_recommendation_rationale text,
+  salary_recommendation_confidence text
 );
 
 create table if not exists agency_profiles (
@@ -129,6 +142,13 @@ create table if not exists saved_jobs (
   job_url text,
   score numeric,
   status text not null default 'saved',
+  title text,
+  company text,
+  location text,
+  remote boolean,
+  salary_min numeric,
+  salary_max numeric,
+  currency text,
   created_at timestamptz not null default now(),
   check (job_id is not null or external_job_id is not null),
   unique(profile_id, external_job_id)
