@@ -37,9 +37,11 @@ test("new profiles do not inherit an unrelated Finance Manager title or invented
   assert.match(page, /const \[experience, setExperience\] = useState\(""\)/);
 });
 
-test("profile warns when the target role conflicts with the professional headline", () => {
-  assert.match(page, /Your target role and headline point to different roles/);
-  assert.match(page, /Job Discovery uses <strong>Target role<\/strong> for ranking/);
+test("profile explains target role as the next career goal, separate from current headline and skills", () => {
+  assert.match(page, /Plan your next move:/);
+  assert.match(page, /position you want next and is used to rank jobs/);
+  assert.match(page, /headline and skills should describe your current responsibilities and strengths/);
+  assert.doesNotMatch(page, /Your target role and headline point to different roles/);
 });
 
 test("country is selected from a global dropdown and locations are multi-select chips", () => {
