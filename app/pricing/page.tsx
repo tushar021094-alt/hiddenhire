@@ -33,7 +33,7 @@ export default function PricingPage() {
             price={candidatePlus.monthlyPriceInr}
             description="The full intelligence layer for serious job searches."
             featured
-            features={["Everything in Free","AI resume auto-fill · 5 PDF imports / month","AI job-match explanations · 10 / month","10 AI resume optimizations / month","10 AI cover letters / month","10 AI interview sessions / month","Priority Career Agent signals","Deep match intelligence"]}
+            features={["Everything in Free","AI resume auto-fill · 5 PDF imports / month","AI job-match explanations · 10 / month","Application execution packs · cover letter, follow-up and interview prep","Priority Career Agent signals","Deep match intelligence"]}
             checkoutConfigured={checkoutConfigured}
           />
         </section>
