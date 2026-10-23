@@ -5,21 +5,42 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
 
+type EducationItem = { qualification: string; institution: string | null; year: string | null };
+type WorkExperienceItem = { title: string | null; company: string | null; startDate: string | null; endDate: string | null; summary: string | null };
+type SalaryRecommendation = {
+  minimumAnnual: number | null;
+  maximumAnnual: number | null;
+  currency: string;
+  rationale: string | null;
+  confidence: "low" | "medium" | "high";
+};
+type StoredResumeDetails = {
+  resumeSummary: string | null;
+  education: EducationItem[];
+  workExperience: WorkExperienceItem[];
+  certifications: string[];
+  recommendedTargetRoles: string[];
+  salaryRecommendation: SalaryRecommendation | null;
+};
 type ResumeDraft = {
   fullName: string | null;
   headline: string | null;
   targetRole: string | null;
+  recommendedTargetRoles: string[];
   skills: string[];
   experienceYears: number | null;
   country: string | null;
-  education: Array<{ qualification: string; institution: string | null; year: string | null }>;
-  workExperience: Array<{ title: string | null; company: string | null; startDate: string | null; endDate: string | null; summary: string | null }>;
+  resumeSummary: string | null;
+  education: EducationItem[];
+  workExperience: WorkExperienceItem[];
   certifications: string[];
   missingFields: string[];
+  salaryRecommendation: SalaryRecommendation | null;
 };
 
 type ProfileData = {
   profile?: {
+    full_name?: string | null;
     skills?: string[] | null;
     experience_years?: number | null;
     country?: string | null;
@@ -27,12 +48,26 @@ type ProfileData = {
     min_salary?: number | null;
     salary_currency?: string | null;
   };
-  career?: { target_roles?: string[] | null; headline?: string | null };
+  career?: {
+    target_roles?: string[] | null;
+    headline?: string | null;
+    education?: EducationItem[] | null;
+    work_experience?: WorkExperienceItem[] | null;
+    certifications?: string[] | null;
+    resume_summary?: string | null;
+    recommended_target_roles?: string[] | null;
+    suggested_salary_min?: number | null;
+    suggested_salary_max?: number | null;
+    suggested_salary_currency?: string | null;
+    salary_recommendation_rationale?: string | null;
+    salary_recommendation_confidence?: "low" | "medium" | "high" | null;
+  };
 };
 
 export default function ProfilePage() {
   const router = useRouter();
   const [role, setRole] = useState("");
+  const [fullName, setFullName] = useState("");
   const [headline, setHeadline] = useState("");
   const [skills, setSkills] = useState("");
   const [experience, setExperience] = useState("");
@@ -44,8 +79,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeSaving, setResumeSaving] = useState(false);
+  const [resumeSaved, setResumeSaved] = useState(false);
   const [resumeMessage, setResumeMessage] = useState("");
   const [resumeDraft, setResumeDraft] = useState<ResumeDraft | null>(null);
+  const [savedResumeDetails, setSavedResumeDetails] = useState<StoredResumeDetails | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -56,6 +94,27 @@ export default function ProfilePage() {
         return;
       }
       if (response.ok) {
+        setFullName(data.profile?.full_name || "");
+        const career = data.career;
+        const savedSalaryMinimum = career?.suggested_salary_min;
+        const savedSalaryMaximum = career?.suggested_salary_max;
+        const savedSalaryCurrency = career?.suggested_salary_currency || "INR";
+        const hasSavedSalarySuggestion = typeof savedSalaryMinimum === "number" || typeof savedSalaryMaximum === "number";
+        const savedSalaryRecommendation: SalaryRecommendation | null = hasSavedSalarySuggestion ? {
+          minimumAnnual: typeof savedSalaryMinimum === "number" ? savedSalaryMinimum : null,
+          maximumAnnual: typeof savedSalaryMaximum === "number" ? savedSalaryMaximum : null,
+          currency: savedSalaryCurrency,
+          rationale: career?.salary_recommendation_rationale || null,
+          confidence: career?.salary_recommendation_confidence || "low",
+        } : null;
+        const education = Array.isArray(career?.education) ? career.education : [];
+        const workExperience = Array.isArray(career?.work_experience) ? career.work_experience : [];
+        const certifications = Array.isArray(career?.certifications) ? career.certifications : [];
+        const recommendedTargetRoles = Array.isArray(career?.recommended_target_roles) ? career.recommended_target_roles : [];
+        const resumeSummary = career?.resume_summary || null;
+        if (resumeSummary || education.length || workExperience.length || certifications.length || recommendedTargetRoles.length || savedSalaryRecommendation) {
+          setSavedResumeDetails({ resumeSummary, education, workExperience, certifications, recommendedTargetRoles, salaryRecommendation: savedSalaryRecommendation });
+        }
         setRole(data.career?.target_roles?.[0] || "");
         setHeadline(data.career?.headline || "");
         setSkills((data.profile?.skills || []).join(", "));
@@ -83,6 +142,7 @@ export default function ProfilePage() {
     setResumeBusy(true);
     setResumeMessage("");
     setResumeDraft(null);
+    setResumeSaved(false);
     try {
       const payload = new FormData();
       payload.append("resume", file);
@@ -101,14 +161,77 @@ export default function ProfilePage() {
     }
   }
 
-  function applyResumeDraft() {
+  async function applyResumeDraft() {
     if (!resumeDraft) return;
-    if (resumeDraft.targetRole) setRole(resumeDraft.targetRole);
-    if (resumeDraft.headline) setHeadline(resumeDraft.headline);
-    if (resumeDraft.skills.length) setSkills(resumeDraft.skills.join(", "));
-    if (resumeDraft.experienceYears !== null) setExperience(String(resumeDraft.experienceYears));
-    if (resumeDraft.country) setCountry(resumeDraft.country);
-    setResumeMessage("Draft applied to the editable form. Review it and select Save career profile to persist supported fields.");
+    const recommendedRole = resumeDraft.recommendedTargetRoles[0] || resumeDraft.targetRole || role.trim();
+    if (!recommendedRole) {
+      setResumeMessage("The resume did not identify a confident target role. Enter a target role above before saving the extracted details.");
+      return;
+    }
+
+    const nextFullName = resumeDraft.fullName || fullName;
+    const nextHeadline = resumeDraft.headline || headline;
+    const nextSkills = resumeDraft.skills.length ? resumeDraft.skills : skills.split(",").map((item) => item.trim()).filter(Boolean);
+    const nextExperience = resumeDraft.experienceYears ?? (experience.trim() ? Number(experience) : 0);
+    const nextCountry = resumeDraft.country || country || "India";
+    const nextCurrency = resumeDraft.salaryRecommendation?.currency || currency;
+    const nextMinimumSalary = resumeDraft.salaryRecommendation?.minimumAnnual ?? (minSalary.trim() ? Number(minSalary) : 0);
+
+    setResumeSaving(true);
+    setResumeMessage("");
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: nextFullName,
+          role: recommendedRole,
+          headline: nextHeadline,
+          skills: nextSkills,
+          experience: nextExperience,
+          country: nextCountry,
+          remoteOnly,
+          minSalary: nextMinimumSalary,
+          salaryCurrency: nextCurrency,
+          resumeDetails: {
+            summary: resumeDraft.resumeSummary,
+            education: resumeDraft.education,
+            workExperience: resumeDraft.workExperience,
+            certifications: resumeDraft.certifications,
+          },
+          recommendedTargetRoles: resumeDraft.recommendedTargetRoles.length
+            ? resumeDraft.recommendedTargetRoles
+            : [recommendedRole],
+          salaryRecommendation: resumeDraft.salaryRecommendation,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Unable to save extracted resume details.");
+
+      setFullName(nextFullName);
+      setRole(recommendedRole);
+      setHeadline(nextHeadline);
+      setSkills(nextSkills.join(", "));
+      setExperience(String(nextExperience));
+      setCountry(nextCountry);
+      setCurrency(nextCurrency);
+      setMinSalary(String(nextMinimumSalary));
+      setSavedResumeDetails({
+        resumeSummary: resumeDraft.resumeSummary,
+        education: resumeDraft.education,
+        workExperience: resumeDraft.workExperience,
+        certifications: resumeDraft.certifications,
+        recommendedTargetRoles: resumeDraft.recommendedTargetRoles.length ? resumeDraft.recommendedTargetRoles : [recommendedRole],
+        salaryRecommendation: resumeDraft.salaryRecommendation,
+      });
+      setResumeSaved(true);
+      setMessage("Career profile and extracted resume details saved.");
+      setResumeMessage("Resume details, target-role suggestions, and salary recommendation have been saved. The salary range is an estimate, not live-market salary data.");
+    } catch (err) {
+      setResumeMessage(err instanceof Error ? err.message : "Could not save the extracted resume details.");
+    } finally {
+      setResumeSaving(false);
+    }
   }
 
   async function save(event: FormEvent) {
