@@ -297,6 +297,14 @@ export function isJobEligible(
         }
 
         if (!job.jobFunction) {
+          const genericExternalClassification =
+            actualFunction === "Other" || actualFunction === "Operations";
+          if (
+            genericExternalClassification &&
+            isFinanceAdjacentTitle(job.title)
+          ) {
+            return true;
+          }
           return isFinanceRoleRelevant(
             {
               targetJobTitle:
@@ -308,7 +316,7 @@ export function isJobEligible(
                 ) || targetFunction,
               yearsOfExperience: intent.yearsOfExperience,
               minimumSalary: intent.minimumSalary,
-              preferredCurrency: "INR",
+              preferredCurrency: intent.preferredCurrency,
               preferredCountries: intent.preferredCountries,
               remoteOnly: intent.remoteOnly,
               preferredIndustries: [],
