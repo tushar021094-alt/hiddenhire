@@ -115,6 +115,36 @@ function areFunctionsCompatible(
   return false;
 }
 
+function normalizeCountryPreference(value: string): string {
+  const normalized = normalizeLocation(value)
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim();
+
+  if (/^(?:in|india|republic of india)$/.test(normalized)) return "india";
+  if (/^(?:us|usa|united states|united states of america)$/.test(normalized)) return "united states";
+  if (/^(?:uk|gb|great britain|united kingdom|england|scotland|wales)$/.test(normalized)) return "united kingdom";
+  if (/^(?:uae|united arab emirates)$/.test(normalized)) return "united arab emirates";
+  if (/^(?:ca|canada)$/.test(normalized)) return "canada";
+  if (/^(?:au|australia)$/.test(normalized)) return "australia";
+  if (/^(?:sg|singapore)$/.test(normalized)) return "singapore";
+  if (/^(?:de|germany)$/.test(normalized)) return "germany";
+  if (/^(?:fr|france)$/.test(normalized)) return "france";
+  if (/^(?:nl|netherlands)$/.test(normalized)) return "netherlands";
+  if (/^(?:ie|ireland)$/.test(normalized)) return "ireland";
+  return normalized;
+}
+
+function isCountryLevelLocation(value: string): boolean {
+  const normalized = normalizeCountryPreference(value);
+  return new Set([
+    "india", "united states", "united kingdom", "united arab emirates",
+    "canada", "australia", "singapore", "germany", "france",
+    "netherlands", "ireland",
+  ]).has(normalized);
+}
+
 function isLocationCompatible(
   intent: CandidateSearchIntent,
   job: Job,
@@ -127,12 +157,27 @@ function isLocationCompatible(
     return true;
   }
 
-  if (intent.preferredLocations.length === 0) {
+  // A country accidentally stored in preferred_locations (older profiles used
+  // [country] for this field) is not a city filter. For those profiles, enforce
+  // the country preference against job.country instead of comparing "India"
+  // with a city such as Noida or Gurugram.
+  const specificLocations = intent.preferredLocations.filter(
+    (value) => !isCountryLevelLocation(value),
+  );
+
+  if (specificLocations.length > 0) {
+    return specificLocations.some((preferredLocation) =>
+      isLocationMatch(preferredLocation, job.location),
+    );
+  }
+
+  if (intent.preferredCountries.length === 0) {
     return true;
   }
 
-  return intent.preferredLocations.some((preferredLocation) =>
-    isLocationMatch(preferredLocation, job.location),
+  const jobCountry = normalizeCountryPreference(job.country);
+  return intent.preferredCountries.some(
+    (preferredCountry) => normalizeCountryPreference(preferredCountry) === jobCountry,
   );
 }
 
