@@ -39,6 +39,8 @@ test("resume import API requires Plus, uses a persistent monthly quota, and caps
   assert.match(resumeRoute, /detail: "low"/);
   assert.match(resumeRoute, /gpt-6-luna/);
   assert.match(resumeRoute, /checkRateLimit\(`resume-import:/);
+  assert.match(resumeRoute, /AI_PROVIDER_CREDITS_UNAVAILABLE/);
+  assert.match(resumeRoute, /manualEntryAvailable: true/);
 });
 
 test("OpenAI-generated job-match explanations require a monthly Plus quota and cap output tokens", () => {
