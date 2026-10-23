@@ -19,8 +19,11 @@ export default function JobAuthenticityBadge({ authenticity }: { authenticity?: 
       <span className={"rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] " + tone}>
         {(authenticity.verifiedJob ? "✓ " : "") + authenticityLabel(authenticity)}
       </span>
-      <span className="text-[10px] uppercase tracking-[0.1em] text-white/35">
-        Trust {authenticity.score}/100
+      <span
+        className="text-[10px] uppercase tracking-[0.1em] text-white/35"
+        title="Heuristic authenticity indicator based on source provenance and available listing details. It is not a probability or a guarantee, and the recruiter may not be independently verified."
+      >
+        Trust score {authenticity.score}/100
       </span>
     </div>
   );
