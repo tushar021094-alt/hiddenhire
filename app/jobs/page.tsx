@@ -202,14 +202,11 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
       if (signal?.aborted) return;
 
       // A strict title search should not strand the candidate on an empty page.
-      // If there are no exact results, retry once using saved profile preferences
-      // to show personalized recommendations without requiring a manual reset.
-      if (
-        response.ok &&
-        query.trim() &&
-        Array.isArray(payload?.results) &&
-        payload.results.length === 0
-      ) {
+      // Retry with saved-profile preferences only when the live inventory contains jobs;
+      // if no sources returned anything, a second request cannot improve the query.
+      const initialResults = Array.isArray(payload?.results) ? payload.results : [];
+      const initialCollected = Number(payload?.totalCollected ?? payload?.metrics?.totalCollected ?? 0);
+      if (response.ok && query.trim() && initialResults.length === 0 && initialCollected > 0) {
         const fallbackResponse = await fetch("/api/jobs/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -218,10 +215,12 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
         });
         const fallbackPayload = await fallbackResponse.json();
         if (signal?.aborted) return;
-        if (fallbackResponse.ok && Array.isArray(fallbackPayload?.results) && fallbackPayload.results.length > 0) {
+        if (fallbackResponse.ok && Array.isArray(fallbackPayload?.results)) {
           payload = fallbackPayload;
           setSearchNotice(
-            `No exact matches for "${query.trim()}". Showing personalized recommendations based on your saved profile instead.`,
+            fallbackPayload.results.length > 0
+              ? `No exact matches for "${query.trim()}". Showing personalized recommendations based on your saved profile instead.`
+              : `No exact matches for "${query.trim()}". We also checked your saved-profile recommendations, but none passed the current filters.`,
           );
         }
       }
@@ -230,17 +229,33 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
         setError(payload?.error || payload?.message || "Unable to load matched jobs.");
         setJobs([]);
       } else {
+        const results = Array.isArray(payload?.results) ? payload.results : [];
         setJobs(
-          Array.isArray(payload?.results)
-            ? payload.results.map((result: { job?: Job; score?: number; reasons?: string[] }) => ({
-                ...(result.job ?? {}),
-                score: result.score,
-                reasons: result.reasons ?? [],
-                matchedSkills: result.job?.requiredSkills ?? [],
-              }))
-            : [],
+          results.map((result: { job?: Job; score?: number; reasons?: string[] }) => ({
+            ...(result.job ?? {}),
+            score: result.score,
+            reasons: result.reasons ?? [],
+            matchedSkills: result.job?.requiredSkills ?? [],
+          })),
         );
-        setMessage(payload?.message || "");
+
+        const metrics = payload?.metrics ?? {};
+        const sourceErrors = metrics?.sourceErrors && typeof metrics.sourceErrors === "object"
+          ? Object.keys(metrics.sourceErrors)
+          : [];
+        const totalCollected = Number(payload?.totalCollected ?? metrics?.totalCollected ?? 0);
+        const totalEligible = Number(payload?.totalEligible ?? metrics?.totalEligible ?? 0);
+        let resultMessage = payload?.message || "";
+        if (results.length === 0 && totalCollected === 0) {
+          resultMessage = sourceErrors.length
+            ? "Our connected job sources could not return listings right now. Please retry later; your saved profile is unchanged."
+            : "The connected job boards returned no active postings for this refresh. Recommendations are checked again when you open Job Discovery.";
+        } else if (results.length === 0 && totalEligible === 0 && totalCollected > 0) {
+          resultMessage = `We checked ${totalCollected} live postings, but none fit your saved role, experience, location and minimum salary. Review your target role or salary floor to widen recommendations.`;
+        } else if (results.length === 0 && totalEligible > 0) {
+          resultMessage = `We found ${totalEligible} profile-compatible opportunities, but none matched the current keyword or work-mode filter. Clear the search to see your For You recommendations.`;
+        }
+        setMessage(resultMessage);
       }
     } catch (err) {
       if (signal?.aborted) return;
@@ -406,7 +421,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
             {!loading && error && <div className="hh-discovery-alert">{error}</div>}
             {!loading && saveError && <div className="hh-discovery-alert">{saveError}</div>}
-            {!loading && !error && searchNotice && jobs.length > 0 && (
+            {!loading && !error && searchNotice && (
               <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100">
                 {searchNotice}
               </div>
@@ -416,7 +431,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
               <div className="hh-discovery-empty">
                 <div className="hh-empty-icon">✦</div>
                 <div>
-                  <strong>{searchQuery.trim() || workModeFilter !== "all" ? "No jobs match your search." : "No strong matches yet."}</strong>
+                  <strong>{searchNotice.startsWith("No exact matches") && jobs.length === 0 ? "No exact matches or profile recommendations yet." : searchQuery.trim() || workModeFilter !== "all" ? "No jobs match your search." : "No strong matches yet."}</strong>
                   <p>{message}</p>
                 </div>
                 {searchQuery.trim() || workModeFilter !== "all" ? (
