@@ -38,6 +38,15 @@ type ResumeDraft = {
   salaryRecommendation: SalaryRecommendation | null;
 };
 
+const COUNTRY_ONLY_LOCATION = /^(?:in|india|us|usa|united states(?: of america)?|uk|gb|united kingdom|uae|united arab emirates|ca|canada)$/i;
+
+function parsePreferredLocations(value: string): string[] {
+  return [...new Set(value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item && !COUNTRY_ONLY_LOCATION.test(item)))].slice(0, 15);
+}
+
 type ProfileData = {
   profile?: {
     full_name?: string | null;
@@ -50,6 +59,7 @@ type ProfileData = {
   };
   career?: {
     target_roles?: string[] | null;
+    preferred_locations?: string[] | null;
     headline?: string | null;
     education?: EducationItem[] | null;
     work_experience?: WorkExperienceItem[] | null;
@@ -72,6 +82,7 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState("");
   const [experience, setExperience] = useState("");
   const [country, setCountry] = useState("India");
+  const [preferredLocations, setPreferredLocations] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [minSalary, setMinSalary] = useState("0");
   const [currency, setCurrency] = useState("INR");
@@ -112,6 +123,10 @@ export default function ProfilePage() {
         const certifications = Array.isArray(career?.certifications) ? career.certifications : [];
         const recommendedTargetRoles = Array.isArray(career?.recommended_target_roles) ? career.recommended_target_roles : [];
         const resumeSummary = career?.resume_summary || null;
+        const loadedPreferredLocations = Array.isArray(career?.preferred_locations)
+          ? career.preferred_locations.filter((item) => typeof item === "string" && !COUNTRY_ONLY_LOCATION.test(item.trim()))
+          : [];
+        setPreferredLocations(loadedPreferredLocations.join(", "));
         if (resumeSummary || education.length || workExperience.length || certifications.length || recommendedTargetRoles.length || savedSalaryRecommendation) {
           setSavedResumeDetails({ resumeSummary, education, workExperience, certifications, recommendedTargetRoles, salaryRecommendation: savedSalaryRecommendation });
         }
@@ -190,6 +205,7 @@ export default function ProfilePage() {
           skills: nextSkills,
           experience: nextExperience,
           country: nextCountry,
+          preferredLocations: parsePreferredLocations(preferredLocations),
           remoteOnly,
           minSalary: nextMinimumSalary,
           salaryCurrency: nextCurrency,
@@ -248,6 +264,7 @@ export default function ProfilePage() {
           skills: skills.split(",").map((v) => v.trim()).filter(Boolean),
           experience: Number(experience),
           country,
+          preferredLocations: parsePreferredLocations(preferredLocations),
           remoteOnly,
           minSalary: Number(minSalary),
           salaryCurrency: currency,
@@ -405,6 +422,13 @@ export default function ProfilePage() {
               </Field>
               <Field label="Country" hint="Primary market">
                 <input value={country} onChange={(e) => setCountry(e.target.value)} />
+              </Field>
+              <Field label="Preferred locations" hint="Optional city/region list, separated by commas. Leave blank to search across the country." wide>
+                <input
+                  value={preferredLocations}
+                  onChange={(e) => setPreferredLocations(e.target.value)}
+                  placeholder="Noida, Greater Noida, Gurugram"
+                />
               </Field>
               <Field label="Minimum salary" hint="Your compensation floor">
                 <div className="profile-input-suffix">
