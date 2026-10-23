@@ -43,8 +43,7 @@ function parsePreferredLocations(value: unknown, primaryCountry: string): string
   const values = Array.isArray(value)
     ? value
     : typeof value === "string"
-      ? value.split(/[,
-]/)
+      ? value.split(/[,\n]/)
       : [];
   const primary = primaryCountry.trim().toLocaleLowerCase();
   return [...new Set(values
