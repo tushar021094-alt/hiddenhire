@@ -46,7 +46,7 @@ test("country is selected from a global dropdown and locations are multi-select 
   assert.match(page, /COUNTRY_OPTIONS\.map/);
   assert.match(page, /aria-label="Primary country"/);
   assert.doesNotMatch(page, /<Field label="Country"[^]*?<input value=\{country\}/);
-  assert.match(page, /label="Preferred locations"/);
+  assert.match(page, /id="preferred-locations-label">Preferred locations/);
   assert.match(page, /setPreferredLocations\(loadedPreferredLocations\)/);
   assert.match(page, /function addPreferredLocation/);
   assert.match(page, /function removePreferredLocation/);
