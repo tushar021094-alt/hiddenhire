@@ -8,6 +8,7 @@ import {
   normalizeCandidateProfile,
 } from '../app/api/jobs/search/route.ts';
 import { filterJobsForDiscovery } from '../lib/job-search-service';
+import { applyJobFilters } from '../lib/job-source';
 import { buildCandidateSearchIntent, isJobEligible } from '../lib/search-policy';
 import { calculateJobMatch } from '../lib/match-engine';
 import type { CandidateProfile, Job } from '../lib/job-types';
@@ -156,6 +157,40 @@ test("multi-word role searches do not match unrelated roles through description 
     filterJobsForDiscovery(jobs, "workflows").map((job) => job.id),
     ["stripe-account-exec"],
   );
+});
+
+test("source filters do not reject a remote USD role using an INR minimum salary", () => {
+  const usdJob = mockJob({
+    id: "usd-finance",
+    title: "Finance Executive",
+    location: "Remote - United States",
+    country: "United States",
+    remote: true,
+    remoteStatus: "TRUE",
+    salaryMin: 70_000,
+    salaryMax: 90_000,
+    salaryCurrency: "USD",
+  });
+  const inrJob = mockJob({
+    id: "inr-finance",
+    title: "Finance Executive",
+    salaryMin: 70_000,
+    salaryMax: 90_000,
+    salaryCurrency: "INR",
+  });
+
+  const results = applyJobFilters([usdJob, inrJob], {
+    targetRole: "",
+    country: "India",
+    minimumSalary: 1_200_000,
+    preferredCurrency: "INR",
+    yearsOfExperience: 11,
+    experience: 11,
+    remoteOnly: false,
+    indiaOnly: true,
+  });
+
+  assert.deepEqual(results.map((job) => job.id), ["usd-finance"]);
 });
 
 test("finance executive searches include billing and MIS roles but exclude sales roles", () => {
