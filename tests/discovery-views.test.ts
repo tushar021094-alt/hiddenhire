@@ -57,3 +57,18 @@ test("the UI uses one exclusive discoveryView state for all four view controls",
   assert.match(page, /getVisibleDiscoveryJobs\(\s*jobs,\s*discoveryView/s);
   assert.doesNotMatch(page, /const \[sortMode, setSortMode\]/);
 });
+
+test("High Salary reads salaryCurrency from the canonical API job shape", () => {
+  const canonicalJobs = [
+    { id: "usd-canonical", score: 80, salaryMin: 80_000, salaryMax: 100_000, salaryCurrency: "USD" },
+    { id: "inr-canonical", score: 70, salaryMin: 1_600_000, salaryMax: 2_000_000, salaryCurrency: "INR" },
+  ];
+
+  assert.deepEqual(
+    getVisibleDiscoveryJobs(canonicalJobs, "high-salary", "INR").map((job) => job.id),
+    ["inr-canonical", "usd-canonical"],
+  );
+
+  const page = readFileSync(new URL("../app/jobs/page.tsx", import.meta.url), "utf8");
+  assert.ok(page.includes("currency: result.job?.currency ?? result.job?.salaryCurrency"));
+});
