@@ -32,10 +32,10 @@ type ProfileData = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [role, setRole] = useState("Finance Manager");
+  const [role, setRole] = useState("");
   const [headline, setHeadline] = useState("");
-  const [skills, setSkills] = useState("FP&A, financial analysis, forecasting, Excel");
-  const [experience, setExperience] = useState("6");
+  const [skills, setSkills] = useState("");
+  const [experience, setExperience] = useState("");
   const [country, setCountry] = useState("India");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [minSalary, setMinSalary] = useState("0");
@@ -56,10 +56,10 @@ export default function ProfilePage() {
         return;
       }
       if (response.ok) {
-        setRole(data.career?.target_roles?.[0] || "Finance Manager");
+        setRole(data.career?.target_roles?.[0] || "");
         setHeadline(data.career?.headline || "");
-        setSkills((data.profile?.skills || []).join(", ") || "FP&A, financial analysis, forecasting, Excel");
-        setExperience(String(data.profile?.experience_years ?? 6));
+        setSkills((data.profile?.skills || []).join(", "));
+        setExperience(data.profile?.experience_years == null ? "" : String(data.profile.experience_years));
         setCountry(data.profile?.country || "India");
         setRemoteOnly(Boolean(data.profile?.remote_only));
         setMinSalary(String(data.profile?.min_salary ?? 0));
@@ -227,7 +227,7 @@ export default function ProfilePage() {
 
             <div className="profile-field-grid">
               <Field label="Target role" hint="Primary role used for ranking">
-                <input required value={role} onChange={(e) => setRole(e.target.value)} />
+                <input required value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g., Finance Executive" />
               </Field>
               <Field label="Professional headline" hint="A concise positioning statement">
                 <input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="Finance professional focused on FP&A…" />
