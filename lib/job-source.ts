@@ -362,7 +362,7 @@ export function dedupeJobs(jobs: Job[]): Job[] {
   return [...map.values()];
 }
 
-export export function applyJobFilters(jobs: Job[], query: DiscoveryQuery): Job[] {
+export function applyJobFilters(jobs: Job[], query: DiscoveryQuery): Job[] {
   const target = normalizeText(query.targetRole || query.targetJobTitle || '').toLowerCase();
   const minimumSalary = typeof query.minimumSalary === 'number' ? query.minimumSalary : 0;
   const country = normalizeText(query.country).toLowerCase();
