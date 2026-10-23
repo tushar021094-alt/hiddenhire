@@ -7,7 +7,7 @@ const pricing = readFileSync(new URL("../app/pricing/page.tsx", import.meta.url)
 const profilePage = readFileSync(new URL("../app/profile/page.tsx", import.meta.url), "utf8");
 const resumeRoute = readFileSync(new URL("../app/api/profile/resume/route.ts", import.meta.url), "utf8");
 const openaiRoute = readFileSync(new URL("../app/api/openai/route.ts", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../supabase/migrations/20261023180000_enforce_ai_feature_quotas.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/20261023175122_enforce_ai_feature_quotas.sql", import.meta.url), "utf8");
 const schema = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
 test("Free plan keeps manual setup and Plus is ₹299 with bounded AI allowances", () => {
