@@ -7,7 +7,9 @@ import {
   normalizeCandidateProfile,
 } from '../app/api/jobs/search/route.ts';
 import { filterJobsForDiscovery } from '../lib/job-search-service';
-import type { Job } from '../lib/job-types';
+import { buildCandidateSearchIntent, isJobEligible } from '../lib/search-policy';
+import { calculateJobMatch } from '../lib/match-engine';
+import type { CandidateProfile, Job } from '../lib/job-types';
 
 function mockJob(overrides: Partial<Job> = {}): Job {
   return {
@@ -176,6 +178,50 @@ test("finance executive searches include billing and MIS roles but exclude sales
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive jobs").map((job) => job.id),
     ["exact", "billing", "mis"],
+  );
+});
+
+test("salary thresholds are not compared across different currencies", () => {
+  const candidate: CandidateProfile = {
+    resumeText: "",
+    targetJobTitle: "Finance Manager",
+    yearsOfExperience: 11,
+    minimumSalary: 1_200_000,
+    preferredCurrency: "INR",
+    preferredCountries: ["India"],
+    preferredLocations: [],
+    remoteOnly: false,
+    preferredIndustries: [],
+    keySkills: ["SAP Billing", "Invoice Processing", "MIS Reporting"],
+  };
+  const usdJob = mockJob({
+    title: "Finance Executive",
+    location: "Remote",
+    country: "United States",
+    remote: true,
+    remoteStatus: "TRUE",
+    indiaEligibilityStatus: "UNKNOWN",
+    salaryMin: 70_000,
+    salaryMax: 90_000,
+    salaryCurrency: "USD",
+  });
+  const inrJob = mockJob({
+    ...usdJob,
+    salaryMin: 70_000,
+    salaryMax: 90_000,
+    salaryCurrency: "INR",
+  });
+  const intent = buildCandidateSearchIntent({
+    ...candidate,
+    targetRoles: ["Finance Manager"],
+    preferredLocations: [],
+    country: "India",
+  });
+
+  assert.equal(isJobEligible(intent, usdJob), true);
+  assert.ok(
+    calculateJobMatch(candidate, usdJob).scoreBreakdown.salary <
+      calculateJobMatch(candidate, inrJob).scoreBreakdown.salary,
   );
 });
 
