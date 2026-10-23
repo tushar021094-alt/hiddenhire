@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       : profileCountry.toLowerCase() === "india" ? "INR" : "USD";
     const profileExperience = typeof profile.experience_years === "number" ? profile.experience_years : null;
     const response = await client.responses.create({
-      model: process.env.OPENAI_RESUME_MODEL || "gpt-4.1-mini",
+      model: process.env.OPENAI_RESUME_MODEL || "gpt-6-luna",
       max_output_tokens: 4000,
       input: [{
         role: "user",
