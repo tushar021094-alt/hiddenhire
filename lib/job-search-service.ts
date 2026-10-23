@@ -46,7 +46,25 @@ export function filterJobsForDiscovery(
     const searchableText = terms.length > 1
       ? structuredText
       : [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
-    if (terms.some((term) => !searchableText.includes(term))) return false;
+
+    // Role searches should find close, skills-adjacent opportunities rather than
+    // require a job title to repeat every word. This is especially important for
+    // "Finance Executive": good matches are often listed as Billing Analyst,
+    // MIS Executive, Accounts Executive, Finance Operations, or SAP FICO roles.
+    const normalizedRoleQuery = normalizedQuery
+      .replace(/\\b(?:jobs?|roles?|positions?|openings?)\\b/g, '')
+      .replace(/\\s+/g, ' ')
+      .trim();
+    const financeRoleFamilyQuery = /^(?:(?:senior|lead)\\s+)?(?:(?:finance|financial)\\s+(?:executive|exec|officer|analyst|manager|specialist|associate|operations(?:\\s+executive)?)|(?:accounting|accounts?)\\s+(?:executive|exec|officer|analyst|specialist|associate|manager)|(?:billing|invoicing|invoice processing|mis)\\s+(?:executive|exec|officer|analyst|specialist|associate|manager))$/i.test(normalizedRoleQuery);
+    const jobFunctionText = String(job.jobFunction ?? '').trim().toLocaleLowerCase();
+    const classifiedFinanceFunction = /^(?:finance|accounting|fp\\s*&?\\s*a|audit|tax|treasury|risk|controllership)$/i.test(jobFunctionText);
+    const financeFamilyTitle = /\\b(?:finance|financial|accounting|accountant|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|financial controller|fp\\s*&?\\s*a|tax analyst|auditor|treasury analyst|treasury manager)\\b/i.test(
+      [job.title, ...(job.requiredSkills ?? [])].filter(Boolean).join(' '),
+    );
+    const matchesQuery = financeRoleFamilyQuery
+      ? jobFunctionText !== 'sales' && (classifiedFinanceFunction || financeFamilyTitle)
+      : terms.every((term) => searchableText.includes(term));
+    if (!matchesQuery) return false;
 
     // When the query expresses a finance/accounting intent, guard against
     // product-sales listings that mention finance or treasury in their copy.
