@@ -41,7 +41,7 @@ test("the candidate must explicitly apply and save extracted resume fields", () 
   assert.match(profilePage, /Apply suggestions & save profile/);
   assert.match(profilePage, /applyResumeDraft/);
   assert.match(profilePage, /fetch\("\/api\/profile"/);
-  assert.match(profilePage, /Salary estimate only—not a live-market salary survey or guaranteed offer/);
+  assert.match(profilePage, /AI estimate only—not a live-market salary survey or guaranteed offer/);
 });
 
 test("profile API persists resume details separately from the current target and salary preference", () => {
