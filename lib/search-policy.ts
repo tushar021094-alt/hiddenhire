@@ -19,6 +19,7 @@ export interface CandidateSearchIntent {
   preferredCountries: string[];
   remoteOnly: boolean;
   minimumSalary: number;
+  preferredCurrency: CandidateProfile["preferredCurrency"];
   yearsOfExperience: number;
 }
 
@@ -143,6 +144,13 @@ function isSalaryCompatible(
     return true;
   }
 
+  // Never compare nominal salary amounts across currencies (for example,
+  // 70,000 USD vs. 1,200,000 INR). Until market FX conversion is available,
+  // keep cross-currency jobs eligible and let the match score treat salary as unknown.
+  if (job.salaryCurrency && job.salaryCurrency !== intent.preferredCurrency) {
+    return true;
+  }
+
   if (job.salaryMax !== null) {
     return job.salaryMax >= intent.minimumSalary;
   }
@@ -218,6 +226,7 @@ export function buildCandidateSearchIntent(
       typeof input.minimumSalary === "number"
         ? input.minimumSalary
         : 0,
+    preferredCurrency: input.preferredCurrency || "INR",
     yearsOfExperience:
       typeof input.yearsOfExperience === "number"
         ? input.yearsOfExperience
