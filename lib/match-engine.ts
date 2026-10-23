@@ -103,7 +103,7 @@ export function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): bo
 
   if (/finance manager|senior finance manager|finance lead|finance director|head of finance/i.test(target)) {
     if (
-      /strategic finance|business finance|corporate finance|fp&a|financial planning|finance business partner|commercial finance|treasury|finance operations|finance manager|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
+      /strategic finance|business finance|corporate finance|fp&a|financial planning|finance business partner|commercial finance|treasury|finance operations|financial operations|finance manager|finance executive|financial executive|finance officer|accounting executive|accounts executive|accounts officer|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|\br2r\b|order to cash|\bo2c\b|\bp2p\b|general ledger|reconciliation|management accountant|accounts payable|accounts receivable|cost accountant|accounting operations|payroll accountant|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
     ) {
       return true;
     }
