@@ -59,6 +59,7 @@ type SearchStats = {
   afterFilters: number;
   sources: number;
   unavailableSources: number;
+  excludedMissingApplicationUrl: number;
 };
 
 export default function JobsPage() {
@@ -255,12 +256,17 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
         const totalCollected = Number(payload?.totalCollected ?? metrics?.totalCollected ?? 0);
         const totalEligible = Number(payload?.totalEligible ?? metrics?.totalEligible ?? 0);
         const sourceCounts = metrics?.sources && typeof metrics.sources === "object" ? metrics.sources : {};
+        const excludedMissingApplicationUrl = Math.max(
+          0,
+          Number(payload?.totalWithoutUsableApplicationUrl ?? metrics?.totalWithoutUsableApplicationUrl ?? 0),
+        );
         setSearchStats({
           collected: Math.max(0, totalCollected),
           eligible: Math.max(0, totalEligible),
           afterFilters: Math.max(0, Number(payload?.totalAfterSearchAndModeFilter ?? results.length)),
           sources: Object.keys(sourceCounts).length,
           unavailableSources: sourceErrors.length,
+          excludedMissingApplicationUrl,
         });
         let resultMessage = payload?.message || "";
         if (results.length === 0 && totalCollected === 0) {
@@ -453,7 +459,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
                   <p>{message}</p>
                   {searchStats && (
                     <p role="status" className="mt-2 text-xs opacity-80">
-                      Search diagnostics: {searchStats.collected} live listings collected · {searchStats.eligible} passed profile filters · {searchStats.afterFilters} passed your search filters · {searchStats.unavailableSources} sources unavailable.
+                      Search diagnostics: {searchStats.collected} live listings collected · {searchStats.excludedMissingApplicationUrl} without a usable application link excluded · {searchStats.eligible} passed profile filters · {searchStats.afterFilters} passed your search filters · {searchStats.unavailableSources} sources unavailable.
                     </p>
                   )}
                 </div>
