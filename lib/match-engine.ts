@@ -258,10 +258,15 @@ export function calculateOpportunityScore(candidate: CandidateProfile, job: Job)
   if (job.remote) score += 18;
   else if (job.remoteStatus === 'UNKNOWN') score += 9;
 
-  if (job.salaryMin !== null && job.salaryMin > 0) {
+  if (
+    job.salaryMin !== null &&
+    job.salaryMin > 0 &&
+    job.salaryCurrency === candidate.preferredCurrency
+  ) {
     const normalized = candidate.minimumSalary > 0 ? Math.min(candidate.minimumSalary / job.salaryMin, 1) : 0.5;
     score += Math.round(normalized * 15);
   } else {
+    // No misleading score from comparing salary amounts in different currencies.
     score += 8;
   }
 
@@ -309,9 +314,12 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
 
   const salaryCandidate = candidate.minimumSalary;
   const salaryThreshold = job.salaryMin;
-  const salaryScore = salaryThreshold === null || salaryThreshold === undefined
-    ? salaryWeight * 0.5
-    : Math.min(salaryCandidate / Math.max(salaryThreshold, 1), 1) * salaryWeight;
+  const salaryScore =
+    salaryThreshold === null ||
+    salaryThreshold === undefined ||
+    job.salaryCurrency !== candidate.preferredCurrency
+      ? salaryWeight * 0.5
+      : Math.min(salaryCandidate / Math.max(salaryThreshold, 1), 1) * salaryWeight;
 
   const industryMatch = candidate.preferredIndustries.some((industry) =>
     job.industry.toLowerCase().includes(industry.toLowerCase()) || industry.toLowerCase().includes(job.industry.toLowerCase())
