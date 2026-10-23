@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
+import { COUNTRY_OPTIONS, isCountryName, LOCATION_SUGGESTIONS } from "@/lib/countries";
 
 type EducationItem = { qualification: string; institution: string | null; year: string | null };
 type WorkExperienceItem = { title: string | null; company: string | null; startDate: string | null; endDate: string | null; summary: string | null };
@@ -38,13 +39,18 @@ type ResumeDraft = {
   salaryRecommendation: SalaryRecommendation | null;
 };
 
-const COUNTRY_ONLY_LOCATION = /^(?:in|india|us|usa|united states(?: of america)?|uk|gb|united kingdom|uae|united arab emirates|ca|canada)$/i;
-
-function parsePreferredLocations(value: string): string[] {
-  return [...new Set(value
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item && !COUNTRY_ONLY_LOCATION.test(item)))].slice(0, 15);
+function parsePreferredLocations(value: unknown, primaryCountry: string): string[] {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[,
+]/)
+      : [];
+  const primary = primaryCountry.trim().toLocaleLowerCase();
+  return [...new Set(values
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim().slice(0, 100))
+    .filter((item) => item && !isCountryName(item) && item.toLocaleLowerCase() !== primary))].slice(0, 15);
 }
 
 type ProfileData = {
@@ -82,7 +88,8 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState("");
   const [experience, setExperience] = useState("");
   const [country, setCountry] = useState("India");
-  const [preferredLocations, setPreferredLocations] = useState("");
+  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
+  const [locationDraft, setLocationDraft] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
   const [minSalary, setMinSalary] = useState("0");
   const [currency, setCurrency] = useState("INR");
@@ -123,10 +130,8 @@ export default function ProfilePage() {
         const certifications = Array.isArray(career?.certifications) ? career.certifications : [];
         const recommendedTargetRoles = Array.isArray(career?.recommended_target_roles) ? career.recommended_target_roles : [];
         const resumeSummary = career?.resume_summary || null;
-        const loadedPreferredLocations = Array.isArray(career?.preferred_locations)
-          ? career.preferred_locations.filter((item) => typeof item === "string" && !COUNTRY_ONLY_LOCATION.test(item.trim()))
-          : [];
-        setPreferredLocations(loadedPreferredLocations.join(", "));
+        const loadedPreferredLocations = parsePreferredLocations(career?.preferred_locations, data.profile?.country || "India");
+        setPreferredLocations(loadedPreferredLocations);
         if (resumeSummary || education.length || workExperience.length || certifications.length || recommendedTargetRoles.length || savedSalaryRecommendation) {
           setSavedResumeDetails({ resumeSummary, education, workExperience, certifications, recommendedTargetRoles, salaryRecommendation: savedSalaryRecommendation });
         }
@@ -144,6 +149,21 @@ export default function ProfilePage() {
       setLoading(false);
     })();
   }, [router]);
+
+  function addPreferredLocation(value = locationDraft) {
+    const additions = parsePreferredLocations(value, country);
+    if (!additions.length) {
+      setMessage("Choose a city or region, not a country name, for Preferred locations.");
+      return;
+    }
+    setPreferredLocations((current) => parsePreferredLocations([...current, ...additions], country));
+    setLocationDraft("");
+    setMessage("");
+  }
+
+  function removePreferredLocation(value: string) {
+    setPreferredLocations((current) => current.filter((location) => location !== value));
+  }
 
   async function importResume(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,7 +225,7 @@ export default function ProfilePage() {
           skills: nextSkills,
           experience: nextExperience,
           country: nextCountry,
-          preferredLocations: parsePreferredLocations(preferredLocations),
+          preferredLocations,
           remoteOnly,
           minSalary: nextMinimumSalary,
           salaryCurrency: nextCurrency,
@@ -264,7 +284,7 @@ export default function ProfilePage() {
           skills: skills.split(",").map((v) => v.trim()).filter(Boolean),
           experience: Number(experience),
           country,
-          preferredLocations: parsePreferredLocations(preferredLocations),
+          preferredLocations,
           remoteOnly,
           minSalary: Number(minSalary),
           salaryCurrency: currency,
@@ -420,16 +440,64 @@ export default function ProfilePage() {
                   <span>years</span>
                 </div>
               </Field>
-              <Field label="Country" hint="Primary market">
-                <input value={country} onChange={(e) => setCountry(e.target.value)} />
+              <Field label="Country" hint="Primary market · searchable global list">
+                <select
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value);
+                    setPreferredLocations([]);
+                    setLocationDraft("");
+                  }}
+                  aria-label="Primary country"
+                >
+                  <option value="">Select a country</option>
+                  {COUNTRY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
               </Field>
-              <Field label="Preferred locations" hint="Optional city/region list, separated by commas. Leave blank to search across the country." wide>
-                <input
-                  value={preferredLocations}
-                  onChange={(e) => setPreferredLocations(e.target.value)}
-                  placeholder="Noida, Greater Noida, Gurugram"
-                />
-              </Field>
+              <div className="profile-field profile-field-wide">
+                <span id="preferred-locations-label">Preferred locations</span>
+                <small id="preferred-locations-help">Choose multiple cities or regions for {country || "your selected country"}. Leave empty to search across the whole country.</small>
+                <div className="profile-location-picker" aria-describedby="preferred-locations-help">
+                  {preferredLocations.length > 0 ? (
+                    <div className="profile-location-selected-list" aria-label="Selected locations">
+                      {preferredLocations.map((location) => (
+                        <span className="profile-location-chip" key={location}>
+                          {location}
+                          <button type="button" onClick={() => removePreferredLocation(location)} aria-label={`Remove ${location}`}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="profile-location-empty">No location restrictions selected.</p>
+                  )}
+                  <div className="profile-location-add-row">
+                    <input
+                      id="preferred-location-draft"
+                      value={locationDraft}
+                      onChange={(e) => setLocationDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addPreferredLocation();
+                        }
+                      }}
+                      placeholder="Type a city or state, then Add"
+                      aria-labelledby="preferred-locations-label"
+                    />
+                    <button type="button" className="profile-location-add-button" onClick={() => addPreferredLocation()}>Add</button>
+                  </div>
+                  {(LOCATION_SUGGESTIONS[country] || []).filter((location) => !preferredLocations.includes(location)).length > 0 && (
+                    <div className="profile-location-suggestions">
+                      <small>Popular in {country}</small>
+                      <div>
+                        {(LOCATION_SUGGESTIONS[country] || []).filter((location) => !preferredLocations.includes(location)).map((location) => (
+                          <button type="button" key={location} onClick={() => addPreferredLocation(location)}>+ {location}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               <Field label="Minimum salary" hint="Your compensation floor">
                 <div className="profile-input-suffix">
                   <input type="number" min="0" value={minSalary} onChange={(e) => setMinSalary(e.target.value)} />
