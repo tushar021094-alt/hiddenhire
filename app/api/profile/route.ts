@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
+import { isCountryName } from "@/lib/countries";
 
 const MAX_BODY_BYTES = 32_000;
 const MAX_ROLE_LENGTH = 200;
@@ -7,7 +8,6 @@ const MAX_SKILL_LENGTH = 100;
 const MAX_SKILLS = 30;
 const MAX_COUNTRY_LENGTH = 100;
 const SALARY_CURRENCIES = ["INR", "USD", "EUR", "GBP"] as const;
-const COUNTRY_ONLY_LOCATION = /^(?:in|india|us|usa|united states(?: of america)?|uk|gb|united kingdom|uae|united arab emirates|ca|canada)$/i;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -49,7 +49,7 @@ function normalizeStringArray(value: unknown, maxItems: number, maxLength: numbe
 
 function normalizePreferredLocations(value: unknown): string[] {
   return normalizeStringArray(value, 15, 100)
-    .filter((location) => !COUNTRY_ONLY_LOCATION.test(location));
+    .filter((location) => !isCountryName(location));
 }
 
 export async function GET() {
