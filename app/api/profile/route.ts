@@ -99,6 +99,7 @@ export async function POST(request: Request) {
 
     const resumeDetails = isRecord(input.resumeDetails) ? input.resumeDetails : null;
     const recommendedTargetRoles = normalizeStringArray(input.recommendedTargetRoles, 5, MAX_ROLE_LENGTH);
+    const hasSalaryRecommendation = Object.prototype.hasOwnProperty.call(input, "salaryRecommendation");
     const salaryRecommendation = isRecord(input.salaryRecommendation) ? input.salaryRecommendation : null;
     let suggestedSalaryMin: number | null = null;
     let suggestedSalaryMax: number | null = null;
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
       careerUpdate.resume_summary = trimmedText(resumeDetails.summary, 4_000);
     }
     if (Array.isArray(input.recommendedTargetRoles)) careerUpdate.recommended_target_roles = recommendedTargetRoles;
-    if (salaryRecommendation) {
+    if (hasSalaryRecommendation) {
       careerUpdate.suggested_salary_min = suggestedSalaryMin;
       careerUpdate.suggested_salary_max = suggestedSalaryMax;
       careerUpdate.suggested_salary_currency = suggestedSalaryCurrency;
