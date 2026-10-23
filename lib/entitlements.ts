@@ -8,6 +8,8 @@ export type EntitlementKey =
   | "recruiter_seats"
   | "featured_boosts"
   | "saved_jobs"
+  | "ai_resume_imports"
+  | "ai_job_match_explanations"
   | "ai_resume_optimizations"
   | "ai_cover_letters"
   | "ai_interview_sessions";
@@ -20,8 +22,8 @@ export type PlanDefinition = {
 };
 
 export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
-  candidate_free: { id:"candidate_free", audience:"candidate", monthlyPriceInr:0, limits:{saved_jobs:10,ai_resume_optimizations:1,ai_cover_letters:1,ai_interview_sessions:1} },
-  candidate_plus: { id:"candidate_plus", audience:"candidate", monthlyPriceInr:199, limits:{saved_jobs:Infinity,ai_resume_optimizations:10,ai_cover_letters:10,ai_interview_sessions:10} },
+  candidate_free: { id:"candidate_free", audience:"candidate", monthlyPriceInr:0, limits:{saved_jobs:10,ai_resume_imports:0,ai_job_match_explanations:0,ai_resume_optimizations:0,ai_cover_letters:0,ai_interview_sessions:0} },
+  candidate_plus: { id:"candidate_plus", audience:"candidate", monthlyPriceInr:299, limits:{saved_jobs:Infinity,ai_resume_imports:5,ai_job_match_explanations:10,ai_resume_optimizations:10,ai_cover_letters:10,ai_interview_sessions:10} },
   employer_free: { id:"employer_free", audience:"employer", monthlyPriceInr:0, limits:{active_jobs:1,job_credits:1,ai_matches:10,recruiter_seats:1,featured_boosts:0,candidate_contact_unlocks:0} },
   employer_starter: { id:"employer_starter", audience:"employer", monthlyPriceInr:1999, limits:{active_jobs:5,job_credits:5,ai_matches:100,recruiter_seats:1,featured_boosts:1,candidate_contact_unlocks:25} },
   employer_growth: { id:"employer_growth", audience:"employer", monthlyPriceInr:4999, limits:{active_jobs:10,job_credits:20,ai_matches:500,recruiter_seats:5,featured_boosts:5,candidate_contact_unlocks:150} },

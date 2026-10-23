@@ -225,40 +225,58 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "This application is not managed by a HiddenHire recruiter or agency." }, { status: 409 });
       }
 
-      const now = Date.now();
-      const lastReminder = application.last_candidate_reminder_at
-        ? new Date(application.last_candidate_reminder_at).getTime()
-        : 0;
-      const nextEligible = lastReminder ? lastReminder + 3 * 86_400_000 : 0;
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "candidate_remind_application",
+        { p_application_id: applicationId },
+      );
 
-      if (nextEligible > now) {
-        return NextResponse.json({
-          error: "A reminder was already sent recently.",
-          nextEligibleAt: new Date(nextEligible).toISOString(),
-        }, { status: 429 });
+      if (rpcError) {
+        console.error("Candidate application reminder RPC failed", { code: rpcError.code });
+        return NextResponse.json({ error: "Reminders are temporarily unavailable. Please try again later." }, { status: 503 });
       }
 
-      const dueAt = new Date(now + 3 * 86_400_000).toISOString();
-      const { data: updated, error: updateError } = await supabase
-        .from("applications")
-        .update({
-          candidate_reminder_count: (application.candidate_reminder_count ?? 0) + 1,
-          last_candidate_reminder_at: new Date(now).toISOString(),
-          recruiter_response_due_at: dueAt,
-        })
-        .eq("id", applicationId)
-        .eq("candidate_id", user.id)
-        .select("id, status, candidate_reminder_count, last_candidate_reminder_at, recruiter_response_due_at")
-        .single();
+      const result = rpcResult as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        nextEligibleAt?: string;
+        eligibleAt?: string;
+        reminder?: unknown;
+      } | null;
 
-      if (updateError) {
-        return NextResponse.json({ error: "Unable to send the recruiter reminder." }, { status: 500 });
+      if (!result?.ok) {
+        if (result?.code === "COOLDOWN") {
+          return NextResponse.json({
+            error: "A reminder was already sent recently.",
+            nextEligibleAt: result.nextEligibleAt,
+          }, { status: 429 });
+        }
+        if (result?.code === "TOO_EARLY") {
+          return NextResponse.json({
+            error: "Reminders become available five days after you apply.",
+            eligibleAt: result.eligibleAt,
+          }, { status: 409 });
+        }
+        if (result?.code === "NOT_FOUND") {
+          return NextResponse.json({ error: "Application not found." }, { status: 404 });
+        }
+        if (result?.code === "FORBIDDEN") {
+          return NextResponse.json({ error: "Only candidate accounts can send reminders." }, { status: 403 });
+        }
+        if (result?.code === "AUTH_REQUIRED") {
+          return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+        }
+        return NextResponse.json({
+          error: result?.code === "INVALID_STATUS"
+            ? "A reminder is only available while the application is awaiting a recruiter decision."
+            : "This application is not eligible for a reminder.",
+        }, { status: 409 });
       }
 
       return NextResponse.json({
         success: true,
-        reminder: updated,
-        message: "Reminder sent. The recruiter or agency has been asked to update the application.",
+        reminder: result.reminder,
+        message: result.message || "Reminder sent. The recruiter or agency has been asked to update the application.",
       });
     }
 
@@ -273,49 +291,86 @@ export async function PATCH(request: Request) {
     const recruiterStatuses = ["reviewing", "shortlisted", "interview", "rejected", "hired"];
 
     if ((profile?.role === "employer" || profile?.role === "agency") && recruiterStatuses.includes(status)) {
-      const { data: existingApplication, error: existingError } = await supabase
-        .from("applications")
-        .select("id, recruiter_first_response_at, recruiter_response_count")
-        .eq("id", applicationId)
-        .maybeSingle();
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "recruiter_update_application_status",
+        { p_application_id: applicationId, p_status: status },
+      );
 
-      if (existingError || !existingApplication) {
-        return NextResponse.json({ error: "Unable to load the application." }, { status: 500 });
+      if (rpcError) {
+        console.error("Recruiter application status RPC failed", { code: rpcError.code });
+        return NextResponse.json({ error: "Application updates are temporarily unavailable. Please try again later." }, { status: 503 });
       }
 
-      const responseNow = new Date().toISOString();
-      const { data: application, error: updateError } = await supabase
-        .from("applications")
-        .update({
-          status,
-          recruiter_response_due_at: null,
-          recruiter_first_response_at: existingApplication.recruiter_first_response_at ?? responseNow,
-          recruiter_response_count: Number(existingApplication.recruiter_response_count ?? 0) + 1,
-        })
-        .eq("id", applicationId)
-        .select("id, job_id, candidate_id, status, created_at, updated_at, recruiter_first_response_at, recruiter_response_count")
-        .single();
+      const result = rpcResult as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        application?: unknown;
+      } | null;
 
-      if (updateError) {
-        return NextResponse.json({ error: "Unable to update the application status." }, { status: 500 });
+      if (!result?.ok) {
+        if (result?.code === "NOT_FOUND") {
+          return NextResponse.json({ error: "Application not found for one of your jobs." }, { status: 404 });
+        }
+        if (result?.code === "FORBIDDEN") {
+          return NextResponse.json({ error: "Only the recruiter responsible for this job can update its applications." }, { status: 403 });
+        }
+        return NextResponse.json({
+          error: result?.code === "INVALID_TRANSITION"
+            ? "That application status change is not allowed from its current stage."
+            : result?.code === "INVALID_STATUS"
+              ? "Choose a valid application status."
+              : "Unable to update this application at its current stage.",
+        }, { status: 409 });
       }
 
-      return NextResponse.json({ success: true, application });
+      return NextResponse.json({
+        success: true,
+        application: result.application,
+        message: result.message,
+      });
     }
 
     if (profile?.role === "candidate" && status === "withdrawn") {
-      const { data: application, error: updateError } = await supabase
-        .from("applications")
-        .update({ status: "withdrawn" })
-        .eq("id", applicationId)
-        .select("id, job_id, candidate_id, status, created_at, updated_at")
-        .single();
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "candidate_withdraw_application",
+        { p_application_id: applicationId },
+      );
 
-      if (updateError) {
-        return NextResponse.json({ error: "Unable to update the application status." }, { status: 500 });
+      if (rpcError) {
+        console.error("Candidate application withdrawal RPC failed", { code: rpcError.code });
+        return NextResponse.json({ error: "Application withdrawals are temporarily unavailable. Please try again later." }, { status: 503 });
       }
 
-      return NextResponse.json({ success: true, application });
+      const result = rpcResult as {
+        ok?: boolean;
+        code?: string;
+        message?: string;
+        application?: unknown;
+      } | null;
+
+      if (!result?.ok) {
+        if (result?.code === "NOT_FOUND") {
+          return NextResponse.json({ error: "Application not found." }, { status: 404 });
+        }
+        if (result?.code === "FORBIDDEN") {
+          return NextResponse.json({ error: "Only candidate accounts can withdraw an application." }, { status: 403 });
+        }
+        if (result?.code === "AUTH_REQUIRED") {
+          return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+        }
+        return NextResponse.json({
+          error: result?.code === "INVALID_STATUS"
+            ? "This application can no longer be withdrawn at its current stage."
+            : "Unable to update this application at its current stage.",
+        }, { status: 409 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        application: result.application,
+        message: result.message,
+      });
     }
 
     return NextResponse.json({ error: "You are not allowed to set this application status." }, { status: 403 });

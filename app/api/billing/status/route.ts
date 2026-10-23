@@ -46,7 +46,8 @@ export async function GET() {
     checkoutReady: Boolean(
       process.env.RAZORPAY_KEY_ID &&
       process.env.RAZORPAY_KEY_SECRET &&
-      process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID
+      process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID &&
+      process.env.RAZORPAY_WEBHOOK_SECRET
     ),
     provider: "razorpay",
   });

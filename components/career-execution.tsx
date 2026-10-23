@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
+ 
+// Normalize legacy drafts saved with literal escaped newlines so they render
+// as real lines in textareas, while leaving ordinary user text unchanged.
+function normalizeDraftText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\\r/g, "\n");
+}
 
 type ExecutionPackage = {
   applicationId: string;
@@ -71,7 +80,8 @@ export default function CareerExecution() {
       setPackageData(nextPackage);
       setCoverLetterDraft(typeof nextPackage?.coverLetter === "string" ? nextPackage.coverLetter : "");
       setFollowUpDraft(typeof nextPackage?.followUpMessage === "string" ? nextPackage.followUpMessage : "");
-      setAnswerDrafts(Object.fromEntries((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string; draft: string }) => [item.question, item.draft])));
+      const currentQuestions = new Set<string>((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string }) => item.question));
+      setAnswerDrafts(Object.fromEntries((nextPackage?.interviewPlan?.sampleAnswers ?? []).map((item: { question: string; draft: string }) => [item.question, normalizeDraftText(item.draft)])));
       setCompletedChecklist([]);
       setChecklistSaveState("idle");
       if (nextPackage?.applicationId) {
@@ -81,7 +91,8 @@ export default function CareerExecution() {
         if (progressResponse.ok && Array.isArray(progressData.completedItems)) {
           setCompletedChecklist(progressData.completedItems.filter((item: unknown): item is string => typeof item === "string"));
           if (progressData.answerDrafts && typeof progressData.answerDrafts === "object" && !Array.isArray(progressData.answerDrafts)) {
-            setAnswerDrafts((current) => ({ ...current, ...progressData.answerDrafts }));
+            const normalizedSavedDrafts = Object.fromEntries(Object.entries(progressData.answerDrafts as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string" && currentQuestions.has(entry[0])).map(([question, draft]) => [question, normalizeDraftText(draft)]));
+            setAnswerDrafts((current) => ({ ...current, ...normalizedSavedDrafts }));
           }
         }
       }
@@ -104,7 +115,7 @@ export default function CareerExecution() {
       const response = await fetch("/api/career-execution/checklist", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: drafts }),
+        body: JSON.stringify({ applicationId: packageData.applicationId, answerDrafts: Object.fromEntries(Object.entries(drafts).filter(([question]) => packageData.interviewPlan.sampleAnswers.some((item) => item.question === question)).map(([question, draft]) => [question, normalizeDraftText(draft)])) }),
       });
       if (!response.ok) throw new Error("Unable to save interview answers.");
       setAnswerSaveState("saved");
@@ -140,7 +151,7 @@ export default function CareerExecution() {
       : "APPLICATION PACKAGE";
 
   return (
-    <section id="execution" className="rounded-xl border border-cyan-300/10 bg-[#071017] shadow-[0_18px_60px_rgba(0,0,0,.22)]">
+    <section id="execution" className="hh-execution-panel rounded-xl border border-cyan-300/10 bg-[#071017] shadow-[0_18px_60px_rgba(0,0,0,.22)]">
       <div className="border-b border-white/10 px-5 py-5 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -175,12 +186,15 @@ export default function CareerExecution() {
       {loading ? (
         <div className="px-5 py-8 text-xs text-white/35 sm:px-6">Building the execution package…</div>
       ) : error ? (
-        <div className="px-5 py-8 text-xs text-amber-200">{error}</div>
+        <div className="px-5 py-8 text-xs text-amber-200">
+          <p>{error}</p>
+          {error.includes("Candidate Plus") && <Link href="/pricing" className="mt-3 inline-flex rounded-lg border border-cyan-300/25 px-3 py-2 text-cyan-100 hover:bg-cyan-300/10">Explore Candidate Plus →</Link>}
+        </div>
       ) : !packageData ? (
         <div className="px-5 py-8 text-xs text-white/35">No application is ready for execution yet. Once you apply to a role, HiddenHire can prepare the next step.</div>
       ) : (
-        <div className="grid gap-px bg-white/10 lg:grid-cols-[1.05fr_.95fr]">
-          <div className="bg-[#071017] p-5 sm:p-6">
+        <div className="hh-execution-grid grid gap-px bg-white/10 lg:grid-cols-[1.05fr_.95fr]">
+          <div className="hh-execution-primary bg-[#071017] p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[9px] uppercase tracking-[.18em] text-cyan-200/60">{statusLabel}</p>
@@ -206,7 +220,7 @@ export default function CareerExecution() {
             </div>
           </div>
 
-          <div className="bg-[#071017] p-5 sm:p-6">
+          <div className="hh-execution-secondary bg-[#071017] p-5 sm:p-6">
             <div className="rounded-lg border border-cyan-300/10 bg-cyan-300/[.03] p-3">
               <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-cyan-200/60">Cover-letter draft</p>
               <textarea aria-label="Editable cover-letter draft" value={coverLetterDraft} onChange={(event) => setCoverLetterDraft(event.target.value)} rows={10} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[11px] leading-5 text-white/80 outline-none focus:border-cyan-300/40" /><button type="button" onClick={() => void copyDraft(coverLetterDraft, "Cover letter")} className="mt-2 rounded-lg border border-cyan-300/20 px-3 py-2 text-[10px] text-cyan-100">Copy cover letter</button>
@@ -231,7 +245,7 @@ export default function CareerExecution() {
                   {packageData.interviewPlan.sampleAnswers.map((item) => (
                     <div key={item.question} className="rounded-lg border border-white/10 bg-black/15 p-3">
                       <p className="text-[11px] font-semibold leading-5 text-white/80">{item.question}</p>
-                      <textarea aria-label={`Sample answer: ${item.question}`} value={answerDrafts[item.question] ?? item.draft} onChange={(event) => { setAnswerSaveState("idle"); setAnswerDrafts((current) => ({ ...current, [item.question]: event.target.value })); }} onBlur={() => void saveAnswerDrafts(answerDrafts)} rows={6} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[10px] leading-5 text-white/75 outline-none focus:border-violet-300/40" />
+                      <textarea aria-label={`Sample answer: ${item.question}`} value={answerDrafts[item.question] ?? item.draft} onChange={(event) => { setAnswerSaveState("idle"); setAnswerDrafts((current) => ({ ...current, [item.question]: event.target.value })); }} onBlur={(event) => void saveAnswerDrafts({ ...answerDrafts, [item.question]: event.currentTarget.value })} rows={6} className="mt-2 w-full resize-y rounded-lg border border-white/10 bg-black/20 p-3 text-[10px] leading-5 text-white/75 outline-none focus:border-violet-300/40" />
                       <p className="mt-2 text-[10px] leading-5 text-amber-100/60">Evidence to add: {item.evidenceNeeded}</p>
                       <button type="button" onClick={() => void copyDraft(answerDrafts[item.question] ?? item.draft, "Interview answer")} className="mt-2 rounded-lg border border-violet-300/20 px-3 py-2 text-[10px] text-violet-100">Copy answer</button>
                     </div>

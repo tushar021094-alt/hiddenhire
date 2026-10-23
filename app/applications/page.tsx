@@ -335,7 +335,7 @@ export default function ApplicationsPage() {
                         </span>
                         <div className="application-actions">
                           <Link href="/jobs" className="workspace-secondary-button">View matches</Link>
-                          {isActive(application.status) && (
+                          {["applied", "reviewing", "shortlisted"].includes(application.status) && (
                             <button
                               type="button"
                               onClick={() => withdraw(application.id)}

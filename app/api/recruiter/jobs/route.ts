@@ -92,6 +92,7 @@ async function normalizeJob(input: RecruiterJobInput) {
 export async function POST(request: Request) {
   const rate = checkRateLimit(`recruiter-jobs:${getClientIdentifier(request)}`, 10, 60_000);
   if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
+  let persistedJob: unknown = null;
   try {
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > MAX_BODY_BYTES) {
@@ -446,6 +447,10 @@ if (profile.role === "agency") {
       );
     }
 
+    // Once the database confirms creation, later matching errors must not make
+    // the client believe no job exists or encourage a duplicate retry.
+    persistedJob = job;
+
     const { data: candidates, error: candidateDiscoveryError } =
   await supabase.rpc(
     "recruiter_candidate_discovery_for_job",
@@ -457,11 +462,14 @@ if (profile.role === "agency") {
 if (candidateDiscoveryError) {
   return NextResponse.json(
     {
-      error: "Job was created, but candidate discovery failed.",
+      mode: "native",
       job,
       aiNormalized: normalized,
+      candidateCount: 0,
+      matches: [],
+      warning: "Job was saved, but candidate discovery is temporarily unavailable. You can retry from Find Talent.",
     },
-    { status: 500 }
+    { status: 201 }
   );
 }
 
@@ -471,84 +479,102 @@ const { data: company, error: companyLookupError } = await supabase
   .eq("id", job.company_id)
   .maybeSingle();
 
-if (companyLookupError) {
-  return NextResponse.json(
-    {
-      error: "Job was created, but company information could not be loaded.",
-      job,
-      aiNormalized: normalized,
-    },
-    { status: 500 }
-  );
-}
-
+const companyWarning = companyLookupError
+  ? "The job was saved, but company details could not be fully loaded."
+  : null;
 const recruiterJob = toRecruiterJob(
   job,
-  company?.name || "HiddenHire",
+  company?.name || body.company?.trim() || "HiddenHire",
   normalized.skills
 );
 
-const candidateMatches = (
-  await Promise.all(
-    (Array.isArray(candidates) ? candidates : []).map(
-      async (candidate: RecruiterCandidateRow) => {
-        const profile = toCandidateProfile(candidate);
-        const match = calculateJobMatch(profile, recruiterJob);
-        const intelligence = buildRecruiterCandidateIntelligence({ match, candidate: { skills: candidate.skills, experienceYears: candidate.experience_years, headline: candidate.headline, targetRoles: candidate.target_roles } });
+try {
+  const candidateMatches = (
+    await Promise.all(
+      (Array.isArray(candidates) ? candidates : []).map(
+        async (candidate: RecruiterCandidateRow) => {
+          const profile = toCandidateProfile(candidate);
+          const match = calculateJobMatch(profile, recruiterJob);
+          const intelligence = buildRecruiterCandidateIntelligence({ match, candidate: { skills: candidate.skills, experienceYears: candidate.experience_years, headline: candidate.headline, targetRoles: candidate.target_roles } });
 
-        const { error: matchSaveError } = await supabase.rpc(
-          "save_recruiter_match",
-          {
-            p_job_id: job.id,
-            p_candidate_id: candidate.candidate_id,
-            p_score: match.score,
-            p_reasons: match.reasons,
-            p_gaps: match.missingRequirements,
-          }
-        );
-
-        if (matchSaveError) {
-          throw new Error(
-            "Unable to save candidate match."
+          const { error: matchSaveError } = await supabase.rpc(
+            "save_recruiter_match",
+            {
+              p_job_id: job.id,
+              p_candidate_id: candidate.candidate_id,
+              p_score: match.score,
+              p_reasons: match.reasons,
+              p_gaps: match.missingRequirements,
+            }
           );
+
+          if (matchSaveError) {
+            throw new Error("Unable to save candidate match.");
+          }
+
+          return {
+            candidateId: candidate.candidate_id,
+            name: candidate.full_name,
+            headline: candidate.headline,
+            score: match.score,
+            opportunityScore: match.opportunityScore,
+            matchTier: match.matchTier,
+            roleClassification: match.roleClassification,
+            reasons: match.reasons,
+            missingRequirements: match.missingRequirements,
+            recruiterScore: intelligence.recruiterScore,
+            readinessScore: intelligence.readinessScore,
+            recruiterPriority: intelligence.priority,
+            recruiterConfidence: intelligence.confidence,
+            nextAction: intelligence.nextAction,
+          };
         }
-
-        return {
-          candidateId: candidate.candidate_id,
-          name: candidate.full_name,
-          headline: candidate.headline,
-          score: match.score,
-          opportunityScore: match.opportunityScore,
-          matchTier: match.matchTier,
-          roleClassification: match.roleClassification,
-          reasons: match.reasons,
-          missingRequirements: match.missingRequirements,
-          recruiterScore: intelligence.recruiterScore,
-          readinessScore: intelligence.readinessScore,
-          recruiterPriority: intelligence.priority,
-          recruiterConfidence: intelligence.confidence,
-          nextAction: intelligence.nextAction,
-        };
-      }
+      )
     )
-  )
-).sort(
-  (a, b) =>
-    b.score - a.score ||
-    b.opportunityScore - a.opportunityScore
-);
+  ).sort(
+    (a, b) =>
+      b.score - a.score ||
+      b.opportunityScore - a.opportunityScore
+  );
 
-return NextResponse.json(
-  {
-    mode: "native",
-    job,
-    aiNormalized: normalized,
-    candidateCount: candidateMatches.length,
-    matches: candidateMatches,
-  },
-  { status: 201 }
-);
+  return NextResponse.json(
+    {
+      mode: "native",
+      job,
+      aiNormalized: normalized,
+      candidateCount: candidateMatches.length,
+      matches: candidateMatches,
+      warning: companyWarning,
+    },
+    { status: 201 }
+  );
 } catch {
+  return NextResponse.json(
+    {
+      mode: "native",
+      job,
+      aiNormalized: normalized,
+      candidateCount: 0,
+      matches: [],
+      warning: "The job was saved, but candidate matching could not finish. Open Find Talent to retry.",
+    },
+    { status: 201 }
+  );
+}
+} catch {
+  if (persistedJob) {
+    return NextResponse.json(
+      {
+        mode: "native",
+        job: persistedJob,
+        candidateCount: 0,
+        matches: [],
+        warning: "The job was saved, but candidate matching could not finish. Open Find Talent to retry.",
+      },
+      { status: 201 }
+    );
+  }
+
   return NextResponse.json(
     { error: "Job creation failed. Please try again." },
     { status: 500 }

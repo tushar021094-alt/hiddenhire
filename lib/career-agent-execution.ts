@@ -18,7 +18,12 @@ export function buildExecutionTask(input: {
   summary: string;
   requiresApproval?: boolean;
 }): ExecutionTask {
-  const requiresApproval = input.requiresApproval ?? true;
+  // External side effects must never be made runnable by a client-supplied flag.
+  // Applying to a job or sending a follow-up always requires explicit approval.
+  const requiresApproval =
+    input.action === "apply" ||
+    input.action === "follow_up" ||
+    input.requiresApproval !== false;
   return {
     ...input,
     state: requiresApproval ? "awaiting_approval" : "queued",

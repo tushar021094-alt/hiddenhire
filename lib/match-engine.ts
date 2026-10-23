@@ -103,7 +103,7 @@ export function isFinanceRoleRelevant(candidate: CandidateProfile, job: Job): bo
 
   if (/finance manager|senior finance manager|finance lead|finance director|head of finance/i.test(target)) {
     if (
-      /strategic finance|business finance|corporate finance|fp&a|financial planning|finance business partner|commercial finance|treasury|finance operations|finance manager|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
+      /strategic finance|business finance|corporate finance|fp&a|financial planning|finance business partner|commercial finance|treasury|finance operations|financial operations|finance manager|finance executive|financial executive|finance officer|accounting executive|accounts executive|accounts officer|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|\br2r\b|order to cash|\bo2c\b|\bp2p\b|general ledger|reconciliation|management accountant|accounts payable|accounts receivable|cost accountant|accounting operations|payroll accountant|financial controller|financial reporting manager|regional finance manager|finance lead/i.test(title)
     ) {
       return true;
     }
@@ -258,10 +258,15 @@ export function calculateOpportunityScore(candidate: CandidateProfile, job: Job)
   if (job.remote) score += 18;
   else if (job.remoteStatus === 'UNKNOWN') score += 9;
 
-  if (job.salaryMin !== null && job.salaryMin > 0) {
+  if (
+    job.salaryMin !== null &&
+    job.salaryMin > 0 &&
+    job.salaryCurrency === candidate.preferredCurrency
+  ) {
     const normalized = candidate.minimumSalary > 0 ? Math.min(candidate.minimumSalary / job.salaryMin, 1) : 0.5;
     score += Math.round(normalized * 15);
   } else {
+    // No misleading score from comparing salary amounts in different currencies.
     score += 8;
   }
 
@@ -309,9 +314,12 @@ export function calculateJobMatch(candidate: CandidateProfile, job: Job): MatchR
 
   const salaryCandidate = candidate.minimumSalary;
   const salaryThreshold = job.salaryMin;
-  const salaryScore = salaryThreshold === null || salaryThreshold === undefined
-    ? salaryWeight * 0.5
-    : Math.min(salaryCandidate / Math.max(salaryThreshold, 1), 1) * salaryWeight;
+  const salaryScore =
+    salaryThreshold === null ||
+    salaryThreshold === undefined ||
+    job.salaryCurrency !== candidate.preferredCurrency
+      ? salaryWeight * 0.5
+      : Math.min(salaryCandidate / Math.max(salaryThreshold, 1), 1) * salaryWeight;
 
   const industryMatch = candidate.preferredIndustries.some((industry) =>
     job.industry.toLowerCase().includes(industry.toLowerCase()) || industry.toLowerCase().includes(job.industry.toLowerCase())

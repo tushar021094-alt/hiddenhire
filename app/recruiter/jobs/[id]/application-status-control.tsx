@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 
-const STATUSES = [
-  "applied",
-  "reviewing",
-  "shortlisted",
-  "interview",
-  "rejected",
-  "hired",
-] as const;
+type ApplicationStatus =
+  | "applied"
+  | "reviewing"
+  | "shortlisted"
+  | "interview"
+  | "rejected"
+  | "hired"
+  | "withdrawn";
 
-type ApplicationStatus = (typeof STATUSES)[number];
+const STATUS_OPTIONS: Record<ApplicationStatus, readonly ApplicationStatus[]> = {
+  applied: ["applied", "reviewing"],
+  reviewing: ["reviewing", "shortlisted", "interview", "rejected"],
+  shortlisted: ["shortlisted", "interview", "rejected", "hired"],
+  interview: ["interview", "rejected", "hired"],
+  rejected: ["rejected"],
+  hired: ["hired"],
+  withdrawn: ["withdrawn"],
+};
 
 export default function ApplicationStatusControl({
   applicationId,
@@ -22,9 +30,8 @@ export default function ApplicationStatusControl({
   currentStatus: string;
   responseDueAt?: string | null;
 }) {
-  const normalizedStatus = STATUSES.includes(
-    currentStatus as ApplicationStatus,
-  )
+  const allStatuses = Object.keys(STATUS_OPTIONS) as ApplicationStatus[];
+  const normalizedStatus = allStatuses.includes(currentStatus as ApplicationStatus)
     ? (currentStatus as ApplicationStatus)
     : "applied";
 
@@ -33,6 +40,8 @@ export default function ApplicationStatusControl({
   const [saving, setSaving] = useState(false);
   const [needsResponse, setNeedsResponse] = useState(Boolean(responseDueAt));
   const [error, setError] = useState("");
+  const availableStatuses = STATUS_OPTIONS[status];
+  const statusLocked = availableStatuses.length === 1;
 
   async function updateStatus(nextStatus: ApplicationStatus) {
     setSaving(true);
@@ -81,13 +90,13 @@ export default function ApplicationStatusControl({
 
       <select
         value={status}
-        disabled={saving}
+        disabled={saving || statusLocked}
         onChange={(event) =>
           updateStatus(event.target.value as ApplicationStatus)
         }
         className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs capitalize text-white/75 outline-none focus:border-cyan-300/40"
       >
-        {STATUSES.map((item) => (
+        {availableStatuses.map((item) => (
           <option
             key={item}
             value={item}
