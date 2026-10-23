@@ -27,8 +27,8 @@ test("resume auto-fill is shown only when billing status identifies an active Ca
   assert.match(profilePage, /setCanUseResumeAI\(billingData\.plan === "candidate_plus"\)/);
   assert.match(profilePage, /canUseResumeAI \? \(/);
   assert.match(profilePage, /Explore Candidate Plus/);
-  assert.match(executionRoute, /getActivePlanId\\(supabase, user\\.id\\) !== "candidate_plus"/);
-  assert.match(executionComponent, /href="\\/pricing"/);
+  assert.match(executionRoute, /getActivePlanId\(supabase, user\.id\) !== "candidate_plus"/);
+  assert.match(executionComponent, /href="\/pricing"/);
   assert.match(pricing, /Application execution packs/);
 });
 
