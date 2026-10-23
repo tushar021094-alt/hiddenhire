@@ -95,6 +95,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [canUseResumeAI, setCanUseResumeAI] = useState(false);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeSaving, setResumeSaving] = useState(false);
   const [resumeSaved, setResumeSaved] = useState(false);
@@ -104,7 +105,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     void (async () => {
-      const response = await fetch("/api/profile");
+      const [response, billingResponse] = await Promise.all([
+        fetch("/api/profile"),
+        fetch("/api/billing/status").catch(() => null),
+      ]);
+      if (billingResponse?.ok) {
+        const billingData = await billingResponse.json().catch(() => ({})) as { plan?: string };
+        setCanUseResumeAI(billingData.plan === "candidate_plus");
+      } else {
+        setCanUseResumeAI(false);
+      }
       const data = await response.json() as ProfileData & { error?: string };
       if (response.status === 401) {
         router.replace("/login");
@@ -340,7 +350,8 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section className="profile-form-card resume-import-card">
+        {canUseResumeAI ? (
+          <section className="profile-form-card resume-import-card">
           <div className="profile-section-heading">
             <div>
               <span>OPTIONAL · AI ASSISTED SETUP</span>
@@ -396,6 +407,20 @@ export default function ProfilePage() {
             {savedResumeDetails.certifications.length > 0 && <p><strong>Certifications:</strong> {savedResumeDetails.certifications.join(", ")}</p>}
           </div>}
         </section>
+        ) : (
+          <section className="profile-form-card resume-import-card">
+          <div className="profile-section-heading">
+            <div>
+              <span>AVAILABLE IN CANDIDATE PLUS</span>
+              <h2>Auto-fill with your resume</h2>
+              <p>Free accounts can complete and edit every profile field manually. Candidate Plus adds AI extraction, suggested target roles and an indicative salary range.</p>
+            </div>
+            <span className="profile-live-badge">PLUS</span>
+          </div>
+          <p>Candidate Plus includes up to 5 AI resume imports each month and 10 AI job-match explanations. Upgrade to unlock these tools for ₹299/month.</p>
+          <Link href="/pricing" className="workspace-primary-button">Explore Candidate Plus →</Link>
+        </section>
+        )}
 
         <form onSubmit={save} className="profile-layout">
           <section className="profile-form-card">
