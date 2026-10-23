@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import HiddenHireLogo from "@/components/hiddenhire-logo";
-import { COUNTRY_OPTIONS, isCountryName, LOCATION_SUGGESTIONS } from "@/lib/countries";
+import { canonicalCountryName, COUNTRY_OPTIONS, isCountryName, LOCATION_SUGGESTIONS } from "@/lib/countries";
 
 type EducationItem = { qualification: string; institution: string | null; year: string | null };
 type WorkExperienceItem = { title: string | null; company: string | null; startDate: string | null; endDate: string | null; summary: string | null };
@@ -129,7 +129,9 @@ export default function ProfilePage() {
         const certifications = Array.isArray(career?.certifications) ? career.certifications : [];
         const recommendedTargetRoles = Array.isArray(career?.recommended_target_roles) ? career.recommended_target_roles : [];
         const resumeSummary = career?.resume_summary || null;
-        const loadedPreferredLocations = parsePreferredLocations(career?.preferred_locations, data.profile?.country || "India");
+        const loadedCountry = canonicalCountryName(data.profile?.country || "India") || "India";
+        setCountry(loadedCountry);
+        const loadedPreferredLocations = parsePreferredLocations(career?.preferred_locations, loadedCountry);
         setPreferredLocations(loadedPreferredLocations);
         if (resumeSummary || education.length || workExperience.length || certifications.length || recommendedTargetRoles.length || savedSalaryRecommendation) {
           setSavedResumeDetails({ resumeSummary, education, workExperience, certifications, recommendedTargetRoles, salaryRecommendation: savedSalaryRecommendation });
@@ -138,7 +140,6 @@ export default function ProfilePage() {
         setHeadline(data.career?.headline || "");
         setSkills((data.profile?.skills || []).join(", "));
         setExperience(data.profile?.experience_years == null ? "" : String(data.profile.experience_years));
-        setCountry(data.profile?.country || "India");
         setRemoteOnly(Boolean(data.profile?.remote_only));
         setMinSalary(String(data.profile?.min_salary ?? 0));
         setCurrency(data.profile?.salary_currency || "INR");
