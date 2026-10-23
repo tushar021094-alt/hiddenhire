@@ -15,6 +15,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # Temporary lockfile regeneration to let CI produce a canonical lockfile
+      # for the pinned security upgrade. This step is removed after the artifact
+      # is committed and normal npm ci validation passes.
+      - name: Regenerate lockfile for patched dependency pins
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm test
@@ -42,6 +47,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hiddenhire-npm-audit
-          path: npm-audit.json
+          name: hiddenhire-audit-and-lockfile-refresh
+          path: |
+            npm-audit.json
+            package-lock.json
           if-no-files-found: ignore
