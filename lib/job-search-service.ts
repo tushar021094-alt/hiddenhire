@@ -71,7 +71,7 @@ export function filterJobsForDiscovery(
     const financeIntent = /\b(finance|financial|accounting|accountant|fp\s*&?\s*a|tax|audit|controller|treasury|cfo|bookkeep(?:er|ing))\b/i.test(normalizedQuery);
     if (financeIntent) {
       const jobFunction = String(job.jobFunction ?? '').toLocaleLowerCase();
-      const financeRoleTitle = /\b(finance|financial|accounting|accountant|fp\s*&?\s*a|tax|audit|controller|cfo|bookkeep(?:er|ing)|accounts payable|accounts receivable|treasury analyst|treasury manager)\b/i.test(titleText);
+      const financeRoleTitle = /\b(finance|financial|accounting|accountant|fp\s*&?\s*a|tax|audit|controller|cfo|bookkeep(?:er|ing)|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|finance operations|financial operations|treasury analyst|treasury manager)\b/i.test(titleText);
       const financeFunction = /\b(finance|accounting|fp\s*&?\s*a|tax|audit|treasury|risk|controllership)\b/i.test(jobFunction);
       if (jobFunction === 'sales' && !financeRoleTitle) return false;
       if (!financeRoleTitle && !financeFunction) return false;
