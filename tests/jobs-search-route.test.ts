@@ -7,7 +7,7 @@ import {
   buildDiscoveryQueries,
   normalizeCandidateProfile,
 } from '../app/api/jobs/search/route.ts';
-import { filterJobsForDiscovery } from '../lib/job-search-service';
+import { filterJobsForDiscovery, hasUsableApplicationUrl } from '../lib/job-search-service';
 import { applyJobFilters } from '../lib/job-source';
 import { buildCandidateSearchIntent, isJobEligible } from '../lib/search-policy';
 import { calculateJobMatch } from '../lib/match-engine';
@@ -311,4 +311,25 @@ test("multi-word role search does not use free-text descriptions to complete a t
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
     ["finance-head", "finance-executive"],
   );
+});
+
+test("live listings need a usable HTTP(S) application URL", () => {
+  assert.equal(hasUsableApplicationUrl("https://careers.example.com/jobs/123"), true);
+  assert.equal(hasUsableApplicationUrl("http://jobs.example.com/apply"), true);
+  assert.equal(hasUsableApplicationUrl("#"), false);
+  assert.equal(hasUsableApplicationUrl(""), false);
+  assert.equal(hasUsableApplicationUrl("   "), false);
+  assert.equal(hasUsableApplicationUrl("javascript:alert(1)"), false);
+  assert.equal(hasUsableApplicationUrl("/jobs/123"), false);
+  assert.equal(hasUsableApplicationUrl(null), false);
+});
+
+test("live search filters placeholder application links before ranking and reports excluded counts", () => {
+  const service = readFileSync(new URL("../lib/job-search-service.ts", import.meta.url), "utf8");
+  const jobsPage = readFileSync(new URL("../app/jobs/page.tsx", import.meta.url), "utf8");
+
+  assert.ok(service.includes("uniqueJobs.filter((job) => hasUsableApplicationUrl(job.applicationUrl))"));
+  assert.ok(service.includes("totalWithoutUsableApplicationUrl"));
+  assert.ok(service.includes("none had a usable application URL"));
+  assert.ok(jobsPage.includes("without a usable application link excluded"));
 });
