@@ -33,6 +33,13 @@ const FINANCE_FUNCTIONS = new Set<JobFunction>([
   "Risk",
 ]);
 
+// ATS providers sometimes mark billing, invoice-processing or MIS jobs as
+// generic Operations/Other. Preserve these finance-adjacent roles for finance
+// candidates, but only from a specific title signal and never through Sales.
+function isFinanceAdjacentTitle(title: string): boolean {
+  return /\\b(?:finance|financial|accounting|accountant|accounts executive|accounting executive|accounts payable|accounts receivable|billing(?: executive| analyst| specialist| officer| coordinator| manager)?|invoice processing|invoicing|mis(?: executive| analyst| reporting| specialist| manager)?|sap\\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|finance operations|financial operations|payroll accountant|cost accountant|treasury|auditor|tax analyst|fp\\s*&?\\s*a|financial controller|controllership)\\b/i.test(title);
+}
+
 function roleToFunctions(role: string): JobFunction[] {
   const normalized = role.toLowerCase().trim();
 
@@ -278,6 +285,14 @@ export function isJobEligible(
           job.jobFunction &&
           !FINANCE_FUNCTIONS.has(actualFunction)
         ) {
+          const genericExternalClassification =
+            actualFunction === "Other" || actualFunction === "Operations";
+          if (
+            genericExternalClassification &&
+            isFinanceAdjacentTitle(job.title)
+          ) {
+            return true;
+          }
           return false;
         }
 
