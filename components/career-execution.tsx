@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
  
 // Normalize legacy drafts saved with literal escaped newlines so they render
@@ -185,7 +186,10 @@ export default function CareerExecution() {
       {loading ? (
         <div className="px-5 py-8 text-xs text-white/35 sm:px-6">Building the execution package…</div>
       ) : error ? (
-        <div className="px-5 py-8 text-xs text-amber-200">{error}</div>
+        <div className="px-5 py-8 text-xs text-amber-200">
+          <p>{error}</p>
+          {error.includes("Candidate Plus") && <Link href="/pricing" className="mt-3 inline-flex rounded-lg border border-cyan-300/25 px-3 py-2 text-cyan-100 hover:bg-cyan-300/10">Explore Candidate Plus →</Link>}
+        </div>
       ) : !packageData ? (
         <div className="px-5 py-8 text-xs text-white/35">No application is ready for execution yet. Once you apply to a role, HiddenHire can prepare the next step.</div>
       ) : (
