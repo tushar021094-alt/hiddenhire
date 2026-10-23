@@ -38,7 +38,7 @@ export default function LoginPage() {
       }
 
       setOtpSent(true);
-      setMessage("We sent a 6-digit sign-in code to your email address.");
+      setMessage("We sent an 8-digit sign-in code to your email address.");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "";
       if (/signups not allowed for otp/i.test(errorMessage)) {
@@ -130,17 +130,17 @@ export default function LoginPage() {
               />
             </Field>
 
-            {otpSent && <Field label="6-digit code">
+            {otpSent && <Field label="8-digit code">
   <input
     inputMode="numeric"
-    pattern="[0-9]{6}"
+    pattern="[0-9]{8}"
     value={otp}
-    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-    placeholder="123456"
+    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+    placeholder="12345678"
     autoComplete="one-time-code"
     required
-    minLength={6}
-    maxLength={6}
+    minLength={8}
+    maxLength={8}
   />
 </Field>}
           </div>
