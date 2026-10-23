@@ -8,6 +8,7 @@ import DashboardHeader from "@/components/dashboard-header";
 import { trackGrowthEvent } from "@/lib/growth";
 import JobAuthenticityBadge from "@/components/job-authenticity-badge";
 import FraudRiskBadge from "@/components/fraud-risk-badge";
+import { getDiscoveryViewEmptyMessage, getVisibleDiscoveryJobs, type DiscoveryView } from "@/lib/discovery-views";
 import type { FraudRiskSignal } from "@/lib/job-types";
 import type { JobAuthenticitySignal } from "@/lib/job-types";
 
@@ -77,22 +78,18 @@ const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
 const [searchQuery, setSearchQuery] = useState("");
 const [workModeFilter, setWorkModeFilter] = useState<"all" | "remote" | "onsite" | "hybrid">("all");
-const [sortMode, setSortMode] = useState<"match" | "recent" | "salary">("match");
+const [discoveryView, setDiscoveryView] = useState<DiscoveryView>("for-you");
 const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
 
   function jobKey(job: Job) { return `${job.source || "external"}|${job.id}`; }
 
-  // Search and work mode are applied server-side to the eligible inventory.
-  // Client-side behavior here is only for ordering the returned results.
-  const visibleJobs = [...jobs].sort((a, b) => {
-      if (sortMode === "salary") return (b.salaryMax ?? b.salaryMin ?? 0) - (a.salaryMax ?? a.salaryMin ?? 0);
-      if (sortMode === "recent") {
-        const dateA = a.postedDate ? Date.parse(a.postedDate) : 0;
-        const dateB = b.postedDate ? Date.parse(b.postedDate) : 0;
-        return (Number.isFinite(dateB) ? dateB : 0) - (Number.isFinite(dateA) ? dateA : 0);
-      }
-      return (b.score ?? 0) - (a.score ?? 0);
-    });
+  // The four discovery views use a single exclusive state. Switching views is
+  // immediate and local; it cannot leave an old tab selected or race a request.
+  const visibleJobs = getVisibleDiscoveryJobs(
+    jobs,
+    discoveryView,
+    profile?.salary_currency || "INR",
+  );
 
   async function toggleSavedJob(job: Job) {
     const key = jobKey(job);
@@ -429,14 +426,14 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
               <div className="hh-discovery-select">⌖ <span>{profile?.location || "Location"}</span>⌄</div>
               <div className="hh-discovery-select">▣ <span>{profile?.experience_years ? profile.experience_years + "+ yrs" : "All experience"}</span>⌄</div>
               <button type="button" className="hh-discovery-button" disabled={isSearching} onClick={() => void runSearch(searchQuery, workModeFilter, profile, candidate)}>{isSearching ? "Searching…" : "Search Jobs →"}</button>
-              <div className="hh-filter-row"><span>Work Mode</span><button type="button" className={workModeFilter === "all" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("all"); void runSearch(searchQuery, "all", profile, candidate); }}>All</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("remote"); void runSearch(searchQuery, "remote", profile, candidate); }}>Remote</button><button type="button" className={workModeFilter === "onsite" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("onsite"); void runSearch(searchQuery, "onsite", profile, candidate); }}>On-site</button><button type="button" className={workModeFilter === "hybrid" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("hybrid"); void runSearch(searchQuery, "hybrid", profile, candidate); }}>Hybrid</button><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><button type="button" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); void runSearch("", "all", profile, candidate); }}>Reset</button></div>
+              <div className="hh-filter-row"><span>Work Mode</span><button type="button" className={workModeFilter === "all" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("all"); void runSearch(searchQuery, "all", profile, candidate); }}>All</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("remote"); void runSearch(searchQuery, "remote", profile, candidate); }}>Remote</button><button type="button" className={workModeFilter === "onsite" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("onsite"); void runSearch(searchQuery, "onsite", profile, candidate); }}>On-site</button><button type="button" className={workModeFilter === "hybrid" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("hybrid"); void runSearch(searchQuery, "hybrid", profile, candidate); }}>Hybrid</button><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><button type="button" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setDiscoveryView("for-you"); void runSearch("", "all", profile, candidate); }}>Reset</button></div>
             </section>
 
             <div className="hh-discovery-stats">
-              <article><span>◫</span><div><strong>{jobs.length}</strong><small>Matched opportunities</small></div></article>
-              <article><span>▦</span><div><strong>{new Set(jobs.map(j => j.company).filter(Boolean)).size}</strong><small>Companies hiring</small></div></article>
-              <article><span>◎</span><div><strong>{jobs.filter(j => j.remote).length}</strong><small>Remote friendly</small></div></article>
-              <article><span>◉</span><div><strong>{jobs.filter(j => j.salaryMin || j.salaryMax).length}</strong><small>Salary disclosed</small></div></article>
+              <article><span>◫</span><div><strong>{visibleJobs.length}</strong><small>Matched opportunities</small></div></article>
+              <article><span>▦</span><div><strong>{new Set(visibleJobs.map(j => j.company).filter(Boolean)).size}</strong><small>Companies hiring</small></div></article>
+              <article><span>◎</span><div><strong>{visibleJobs.filter(j => j.remote).length}</strong><small>Remote friendly</small></div></article>
+              <article><span>◉</span><div><strong>{visibleJobs.filter(j => (j.salaryMin ?? 0) > 0 || (j.salaryMax ?? 0) > 0).length}</strong><small>Salary disclosed</small></div></article>
             </div>
 
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
@@ -461,21 +458,27 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
                   )}
                 </div>
                 {searchQuery.trim() || workModeFilter !== "all" ? (
-                  <button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); void runSearch("", "all", profile, candidate); }}>Reset search →</button>
+                  <button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setDiscoveryView("for-you"); void runSearch("", "all", profile, candidate); }}>Reset search →</button>
                 ) : (
                   <Link href="/onboarding" className="hh-job-action">Improve profile →</Link>
                 )}
               </div>
             )}
 
-            {!loading && !error && jobs.length > 0 && visibleJobs.length > 0 && (
+            {!loading && !error && jobs.length > 0 && (
               <div className="hh-discovery-grid">
                 <section className="hh-panel hh-discovery-results">
                   <div className="hh-panel-heading">
-                    <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>Showing opportunities based on your profile, skills and preferences.</p></div>
+                    <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>{discoveryView === "recent" ? "Sorted by most recently posted opportunities." : discoveryView === "remote" ? "Remote roles from your current matching inventory." : discoveryView === "high-salary" ? `Roles with disclosed salary, grouped by currency. Preferred currency: ${profile?.salary_currency || "INR"}.` : "Showing opportunities based on your profile, skills and preferences."}</p></div>
                     <span>{visibleJobs.length} matches</span>
                   </div>
-                  <div className="hh-discovery-tabs"><button type="button" className={sortMode === "match" ? "active" : ""} onClick={() => setSortMode("match")}>For You</button><button type="button" className={sortMode === "recent" ? "active" : ""} onClick={() => setSortMode("recent")}>Recent</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} disabled={isSearching} onClick={() => { const nextMode = workModeFilter === "remote" ? "all" : "remote"; setWorkModeFilter(nextMode); void runSearch(searchQuery, nextMode, profile, candidate); }}>Remote</button><button type="button" className={sortMode === "salary" ? "active" : ""} onClick={() => setSortMode("salary")}>High Salary</button></div>
+                  <div className="hh-discovery-tabs" role="group" aria-label="Job discovery views">
+                    <button type="button" className={discoveryView === "for-you" ? "active" : ""} aria-pressed={discoveryView === "for-you"} onClick={() => setDiscoveryView("for-you")}>For You</button>
+                    <button type="button" className={discoveryView === "recent" ? "active" : ""} aria-pressed={discoveryView === "recent"} onClick={() => setDiscoveryView("recent")}>Recent</button>
+                    <button type="button" className={discoveryView === "remote" ? "active" : ""} aria-pressed={discoveryView === "remote"} onClick={() => setDiscoveryView("remote")}>Remote</button>
+                    <button type="button" className={discoveryView === "high-salary" ? "active" : ""} aria-pressed={discoveryView === "high-salary"} onClick={() => setDiscoveryView("high-salary")}>High Salary</button>
+                  </div>
+{visibleJobs.length > 0 ? (
                   <div className="hh-discovery-list">
                     {visibleJobs.map((job,index) => (
                       <article key={job.applicationUrl || index} className="hh-discovery-job">
@@ -497,6 +500,16 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
                       </article>
                     ))}
                   </div>
+                  ) : (
+                    <div className="hh-discovery-empty" role="status">
+                      <div className="hh-empty-icon">✦</div>
+                      <div>
+                        <strong>{discoveryView === "high-salary" ? "No salary-disclosed roles to rank yet." : discoveryView === "remote" ? "No remote roles in this result set." : "No opportunities in this view yet."}</strong>
+                        <p>{getDiscoveryViewEmptyMessage(discoveryView)}</p>
+                      </div>
+                      <button type="button" className="hh-job-action" onClick={() => setDiscoveryView("for-you")}>Back to For You →</button>
+                    </div>
+                  )}
                 </section>
                 <aside className="hh-discovery-side">
                   <section className="hh-panel hh-match-radar">
