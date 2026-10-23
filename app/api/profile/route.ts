@@ -7,6 +7,7 @@ const MAX_SKILL_LENGTH = 100;
 const MAX_SKILLS = 30;
 const MAX_COUNTRY_LENGTH = 100;
 const SALARY_CURRENCIES = ["INR", "USD", "EUR", "GBP"] as const;
+const COUNTRY_ONLY_LOCATION = /^(?:in|india|us|usa|united states(?: of america)?|uk|gb|united kingdom|uae|united arab emirates|ca|canada)$/i;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -46,6 +47,11 @@ function normalizeStringArray(value: unknown, maxItems: number, maxLength: numbe
     .filter(Boolean))].slice(0, maxItems);
 }
 
+function normalizePreferredLocations(value: unknown): string[] {
+  return normalizeStringArray(value, 15, 100)
+    .filter((location) => !COUNTRY_ONLY_LOCATION.test(location));
+}
+
 export async function GET() {
   try {
     const { supabase, user, error } = await getAuthenticatedUser();
@@ -81,6 +87,12 @@ export async function POST(request: Request) {
     if (!isRecord(body)) return NextResponse.json({ error: "Invalid profile payload." }, { status: 400 });
 
     const input = body;
+    if (
+      Object.prototype.hasOwnProperty.call(input, "preferredLocations") &&
+      !Array.isArray(input.preferredLocations)
+    ) {
+      return NextResponse.json({ error: "Preferred locations must be a list of cities or regions." }, { status: 400 });
+    }
     const role = typeof input.role === "string" ? input.role.trim() : "";
     const country = typeof input.country === "string" ? input.country.trim() : "India";
     const headline = typeof input.headline === "string" ? input.headline.trim() : "";
@@ -145,9 +157,11 @@ export async function POST(request: Request) {
       profile_id: user.id,
       job_search_mode: "active",
       target_roles: [role],
-      preferred_locations: country ? [country] : [],
       headline: headline || null,
     };
+    if (Object.prototype.hasOwnProperty.call(input, "preferredLocations")) {
+      careerUpdate.preferred_locations = normalizePreferredLocations(input.preferredLocations);
+    }
     if (resumeDetails) {
       careerUpdate.education = normalizeEducation(resumeDetails.education);
       careerUpdate.work_experience = normalizeWorkExperience(resumeDetails.workExperience);
