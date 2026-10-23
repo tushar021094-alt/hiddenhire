@@ -229,7 +229,30 @@ Rules:
       notice: "Review the extracted facts and suggestions. Salary ranges are AI estimates, not live-market salary survey data. Nothing is saved until you choose Apply & save profile.",
     });
   } catch (err) {
-    console.error("Resume extraction failed", err instanceof Error ? err.message : "Unknown error");
-    return NextResponse.json({ error: "Resume extraction failed. Your existing profile has not been changed." }, { status: 500 });
+    const providerError = err && typeof err === "object" ? err as { status?: unknown; code?: unknown; message?: unknown } : null;
+    const providerStatus = typeof providerError?.status === "number" ? providerError.status : null;
+    const providerCode = typeof providerError?.code === "string" ? providerError.code : "";
+    const providerMessage = typeof providerError?.message === "string" ? providerError.message : "";
+    const creditsUnavailable =
+      providerStatus === 429 &&
+      (/insufficient_quota|no credits remaining|billing hard limit/i.test(providerCode + " " + providerMessage));
+    console.error("Resume extraction failed", {
+      status: providerStatus,
+      code: providerCode || undefined,
+      creditsUnavailable,
+    });
+
+    if (creditsUnavailable) {
+      return NextResponse.json({
+        error: "AI resume import is temporarily unavailable because the AI provider has no available credits. Your existing profile has not been changed. Continue with manual profile entry and try AI import again after service credits are restored.",
+        manualEntryAvailable: true,
+        code: "AI_PROVIDER_CREDITS_UNAVAILABLE",
+      }, { status: 503 });
+    }
+
+    return NextResponse.json({
+      error: "Resume extraction could not be completed. Your existing profile has not been changed. You can still enter or edit your profile manually.",
+      manualEntryAvailable: true,
+    }, { status: 500 });
   }
 }
