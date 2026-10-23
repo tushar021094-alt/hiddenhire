@@ -26,3 +26,11 @@ test("profile save keeps success feedback visible and resets loading state on fa
   assert.match(page, /finally\s*\{\s*setSaving\(false\);\s*\}/);
   assert.doesNotMatch(page, /setTimeout\(\(\) => router\.push\("\/dashboard"\), 500\)/);
 });
+
+test("new profiles do not inherit an unrelated Finance Manager title or invented FP&A skills", () => {
+  assert.match(page, /const \[role, setRole\] = useState\(""\)/);
+  assert.match(page, /setRole\(data\.career\?\.target_roles\?\.\[0\] \|\| ""\)/);
+  assert.match(page, /placeholder="e\.g\., Finance Executive"/);
+  assert.match(page, /const \[skills, setSkills\] = useState\(""\)/);
+  assert.match(page, /const \[experience, setExperience\] = useState\(""\)/);
+});
