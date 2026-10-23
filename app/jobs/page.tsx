@@ -62,6 +62,7 @@ export default function JobsPage() {
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [message, setMessage] = useState("");
+  const [searchNotice, setSearchNotice] = useState("");
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
@@ -165,6 +166,7 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     setIsSearching(true);
     setError("");
     setMessage("");
+    setSearchNotice("");
 
     try {
       const remoteOnly = mode === "remote"
@@ -173,29 +175,56 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
           ? false
           : Boolean(profileData?.remote_only);
 
+      const searchPayload = {
+        targetRole: targetRoles[0],
+        targetRoles,
+        targetJobTitle: targetRoles[0],
+        yearsOfExperience: profileData?.experience_years ?? 0,
+        minimumSalary: profileData?.min_salary ?? 0,
+        remoteOnly,
+        preferredCountries: [profileData?.country || "India"],
+        preferredLocations: candidateData?.preferred_locations ?? [],
+        country: profileData?.country || "India",
+        skills: profileData?.skills ?? [],
+        jobSearchMode: candidateData?.job_search_mode ?? "active",
+        searchQuery: query.trim(),
+        workModeFilter: mode,
+      };
+
       const response = await fetch("/api/jobs/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal,
-        body: JSON.stringify({
-          targetRole: targetRoles[0],
-          targetRoles,
-          targetJobTitle: targetRoles[0],
-          yearsOfExperience: profileData?.experience_years ?? 0,
-          minimumSalary: profileData?.min_salary ?? 0,
-          remoteOnly,
-          preferredCountries: [profileData?.country || "India"],
-          preferredLocations: candidateData?.preferred_locations ?? [],
-          country: profileData?.country || "India",
-          skills: profileData?.skills ?? [],
-          jobSearchMode: candidateData?.job_search_mode ?? "active",
-          searchQuery: query.trim(),
-          workModeFilter: mode,
-        }),
+        body: JSON.stringify(searchPayload),
       });
 
-      const payload = await response.json();
+      let payload = await response.json();
       if (signal?.aborted) return;
+
+      // A strict title search should not strand the candidate on an empty page.
+      // If there are no exact results, retry once using saved profile preferences
+      // to show personalized recommendations without requiring a manual reset.
+      if (
+        response.ok &&
+        query.trim() &&
+        Array.isArray(payload?.results) &&
+        payload.results.length === 0
+      ) {
+        const fallbackResponse = await fetch("/api/jobs/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({ ...searchPayload, searchQuery: "" }),
+        });
+        const fallbackPayload = await fallbackResponse.json();
+        if (signal?.aborted) return;
+        if (fallbackResponse.ok && Array.isArray(fallbackPayload?.results) && fallbackPayload.results.length > 0) {
+          payload = fallbackPayload;
+          setSearchNotice(
+            `No exact matches for "${query.trim()}". Showing personalized recommendations based on your saved profile instead.`,
+          );
+        }
+      }
 
       if (!response.ok) {
         setError(payload?.error || payload?.message || "Unable to load matched jobs.");
@@ -377,6 +406,12 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
             {!loading && error && <div className="hh-discovery-alert">{error}</div>}
             {!loading && saveError && <div className="hh-discovery-alert">{saveError}</div>}
+            {!loading && !error && searchNotice && jobs.length > 0 && (
+              <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100">
+                {searchNotice}
+              </div>
+            )}
+
             {!loading && !error && message && jobs.length === 0 && (
               <div className="hh-discovery-empty">
                 <div className="hh-empty-icon">✦</div>
