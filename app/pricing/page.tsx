@@ -5,7 +5,7 @@ import { UpgradeButton } from "@/components/upgrade-button";
 export default function PricingPage() {
   const candidateFree = PLAN_DEFINITIONS.candidate_free;
   const candidatePlus = PLAN_DEFINITIONS.candidate_plus;
-  const checkoutConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID);
+  const checkoutConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID && process.env.RAZORPAY_WEBHOOK_SECRET);
 
   return (
     <main className="hh-pricing-page">
