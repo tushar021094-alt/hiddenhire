@@ -91,7 +91,7 @@ test('rejects live job search when the candidate is not authenticated', async ()
 });
 
 
-test("search query filters by all query terms across job details before result limiting", () => {
+test("finance role-title searches include adjacent roles instead of requiring every title word", () => {
   const jobs = [
     mockJob({ id: "one", title: "Finance Executive", company: "Acme" }),
     mockJob({ id: "two", title: "Finance Manager", company: "Acme" }),
@@ -100,7 +100,7 @@ test("search query filters by all query terms across job details before result l
 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
-    ["one"],
+    ["one", "two", "three"],
   );
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "finance reconciliation").map((job) => job.id),
@@ -131,7 +131,7 @@ test("multi-word role searches do not match unrelated roles through description 
 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
-    ["finance-exec"],
+    ["finance-exec", "finance-head"],
   );
 
   // A finance-intent query must not turn a Sales listing into a finance result
@@ -145,6 +145,37 @@ test("multi-word role searches do not match unrelated roles through description 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "workflows").map((job) => job.id),
     ["stripe-account-exec"],
+  );
+});
+
+test("finance executive searches include billing and MIS roles but exclude sales roles", () => {
+  const jobs = [
+    mockJob({ id: "exact", title: "Finance Executive" }),
+    mockJob({
+      id: "billing",
+      title: "E-Billing Operations Analyst",
+      jobFunction: "Operations",
+      requiredSkills: ["Invoice Processing", "Excel"],
+    }),
+    mockJob({
+      id: "mis",
+      title: "MIS Reporting Executive",
+      jobFunction: "Other",
+      requiredSkills: ["MIS Reporting", "Excel"],
+    }),
+    mockJob({
+      id: "sales",
+      title: "Account Executive, Treasury Solutions",
+      company: "Example Sales",
+      jobFunction: "Sales",
+      requiredSkills: ["Sales", "CRM"],
+      description: "Sell financial products and treasury technology to customers.",
+    }),
+  ];
+
+  assert.deepEqual(
+    filterJobsForDiscovery(jobs, "Finance Executive jobs").map((job) => job.id),
+    ["exact", "billing", "mis"],
   );
 });
 
@@ -182,6 +213,6 @@ test("multi-word role search does not use free-text descriptions to complete a t
 
   assert.deepEqual(
     filterJobsForDiscovery(jobs, "Finance Executive").map((job) => job.id),
-    ["finance-executive"],
+    ["finance-head", "finance-executive"],
   );
 });
