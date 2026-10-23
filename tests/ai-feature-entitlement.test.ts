@@ -18,6 +18,7 @@ test("Free plan keeps manual setup and Plus is ₹299 with bounded AI allowances
   const freePlanBlock = pricing.slice(pricing.indexOf('title="Free"'), pricing.indexOf('title="Candidate Plus"'));
   assert.doesNotMatch(freePlanBlock, /AI resume|AI cover|AI interview|AI job matching/i);
   assert.match(schema, /\('candidate_plus','candidate','Candidate Plus',29900,'INR'\)/);
+  assert.match(schema, /create or replace function public\.consume_candidate_ai_quota/);
 });
 
 test("resume auto-fill is shown only when billing status identifies an active Candidate Plus plan", () => {
@@ -30,6 +31,7 @@ test("resume import API requires Plus, uses a persistent monthly quota, and caps
   assert.match(resumeRoute, /getActivePlanId\(supabase, user\.id\) !== "candidate_plus"/);
   assert.match(resumeRoute, /p_feature_key: "resume_import"/);
   assert.match(resumeRoute, /max_output_tokens: 4000/);
+  assert.match(resumeRoute, /detail: "low"/);
   assert.match(resumeRoute, /checkRateLimit\(`resume-import:/);
 });
 
