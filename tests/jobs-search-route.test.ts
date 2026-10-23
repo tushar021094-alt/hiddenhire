@@ -47,6 +47,13 @@ test("empty title searches automatically fall back to saved-profile recommendati
   assert.ok(jobsPage.includes("personalized recommendations based on your saved profile"));
 });
 
+test("empty recommendations disclose source and filtering diagnostics", () => {
+  const jobsPage = readFileSync(new URL("../app/jobs/page.tsx", import.meta.url), "utf8");
+  assert.ok(jobsPage.includes("Search diagnostics:"));
+  assert.ok(jobsPage.includes("unavailableSources"));
+  assert.ok(jobsPage.includes("afterFilters"));
+});
+
 test('normalizes the candidate profile before demo ranking', async () => {
   const response = await POST(new Request('http://localhost/api/jobs/search', {
     method: 'POST',
