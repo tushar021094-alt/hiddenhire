@@ -75,10 +75,27 @@ export async function POST(request: Request) {
       });
     }
 
+    const { data: quotaData, error: quotaError } = await supabase.rpc("consume_candidate_ai_quota", { p_feature_key: "resume_job_match" });
+    if (quotaError) {
+      console.error("OpenAI AI quota check failed", { code: quotaError.code });
+      return NextResponse.json({ error: "AI usage could not be verified. Please try again later." }, { status: 503 });
+    }
+    const quota = quotaData as { allowed?: boolean; reason?: string; limit?: number; used?: number } | null;
+    if (!quota?.allowed) {
+      if (quota?.reason === "upgrade_required") {
+        return NextResponse.json({ error: "AI job-match explanations are part of Candidate Plus. Core job discovery remains available on the Free plan." }, { status: 403 });
+      }
+      if (quota?.reason === "monthly_limit_reached") {
+        return NextResponse.json({ error: `You have used all ${quota.limit ?? 10} AI job-match explanations for this month. Your allowance resets next month.` }, { status: 429 });
+      }
+      return NextResponse.json({ error: "Unable to verify your AI usage allowance. Please try again later." }, { status: 503 });
+    }
+
     const openai = new OpenAI({ apiKey });
     const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       temperature: 0.2,
+      max_tokens: 600,
       messages: [
         {
           role: 'system',
