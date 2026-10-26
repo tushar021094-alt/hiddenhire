@@ -61,12 +61,22 @@ export function verifyRazorpayWebhookSignature(rawBody: string, signature: strin
 }
 
 export function mapRazorpaySubscriptionStatus(event: string, status?: string | null) {
-  // Keep webhook values within the statuses accepted by public.subscriptions.
-  // Any non-active/unknown state fails closed and cannot grant paid access.
+  // Only explicit successful lifecycle events may grant paid access.
+  // subscription.authenticated is not proof that a subscription is active.
   if (event === "subscription.activated" || event === "subscription.resumed" || event === "subscription.charged") return "active";
   if (event === "subscription.cancelled" || status === "cancelled") return "cancelled";
   if (event === "subscription.completed" || event === "subscription.expired" || status === "completed" || status === "expired") return "expired";
-  if (event === "subscription.halted" || event === "subscription.paused" || status === "halted" || status === "paused" || status === "past_due") return "past_due";
-  if (status === "active" || status === "authenticated") return "active";
+  if (
+    event === "subscription.halted" ||
+    event === "subscription.paused" ||
+    event === "subscription.pending" ||
+    event === "subscription.authenticated" ||
+    status === "halted" ||
+    status === "paused" ||
+    status === "pending" ||
+    status === "authenticated" ||
+    status === "past_due"
+  ) return "past_due";
+  // Fail closed: unknown events/statuses must never grant paid entitlements.
   return "past_due";
 }
