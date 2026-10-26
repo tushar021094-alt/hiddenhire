@@ -69,6 +69,58 @@ test("candidate intent normalizes preferred locations", () => {
   ]);
 });
 
+test("country saved as a location preference does not filter out Indian cities", () => {
+  const countryOnlyIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+    preferredLocations: ["India"],
+    preferredCountries: ["India"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      countryOnlyIntent,
+      job({
+        title: "Finance Executive",
+        jobFunction: "Finance",
+        location: "Noida",
+        country: "India",
+        remote: false,
+        remoteStatus: "FALSE",
+      }),
+    ),
+    true,
+  );
+});
+
+test("country-only preference rejects non-remote roles outside the selected country", () => {
+  const countryOnlyIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+    preferredLocations: ["India"],
+    preferredCountries: ["India"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      countryOnlyIntent,
+      job({
+        title: "Finance Executive",
+        jobFunction: "Finance",
+        location: "Austin, Texas",
+        country: "United States",
+        remote: false,
+        remoteStatus: "FALSE",
+        indiaEligible: true,
+        indiaEligibilityStatus: "UNKNOWN",
+      }),
+    ),
+    false,
+  );
+});
+
 test("native Finance job passes the function gate", () => {
   assert.equal(
     isJobEligible(intent, job({
@@ -85,6 +137,75 @@ test("native Accounting job passes for a finance candidate", () => {
       jobFunction: "Accounting",
     })),
     true,
+  );
+});
+
+test("Finance Executive recommendations include billing, MIS and SAP FICO titles despite generic ATS labels", () => {
+  const financeExecutiveIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+  });
+  const adjacentRoles = [
+    { title: "Billing Operations Analyst", jobFunction: "Operations" },
+    { title: "MIS Reporting Executive", jobFunction: "Other" },
+    { title: "SAP FICO Analyst", jobFunction: "Other" },
+    { title: "Accounts Executive", jobFunction: "Operations" },
+  ];
+
+  for (const adjacent of adjacentRoles) {
+    assert.equal(
+      isJobEligible(
+        financeExecutiveIntent,
+        job({
+          title: adjacent.title,
+          jobFunction: adjacent.jobFunction,
+          requiredExperience: 5,
+        }),
+      ),
+      true,
+      adjacent.title,
+    );
+  }
+});
+
+test("finance-adjacent title fallback does not override an explicit Sales classification", () => {
+  const financeExecutiveIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      financeExecutiveIntent,
+      job({
+        title: "Finance Products Account Executive",
+        jobFunction: "Sales",
+        requiredExperience: 5,
+      }),
+    ),
+    false,
+  );
+});
+
+test("generic operations listings without a finance-specific title stay excluded", () => {
+  const financeExecutiveIntent = buildCandidateSearchIntent({
+    ...candidate,
+    targetJobTitle: "Finance Executive",
+    targetRoles: ["Finance Executive"],
+  });
+
+  assert.equal(
+    isJobEligible(
+      financeExecutiveIntent,
+      job({
+        title: "Operations Analyst",
+        jobFunction: "Operations",
+        requiredExperience: 5,
+      }),
+    ),
+    false,
   );
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +8,7 @@ import DashboardHeader from "@/components/dashboard-header";
 import { trackGrowthEvent } from "@/lib/growth";
 import JobAuthenticityBadge from "@/components/job-authenticity-badge";
 import FraudRiskBadge from "@/components/fraud-risk-badge";
+import { getDiscoveryViewEmptyMessage, getVisibleDiscoveryJobs, type DiscoveryView } from "@/lib/discovery-views";
 import type { FraudRiskSignal } from "@/lib/job-types";
 import type { JobAuthenticitySignal } from "@/lib/job-types";
 
@@ -23,6 +24,7 @@ type Job = {
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
+  salaryCurrency?: string;
   requiredSkills?: string[];
   source?: string;
   postedDate?: string;
@@ -52,44 +54,44 @@ type CandidateProfile = {
   job_search_mode: string | null;
 };
 
+type SearchStats = {
+  collected: number;
+  eligible: number;
+  afterFilters: number;
+  sources: number;
+  unavailableSources: number;
+  excludedMissingApplicationUrl: number;
+};
+
 export default function JobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [message, setMessage] = useState("");
+  const [searchNotice, setSearchNotice] = useState("");
+  const [searchStats, setSearchStats] = useState<SearchStats | null>(null);
   const [applyingJobId, setApplyingJobId] = useState<string | null>(null);
 const [appliedJobIds, setAppliedJobIds] = useState<string[]>([]);
 const [savedJobKeys, setSavedJobKeys] = useState<string[]>([]);
 const [searchQuery, setSearchQuery] = useState("");
 const [workModeFilter, setWorkModeFilter] = useState<"all" | "remote" | "onsite" | "hybrid">("all");
-const [sortMode, setSortMode] = useState<"match" | "recent" | "salary">("match");
+const [discoveryView, setDiscoveryView] = useState<DiscoveryView>("for-you");
 const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
 
   function jobKey(job: Job) { return `${job.source || "external"}|${job.id}`; }
 
-  const visibleJobs = jobs
-    .filter((job) => {
-      const q = searchQuery.trim().toLowerCase();
-      const searchable = [job.title, job.company, job.location, job.city, job.region, job.country, ...(job.requiredSkills ?? [])].filter(Boolean).join(" ").toLowerCase();
-      if (q && !searchable.includes(q)) return false;
-      if (workModeFilter === "remote" && !job.remote) return false;
-      if (workModeFilter === "onsite" && (job.remote || /hybrid/i.test(job.location || ""))) return false;
-      if (workModeFilter === "hybrid" && !/hybrid/i.test(job.location || "")) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortMode === "salary") return (b.salaryMax ?? b.salaryMin ?? 0) - (a.salaryMax ?? a.salaryMin ?? 0);
-      if (sortMode === "recent") {
-        const dateA = a.postedDate ? Date.parse(a.postedDate) : 0;
-        const dateB = b.postedDate ? Date.parse(b.postedDate) : 0;
-        return (Number.isFinite(dateB) ? dateB : 0) - (Number.isFinite(dateA) ? dateA : 0);
-      }
-      return (b.score ?? 0) - (a.score ?? 0);
-    });
+  // The four discovery views use a single exclusive state. Switching views is
+  // immediate and local; it cannot leave an old tab selected or race a request.
+  const visibleJobs = getVisibleDiscoveryJobs(
+    jobs,
+    discoveryView,
+    profile?.salary_currency || "INR",
+  );
 
   async function toggleSavedJob(job: Job) {
     const key = jobKey(job);
@@ -153,138 +155,236 @@ const [savingJobKey, setSavingJobKey] = useState<string | null>(null);
     setApplyingJobId(null);
   }
 }
-useEffect(() => {
-    let active = true;
+  const runSearch = useCallback(async (
+    query: string,
+    mode: "all" | "remote" | "onsite" | "hybrid",
+    profileData: Profile | null,
+    candidateData: CandidateProfile | null,
+    signal?: AbortSignal,
+  ) => {
+    const targetRoles = candidateData?.target_roles ?? [];
+    if (!targetRoles.length) {
+      setJobs([]);
+      setMessage("Complete your candidate profile to activate Match Radar.");
+      setSearchStats(null);
+      setLoading(false);
+      setIsSearching(false);
+      return;
+    }
 
-    async function load() {
-      const supabase = createClient();
-      setLoading(true);
-      setError("");
+    setIsSearching(true);
+    setError("");
+    setMessage("");
+    setSearchNotice("");
+    setSearchStats(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+    try {
+      const remoteOnly = mode === "remote"
+        ? true
+        : mode === "onsite" || mode === "hybrid"
+          ? false
+          : Boolean(profileData?.remote_only);
 
-      const savedResponse = await fetch("/api/saved-jobs");
-      if (savedResponse.ok) {
-        const savedPayload = await savedResponse.json();
-        if (active) {
-          setSavedJobKeys(
-            (savedPayload.savedJobs ?? []).map(
-              (saved: { source?: string | null; external_job_id?: string | null; job_id?: string | null }) =>
-                `${saved.source || "external"}|${saved.job_id || saved.external_job_id}`,
-            ),
-          );
-        }
-      }
-
-      const [
-  { data: profileData, error: profileError },
-  { data: candidateData },
-  { data: applicationData, error: applicationError },
-] = await Promise.all([
-  supabase
-    .from("profiles")
-    .select(
-      "full_name, skills, experience_years, location, country, remote_only, min_salary, salary_currency",
-    )
-    .eq("id", user.id)
-    .maybeSingle(),
-
-  supabase
-    .from("candidate_profiles")
-    .select("target_roles, preferred_locations, job_search_mode")
-    .eq("profile_id", user.id)
-    .maybeSingle(),
-
-  supabase
-    .from("applications")
-    .select("job_id, status")
-    .eq("candidate_id", user.id),
-]);
-
-      if (profileError) {
-        if (active) setError(profileError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!active) return;
-
-      setProfile(profileData);
-      setCandidate(candidateData);
-      if (applicationError) {
-  console.error("Unable to load applications:", applicationError.message);
-} else {
-  setAppliedJobIds(
-    (applicationData ?? [])
-      .filter((application) => application.status !== "withdrawn")
-      .map((application) => application.job_id),
-  );
-}
-
-      const targetRoles = candidateData?.target_roles ?? [];
-      const preferredLocations = candidateData?.preferred_locations ?? [];
-
-      if (!targetRoles.length) {
-        setMessage("Complete your candidate profile to activate Match Radar.");
-        setLoading(false);
-        return;
-      }
+      const searchPayload = {
+        targetRole: targetRoles[0],
+        targetRoles,
+        targetJobTitle: targetRoles[0],
+        yearsOfExperience: profileData?.experience_years ?? 0,
+        minimumSalary: profileData?.min_salary ?? 0,
+        remoteOnly,
+        preferredCountries: [profileData?.country || "India"],
+        preferredLocations: candidateData?.preferred_locations ?? [],
+        country: profileData?.country || "India",
+        skills: profileData?.skills ?? [],
+        jobSearchMode: candidateData?.job_search_mode ?? "active",
+        searchQuery: query.trim(),
+        workModeFilter: mode,
+      };
 
       const response = await fetch("/api/jobs/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetRole: targetRoles[0],
-          targetRoles,
-          targetJobTitle: targetRoles[0],
-          yearsOfExperience: profileData?.experience_years ?? 0,
-          minimumSalary: profileData?.min_salary ?? 0,
-          remoteOnly: Boolean(profileData?.remote_only),
-          preferredCountries: [profileData?.country || "India"],
-          preferredLocations,
-          country: profileData?.country || "India",
-          skills: profileData?.skills ?? [],
-          jobSearchMode: candidateData?.job_search_mode ?? "active",
-        }),
+        signal,
+        body: JSON.stringify(searchPayload),
       });
 
-      const payload = await response.json();
+      let payload = await response.json();
+      if (signal?.aborted) return;
 
-      if (!active) return;
-
-      if (!response.ok) {
-        setError(payload?.message || "Unable to load matched jobs.");
-      } else {
-        setJobs(
-  Array.isArray(payload?.results)
-    ? payload.results.map(
-  (result: {
-    job?: Job;
-    score?: number;
-    reasons?: string[];
-  }) => ({
-        ...(result.job ?? {}),
-        score: result.score,
-        reasons: result.reasons ?? [],
-        matchedSkills: result.job?.requiredSkills ?? [],
-      }))
-    : []
-);
-        setMessage(payload?.message || "");
+      // A strict title search should not strand the candidate on an empty page.
+      // Retry with saved-profile preferences only when the live inventory contains jobs;
+      // if no sources returned anything, a second request cannot improve the query.
+      const initialResults = Array.isArray(payload?.results) ? payload.results : [];
+      const initialCollected = Number(payload?.totalCollected ?? payload?.metrics?.totalCollected ?? 0);
+      if (response.ok && query.trim() && initialResults.length === 0 && initialCollected > 0) {
+        const fallbackResponse = await fetch("/api/jobs/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({ ...searchPayload, searchQuery: "" }),
+        });
+        const fallbackPayload = await fallbackResponse.json();
+        if (signal?.aborted) return;
+        if (fallbackResponse.ok && Array.isArray(fallbackPayload?.results)) {
+          payload = fallbackPayload;
+          setSearchNotice(
+            fallbackPayload.results.length > 0
+              ? `No exact matches for "${query.trim()}". Showing personalized recommendations based on your saved profile instead.`
+              : `No exact matches for "${query.trim()}". We also checked your saved-profile recommendations, but none passed the current filters.`,
+          );
+        }
       }
 
-      setLoading(false);
+      if (!response.ok) {
+        setError(payload?.error || payload?.message || "Unable to load matched jobs.");
+        setJobs([]);
+        setSearchStats(null);
+      } else {
+        const results = Array.isArray(payload?.results) ? payload.results : [];
+        setJobs(
+          results.map((result: { job?: Job; score?: number; reasons?: string[] }) => ({
+            ...(result.job ?? {}),
+            currency: result.job?.currency ?? result.job?.salaryCurrency,
+            score: result.score,
+            reasons: result.reasons ?? [],
+            matchedSkills: result.job?.requiredSkills ?? [],
+          })),
+        );
+
+        const metrics = payload?.metrics ?? {};
+        const sourceErrors = metrics?.sourceErrors && typeof metrics.sourceErrors === "object"
+          ? Object.keys(metrics.sourceErrors)
+          : [];
+        const totalCollected = Number(payload?.totalCollected ?? metrics?.totalCollected ?? 0);
+        const totalEligible = Number(payload?.totalEligible ?? metrics?.totalEligible ?? 0);
+        const sourceCounts = metrics?.sources && typeof metrics.sources === "object" ? metrics.sources : {};
+        const excludedMissingApplicationUrl = Math.max(
+          0,
+          Number(payload?.totalWithoutUsableApplicationUrl ?? metrics?.totalWithoutUsableApplicationUrl ?? 0),
+        );
+        setSearchStats({
+          collected: Math.max(0, totalCollected),
+          eligible: Math.max(0, totalEligible),
+          afterFilters: Math.max(0, Number(payload?.totalAfterSearchAndModeFilter ?? results.length)),
+          sources: Object.keys(sourceCounts).length,
+          unavailableSources: sourceErrors.length,
+          excludedMissingApplicationUrl,
+        });
+        let resultMessage = payload?.message || "";
+        if (results.length === 0 && totalCollected === 0) {
+          resultMessage = sourceErrors.length
+            ? "Our connected job sources could not return listings right now. Please retry later; your saved profile is unchanged."
+            : "The connected job boards returned no active postings for this refresh. Recommendations are checked again when you open Job Discovery.";
+        } else if (results.length === 0 && totalEligible === 0 && totalCollected > 0) {
+          resultMessage = `We checked ${totalCollected} live postings, but none fit your saved role, experience, location and minimum salary. Review your target role or salary floor to widen recommendations.`;
+        } else if (results.length === 0 && totalEligible > 0) {
+          resultMessage = `We found ${totalEligible} profile-compatible opportunities, but none matched the current keyword or work-mode filter. Clear the search to see your For You recommendations.`;
+        }
+        setMessage(resultMessage);
+      }
+    } catch (err) {
+      if (signal?.aborted) return;
+      setJobs([]);
+      setSearchStats(null);
+      setError(err instanceof Error ? err.message : "Unable to load matched jobs.");
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+        setIsSearching(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+
+    async function load() {
+      try {
+        const supabase = createClient();
+        setLoading(true);
+        setError("");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.replace("/login");
+          return;
+        }
+
+        try {
+          const savedResponse = await fetch("/api/saved-jobs", { signal: controller.signal });
+          if (savedResponse.ok) {
+            const savedPayload = await savedResponse.json();
+            if (active) {
+              setSavedJobKeys(
+                (savedPayload.savedJobs ?? []).map(
+                  (saved: { source?: string | null; external_job_id?: string | null; job_id?: string | null }) =>
+                    `${saved.source || "external"}|${saved.job_id || saved.external_job_id}`,
+                ),
+              );
+            }
+          }
+        } catch (savedError) {
+          if (controller.signal.aborted) return;
+          console.warn("Saved jobs could not be loaded:", savedError);
+        }
+
+        const [
+          { data: profileData, error: profileError },
+          { data: candidateData },
+          { data: applicationData, error: applicationError },
+        ] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, skills, experience_years, location, country, remote_only, min_salary, salary_currency")
+            .eq("id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("candidate_profiles")
+            .select("target_roles, preferred_locations, job_search_mode")
+            .eq("profile_id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("applications")
+            .select("job_id, status")
+            .eq("candidate_id", user.id),
+        ]);
+
+        if (!active || controller.signal.aborted) return;
+        if (profileError) {
+          setError(profileError.message);
+          setLoading(false);
+          return;
+        }
+
+        setProfile(profileData);
+        setCandidate(candidateData);
+
+        if (applicationError) {
+          console.error("Unable to load applications:", applicationError.message);
+        } else {
+          setAppliedJobIds(
+            (applicationData ?? [])
+              .filter((application) => application.status !== "withdrawn")
+              .map((application) => application.job_id),
+          );
+        }
+
+        await runSearch("", "all", profileData, candidateData, controller.signal);
+      } catch (err) {
+        if (!active || controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "Unable to load job discovery.");
+        setLoading(false);
+        setIsSearching(false);
+      }
     }
 
-    load();
+    void load();
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [router]);
+  }, [router, runSearch]);
 
   return (
     <main className="hh-dashboard hh-jobs-page">
@@ -330,43 +430,70 @@ useEffect(() => {
             </section>
 
             <section className="hh-discovery-controls">
-              <div className="hh-discovery-search"><span>⌕</span><input aria-label="Search opportunities" placeholder="Search by job title, company, skills..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} /></div>
+              <div className="hh-discovery-search"><span>⌕</span><input type="search" maxLength={500} aria-label="Search opportunities" placeholder="Search by job title, company, skills..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !isSearching) void runSearch(searchQuery, workModeFilter, profile, candidate); }} /></div>
               <div className="hh-discovery-select">⌖ <span>{profile?.location || "Location"}</span>⌄</div>
               <div className="hh-discovery-select">▣ <span>{profile?.experience_years ? profile.experience_years + "+ yrs" : "All experience"}</span>⌄</div>
-              <button type="button" className="hh-discovery-button" onClick={() => document.querySelector(".hh-discovery-grid")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Search Jobs →</button>
-              <div className="hh-filter-row"><span>Work Mode</span><button type="button" className={workModeFilter === "all" ? "active" : ""} onClick={() => setWorkModeFilter("all")}>All</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} onClick={() => setWorkModeFilter("remote")}>Remote</button><button type="button" className={workModeFilter === "onsite" ? "active" : ""} onClick={() => setWorkModeFilter("onsite")}>On-site</button><button type="button" className={workModeFilter === "hybrid" ? "active" : ""} onClick={() => setWorkModeFilter("hybrid")}>Hybrid</button><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><button type="button" onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); }}>Reset</button></div>
+              <button type="button" className="hh-discovery-button" disabled={isSearching} onClick={() => void runSearch(searchQuery, workModeFilter, profile, candidate)}>{isSearching ? "Searching…" : "Search Jobs →"}</button>
+              <div className="hh-filter-row"><span>Work Mode</span><button type="button" className={workModeFilter === "all" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("all"); void runSearch(searchQuery, "all", profile, candidate); }}>All</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("remote"); void runSearch(searchQuery, "remote", profile, candidate); }}>Remote</button><button type="button" className={workModeFilter === "onsite" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("onsite"); void runSearch(searchQuery, "onsite", profile, candidate); }}>On-site</button><button type="button" className={workModeFilter === "hybrid" ? "active" : ""} disabled={isSearching} onClick={() => { setWorkModeFilter("hybrid"); void runSearch(searchQuery, "hybrid", profile, candidate); }}>Hybrid</button><span>Salary</span><b>Min {profile?.min_salary ? (profile.salary_currency || "INR") + " " + profile.min_salary.toLocaleString() : "Any"}</b><button type="button" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setDiscoveryView("for-you"); void runSearch("", "all", profile, candidate); }}>Reset</button></div>
             </section>
 
             <div className="hh-discovery-stats">
-              <article><span>◫</span><div><strong>{jobs.length || "—"}</strong><small>Matched opportunities</small></div></article>
-              <article><span>▦</span><div><strong>{new Set(jobs.map(j => j.company).filter(Boolean)).size || "—"}</strong><small>Companies hiring</small></div></article>
-              <article><span>◎</span><div><strong>{jobs.filter(j => j.remote).length || "—"}</strong><small>Remote friendly</small></div></article>
-              <article><span>◉</span><div><strong>{jobs.filter(j => j.salaryMin || j.salaryMax).length || "—"}</strong><small>Salary disclosed</small></div></article>
+              <article><span>◫</span><div><strong>{visibleJobs.length}</strong><small>Matched opportunities</small></div></article>
+              <article><span>▦</span><div><strong>{new Set(visibleJobs.map(j => j.company).filter(Boolean)).size}</strong><small>Companies hiring</small></div></article>
+              <article><span>◎</span><div><strong>{visibleJobs.filter(j => j.remote).length}</strong><small>Remote friendly</small></div></article>
+              <article><span>◉</span><div><strong>{visibleJobs.filter(j => (j.salaryMin ?? 0) > 0 || (j.salaryMax ?? 0) > 0).length}</strong><small>Salary disclosed</small></div></article>
             </div>
 
             {loading && <div className="hh-discovery-loading"><span className="hh-spinner" /><strong>Scanning live sources and ranking opportunities…</strong><small>HiddenHire is applying your career signal.</small></div>}
             {!loading && error && <div className="hh-discovery-alert">{error}</div>}
             {!loading && saveError && <div className="hh-discovery-alert">{saveError}</div>}
-            {!loading && !error && message && jobs.length === 0 && (
-              <div className="hh-discovery-empty"><div className="hh-empty-icon">✦</div><div><strong>No strong matches yet.</strong><p>{message}</p></div><Link href="/onboarding" className="hh-job-action">Improve profile →</Link></div>
+            {!loading && !error && searchNotice && (
+              <div role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100">
+                {searchNotice}
+              </div>
             )}
 
-            {!loading && !error && jobs.length > 0 && visibleJobs.length === 0 && <div className="hh-discovery-empty"><div><strong>No jobs match these filters.</strong><p>Try a different search or reset your filters.</p></div><button type="button" className="hh-job-action" onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setSortMode("match"); }}>Reset filters</button></div>}
-            {!loading && !error && jobs.length > 0 && visibleJobs.length > 0 && (
+            {!loading && !error && message && jobs.length === 0 && (
+              <div className="hh-discovery-empty">
+                <div className="hh-empty-icon">✦</div>
+                <div>
+                  <strong>{searchNotice.startsWith("No exact matches") && jobs.length === 0 ? "No exact matches or profile recommendations yet." : searchQuery.trim() || workModeFilter !== "all" ? "No jobs match your search." : "No strong matches yet."}</strong>
+                  <p>{message}</p>
+                  {searchStats && (
+                    <p role="status" className="mt-2 text-xs opacity-80">
+                      Search diagnostics: {searchStats.collected} live listings collected · {searchStats.excludedMissingApplicationUrl} without a usable application link excluded · {searchStats.eligible} passed profile filters · {searchStats.afterFilters} passed your search filters · {searchStats.unavailableSources} sources unavailable.
+                    </p>
+                  )}
+                </div>
+                {searchQuery.trim() || workModeFilter !== "all" ? (
+                  <button type="button" className="hh-job-action" disabled={isSearching} onClick={() => { setSearchQuery(""); setWorkModeFilter("all"); setDiscoveryView("for-you"); void runSearch("", "all", profile, candidate); }}>Reset search →</button>
+                ) : (
+                  <Link href="/onboarding" className="hh-job-action">Improve profile →</Link>
+                )}
+              </div>
+            )}
+
+            {!loading && !error && jobs.length > 0 && (
               <div className="hh-discovery-grid">
                 <section className="hh-panel hh-discovery-results">
                   <div className="hh-panel-heading">
-                    <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>Showing opportunities based on your profile, skills and preferences.</p></div>
+                    <div><small>TOP OPPORTUNITIES FOR YOU</small><h2>AI-ranked roles</h2><p>{discoveryView === "recent" ? "Sorted by most recently posted opportunities." : discoveryView === "remote" ? "Remote roles from your current matching inventory." : discoveryView === "high-salary" ? `Roles with disclosed salary, grouped by currency. Preferred currency: ${profile?.salary_currency || "INR"}.` : "Showing opportunities based on your profile, skills and preferences."}</p></div>
                     <span>{visibleJobs.length} matches</span>
                   </div>
-                  <div className="hh-discovery-tabs"><button type="button" className={sortMode === "match" ? "active" : ""} onClick={() => setSortMode("match")}>For You</button><button type="button" className={sortMode === "recent" ? "active" : ""} onClick={() => setSortMode("recent")}>Recent</button><button type="button" className={workModeFilter === "remote" ? "active" : ""} onClick={() => setWorkModeFilter(workModeFilter === "remote" ? "all" : "remote")}>Remote</button><button type="button" className={sortMode === "salary" ? "active" : ""} onClick={() => setSortMode("salary")}>High Salary</button></div>
+                  <div className="hh-discovery-tabs" role="group" aria-label="Job discovery views">
+                    <button type="button" className={discoveryView === "for-you" ? "active" : ""} aria-pressed={discoveryView === "for-you"} onClick={() => setDiscoveryView("for-you")}>For You</button>
+                    <button type="button" className={discoveryView === "recent" ? "active" : ""} aria-pressed={discoveryView === "recent"} onClick={() => setDiscoveryView("recent")}>Recent</button>
+                    <button type="button" className={discoveryView === "remote" ? "active" : ""} aria-pressed={discoveryView === "remote"} onClick={() => setDiscoveryView("remote")}>Remote</button>
+                    <button type="button" className={discoveryView === "high-salary" ? "active" : ""} aria-pressed={discoveryView === "high-salary"} onClick={() => setDiscoveryView("high-salary")}>High Salary</button>
+                  </div>
+{visibleJobs.length > 0 ? (
                   <div className="hh-discovery-list">
                     {visibleJobs.map((job,index) => (
                       <article key={job.applicationUrl || index} className="hh-discovery-job">
                         <div className="hh-company-mark">{(job.company || "H").slice(0,1).toUpperCase()}</div>
                         <div className="hh-discovery-job-main">
-                          <div className="hh-discovery-job-top"><div><strong>{job.title || "Untitled role"}</strong><span>{job.company || "Company undisclosed"}</span><JobAuthenticityBadge authenticity={job.authenticity} /><FraudRiskBadge risk={job.safety} /></div>{typeof job.score === "number" && <b className="hh-discovery-match">{job.score}% Match</b>}</div>
-                          <div className="hh-discovery-meta"><span>⌖ {job.remote ? "Remote" : job.city || job.region || job.location || job.country || "Location flexible"}</span><span>◉ {job.salaryMin || job.salaryMax ? (job.currency || "INR") + " " + (job.salaryMin || 0).toLocaleString() + "–" + (job.salaryMax || job.salaryMin || 0).toLocaleString() : "Salary not listed"}</span><span>◷ {job.remote ? "Remote friendly" : "On-site / Hybrid"}</span></div>
+                          <div className="hh-discovery-job-top"><div className="hh-discovery-job-identity"><strong>{job.title || "Untitled role"}</strong><div className="hh-discovery-company-line"><span>{job.company || "Company undisclosed"}</span><JobAuthenticityBadge authenticity={job.authenticity} /><FraudRiskBadge risk={job.safety} /></div></div>{typeof job.score === "number" && <b className="hh-discovery-match">{job.score}% Match</b>}</div>
+                          <div className="hh-discovery-meta"><span>⌖ {job.remote ? "Remote" : job.city || job.region || job.location || job.country || "Location flexible"}</span><span>◉ {job.salaryMin || job.salaryMax ? (job.currency || job.salaryCurrency || "INR") + " " + (job.salaryMin || 0).toLocaleString() + "–" + (job.salaryMax || job.salaryMin || 0).toLocaleString() : "Salary not listed"}</span><span>◷ {job.remote ? "Remote friendly" : "On-site / Hybrid"}</span></div>
                           {job.matchedSkills && job.matchedSkills.length > 0 && <div className="hh-discovery-tags">{job.matchedSkills.slice(0,5).map(skill => <i key={skill}>{skill}</i>)}</div>}
                           {job.reasons && job.reasons.length > 0 && <p className="hh-discovery-reason">✓ {job.reasons[0]}</p>}
                         </div>
@@ -381,6 +508,16 @@ useEffect(() => {
                       </article>
                     ))}
                   </div>
+                  ) : (
+                    <div className="hh-discovery-empty" role="status">
+                      <div className="hh-empty-icon">✦</div>
+                      <div>
+                        <strong>{discoveryView === "high-salary" ? "No salary-disclosed roles to rank yet." : discoveryView === "remote" ? "No remote roles in this result set." : "No opportunities in this view yet."}</strong>
+                        <p>{getDiscoveryViewEmptyMessage(discoveryView)}</p>
+                      </div>
+                      <button type="button" className="hh-job-action" onClick={() => setDiscoveryView("for-you")}>Back to For You →</button>
+                    </div>
+                  )}
                 </section>
                 <aside className="hh-discovery-side">
                   <section className="hh-panel hh-match-radar">

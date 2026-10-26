@@ -396,7 +396,16 @@ export function applyJobFilters(jobs: Job[], query: DiscoveryQuery): Job[] {
       return false;
     }
 
-    if (minimumSalary > 0 && job.salaryMin !== null && job.salaryMin < minimumSalary) {
+    // Salary floors are only comparable when the candidate and job use the
+    // same currency. Do not treat 70,000 USD as less than 1,200,000 INR.
+    const comparableCurrency =
+      !query.preferredCurrency || job.salaryCurrency === query.preferredCurrency;
+    if (
+      comparableCurrency &&
+      minimumSalary > 0 &&
+      job.salaryMin !== null &&
+      job.salaryMin < minimumSalary
+    ) {
       return false;
     }
 

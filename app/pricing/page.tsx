@@ -5,7 +5,7 @@ import { UpgradeButton } from "@/components/upgrade-button";
 export default function PricingPage() {
   const candidateFree = PLAN_DEFINITIONS.candidate_free;
   const candidatePlus = PLAN_DEFINITIONS.candidate_plus;
-  const checkoutConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID);
+  const checkoutConfigured = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET && process.env.RAZORPAY_CANDIDATE_PLUS_PLAN_ID && process.env.RAZORPAY_WEBHOOK_SECRET);
 
   return (
     <main className="hh-pricing-page">
@@ -26,14 +26,14 @@ export default function PricingPage() {
             title="Free"
             price={candidateFree.monthlyPriceInr}
             description="Core discovery and matching for active job seekers."
-            features={["AI job matching","Up to 10 saved jobs","Application tracking","1 AI resume optimization / month","1 AI cover letter / month","1 AI interview session / month"]}
+            features={["Manual profile setup and editing","Rules-based job discovery and matching","Up to 10 saved jobs","Application tracking"]}
           />
           <PlanCard
             title="Candidate Plus"
             price={candidatePlus.monthlyPriceInr}
             description="The full intelligence layer for serious job searches."
             featured
-            features={["Everything in Free","10 AI resume optimizations / month","10 AI cover letters / month","10 AI interview sessions / month","Priority Career Agent signals","Deep match intelligence"]}
+            features={["Everything in Free","AI resume auto-fill · 5 PDF imports / month","AI job-match explanations · 10 / month","Application execution packs · cover letter, follow-up and interview prep","Priority Career Agent signals","Deep match intelligence"]}
             checkoutConfigured={checkoutConfigured}
           />
         </section>

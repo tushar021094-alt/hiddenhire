@@ -1,4 +1,4 @@
-import type { CandidateProfile } from '@/lib/job-types';
+import type { CandidateProfile, Job } from '@/lib/job-types';
 import { createClient } from '@/lib/supabase/server';
 import { evaluateJobAuthenticity } from '@/lib/job-authenticity';
 import { evaluateFraudRisk } from '@/lib/fraud-risk';
@@ -19,6 +19,72 @@ const MAX_BODY_BYTES = 64_000;
 const MAX_TEXT_LENGTH = 500;
 const MAX_RESUME_LENGTH = 20_000;
 const MAX_ARRAY_ITEMS = 30;
+
+type DiscoveryWorkMode = 'all' | 'remote' | 'onsite' | 'hybrid';
+
+/** Apply text and work-mode filters to the full eligible inventory before ranking/capping results. */
+export function filterJobsForDiscovery(
+  jobs: Job[],
+  rawQuery = '',
+  workMode: DiscoveryWorkMode = 'all',
+): Job[] {
+  const normalizedQuery = rawQuery.trim().toLocaleLowerCase();
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
+  return jobs.filter((job) => {
+    // Multi-word role searches must be supported by structured job metadata.
+    // Free-form descriptions are too noisy: e.g. "executive leadership" in a
+    // finance-team description must not turn "Head of Finance..." into a
+    // match for the distinct "Finance Executive" query.
+    const titleText = String(job.title ?? '').toLocaleLowerCase();
+    const structuredText = [
+      job.title,
+      job.company,
+      job.location,
+      job.country,
+      ...(job.requiredSkills ?? []),
+    ].filter(Boolean).join(' ').toLocaleLowerCase();
+    const searchableText = terms.length > 1
+      ? structuredText
+      : [structuredText, job.description].filter(Boolean).join(' ').toLocaleLowerCase();
+
+    // Role searches should find close, skills-adjacent opportunities rather than
+    // require a job title to repeat every word. This is especially important for
+    // "Finance Executive": good matches are often listed as Billing Analyst,
+    // MIS Executive, Accounts Executive, Finance Operations, or SAP FICO roles.
+    const normalizedRoleQuery = normalizedQuery
+      .replace(/\b(?:jobs?|roles?|positions?|openings?)\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const financeRoleFamilyQuery = /^(?:(?:senior|lead)\s+)?(?:(?:finance|financial)\s+(?:executive|exec|officer|analyst|manager|specialist|associate|operations(?:\s+executive)?)|(?:accounting|accounts?)\s+(?:executive|exec|officer|analyst|specialist|associate|manager)|(?:billing|invoicing|invoice processing|mis)\s+(?:executive|exec|officer|analyst|specialist|associate|manager))$/i.test(normalizedRoleQuery);
+    const jobFunctionText = String(job.jobFunction ?? '').trim().toLocaleLowerCase();
+    const classifiedFinanceFunction = /^(?:finance|accounting|fp\s*&?\s*a|audit|tax|treasury|risk|controllership)$/i.test(jobFunctionText);
+    const financeFamilyTitle = /\b(?:finance|financial|accounting|accountant|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|financial controller|fp\s*&?\s*a|tax analyst|auditor|treasury analyst|treasury manager)\b/i.test(
+      [job.title, ...(job.requiredSkills ?? [])].filter(Boolean).join(' '),
+    );
+    const matchesQuery = financeRoleFamilyQuery
+      ? jobFunctionText !== 'sales' && (classifiedFinanceFunction || financeFamilyTitle)
+      : terms.every((term) => searchableText.includes(term));
+    if (!matchesQuery) return false;
+
+    // When the query expresses a finance/accounting intent, guard against
+    // product-sales listings that mention finance or treasury in their copy.
+    const financeIntent = /\b(finance|financial|accounting|accountant|fp\s*&?\s*a|tax|audit|controller|treasury|cfo|bookkeep(?:er|ing))\b/i.test(normalizedQuery);
+    if (financeIntent) {
+      const jobFunction = String(job.jobFunction ?? '').toLocaleLowerCase();
+      const financeRoleTitle = /\b(finance|financial|accounting|accountant|fp\s*&?\s*a|tax|audit|controller|cfo|bookkeep(?:er|ing)|accounts payable|accounts receivable|billing|invoic(?:e|ing)|mis|sap\s*(?:fi|fico|billing)|record to report|r2r|order to cash|o2c|p2p|general ledger|reconciliation|management accountant|finance operations|financial operations|treasury analyst|treasury manager)\b/i.test(titleText);
+      const financeFunction = /\b(finance|accounting|fp\s*&?\s*a|tax|audit|treasury|risk|controllership)\b/i.test(jobFunction);
+      if (jobFunction === 'sales' && !financeRoleTitle) return false;
+      if (!financeRoleTitle && !financeFunction) return false;
+    }
+
+    const workContext = [job.location, job.remotePolicy].filter(Boolean).join(' ');
+    const hybrid = /hybrid/i.test(workContext);
+    if (workMode === 'remote' && !job.remote) return false;
+    if (workMode === 'onsite' && (job.remote || hybrid)) return false;
+    if (workMode === 'hybrid' && !hybrid) return false;
+    return true;
+  });
+}
 
 export function validSearchProfile(profile: Record<string, unknown>) {
   const role =
@@ -51,6 +117,20 @@ export function validSearchProfile(profile: Record<string, unknown>) {
     (!Number.isFinite(profile.minimumSalary) ||
       profile.minimumSalary < 0 ||
       profile.minimumSalary > 1_000_000_000)
+  ) {
+    return false;
+  }
+
+  if (
+    profile.searchQuery !== undefined &&
+    (typeof profile.searchQuery !== 'string' || profile.searchQuery.length > MAX_TEXT_LENGTH)
+  ) {
+    return false;
+  }
+
+  if (
+    profile.workModeFilter !== undefined &&
+    !['all', 'remote', 'onsite', 'hybrid'].includes(String(profile.workModeFilter))
   ) {
     return false;
   }
@@ -158,6 +238,18 @@ export function buildDiscoveryQueries(
 }
 
 
+export function hasUsableApplicationUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const candidate = value.trim();
+  if (!candidate || candidate === "#") return false;
+  try {
+    const parsed = new URL(candidate);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && Boolean(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeApplicationUrl(url: string) {
   try {
     const parsed = new URL(url);
@@ -210,7 +302,9 @@ export async function searchJobs(
   const inventoryQuery = { ...queries[0], targetRole: '', targetJobTitle: '' };
   const collected = await registry.fetchJobsWithMetrics(inventoryQuery);
   const collectedJobs = collected.jobs;
-  const deduped = deduplicateJobs(collectedJobs);
+  const uniqueJobs = deduplicateJobs(collectedJobs);
+  const deduped = uniqueJobs.filter((job) => hasUsableApplicationUrl(job.applicationUrl));
+  const totalWithoutUsableApplicationUrl = uniqueJobs.length - deduped.length;
   const searchIntent = buildCandidateSearchIntent({
   ...candidateProfile,
   targetRoles: Array.isArray(profile.targetRoles)
@@ -232,7 +326,14 @@ export async function searchJobs(
 const roleMatched = deduped.filter((job) =>
   isJobEligible(searchIntent, job),
 );
-  const ranked = sortMatches(candidateProfile, roleMatched, calibrationAdjustment, learningPolicy);
+  const searchQuery = typeof profile.searchQuery === 'string' ? profile.searchQuery.trim() : '';
+  const workModeFilter = profile.workModeFilter === 'remote' ||
+      profile.workModeFilter === 'onsite' ||
+      profile.workModeFilter === 'hybrid'
+    ? profile.workModeFilter
+    : 'all';
+  const discoveryFiltered = filterJobsForDiscovery(roleMatched, searchQuery, workModeFilter);
+  const ranked = sortMatches(candidateProfile, discoveryFiltered, calibrationAdjustment, learningPolicy);
   const returned = ranked.slice(0, 20);
 
   const duplicateCounts = new Map<string, number>();
@@ -352,11 +453,20 @@ const roleMatched = deduped.filter((job) =>
     results: enrichedResults,
     count: returned.length,
     totalCollected: collectedJobs.length,
-    totalAfterDeduplication: deduped.length,
+    totalAfterDeduplication: uniqueJobs.length,
+    totalAfterApplicationUrlValidation: deduped.length,
+    totalWithoutUsableApplicationUrl,
     totalEligible: roleMatched.length,
+    totalAfterSearchAndModeFilter: discoveryFiltered.length,
     totalRanked: ranked.length,
     returned: returned.length,
-    message: returned.length > 0 ? 'Real opportunities found.' : 'No strong matches found. Try expanding your search.',
+    message: returned.length > 0
+      ? 'Real opportunities found.'
+      : collectedJobs.length > 0 && deduped.length === 0
+        ? `Received ${collectedJobs.length} live listings, but none had a usable application URL. HiddenHire withheld them to avoid dead application links.`
+        : searchQuery
+          ? `No jobs match “${searchQuery}” with the current profile and filters. Try fewer keywords or change the work mode.`
+          : 'No strong matches found. Try expanding your search.',
     queries: expandedRoles,
     sources: registry.sources.map((source) => source.name),
     metrics: {

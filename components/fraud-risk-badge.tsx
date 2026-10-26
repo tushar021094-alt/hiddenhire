@@ -19,11 +19,12 @@ export default function FraudRiskBadge({ risk }: { risk?: FraudRisk }) {
       <span className={"rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] " + tone}>
         {fraudRiskLabel(risk)}
       </span>
-      {risk.tier !== "low" && (
-        <span className="text-[10px] uppercase tracking-[0.1em] text-white/40">
-          Safety {risk.score}/100
-        </span>
-      )}
+      <span
+        className="text-[10px] uppercase tracking-[0.1em] text-white/40"
+        title="Heuristic fraud-risk score; higher values mean more detected risk. This is not a guarantee that a job is safe or fraudulent."
+      >
+        Risk score {risk.score}/100
+      </span>
     </div>
   );
 }

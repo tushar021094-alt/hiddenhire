@@ -38,7 +38,7 @@ export function UpgradeButton({ configured }: { configured: boolean }) {
           Razorpay setup pending <span>•</span>
         </button>
         <p className="hh-upgrade-error hh-upgrade-info">
-          Payment credentials are not configured on the production environment yet.
+          Checkout is disabled until this environment has Razorpay keys, a Candidate Plus plan ID, and a webhook secret configured.
         </p>
       </div>
     );

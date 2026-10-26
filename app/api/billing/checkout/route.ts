@@ -24,13 +24,18 @@ export async function POST() {
     );
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role && profile.role !== "candidate") {
+  if (profileError) {
+    console.error("Checkout profile lookup failed", { code: profileError.code });
+    return NextResponse.json({ error: "Unable to verify your account for checkout." }, { status: 500 });
+  }
+
+  if (profile?.role !== "candidate") {
     return NextResponse.json(
       { error: "Candidate Plus checkout is only available to candidate accounts." },
       { status: 403 }
@@ -50,7 +55,7 @@ export async function POST() {
     config = assertRazorpayCheckoutConfig();
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Razorpay checkout is not configured." },
+      { error: "Checkout is temporarily unavailable. Please try again later." },
       { status: 503 }
     );
   }
@@ -91,7 +96,7 @@ export async function POST() {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to create Razorpay subscription." },
+      { error: "Unable to start checkout right now. Please try again later." },
       { status: 502 }
     );
   }

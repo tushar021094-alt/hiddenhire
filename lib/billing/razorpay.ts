@@ -12,13 +12,13 @@ export function getRazorpayConfig() {
 }
 
 export function assertRazorpayCheckoutConfig() {
-  const { keyId, keySecret, planId } = getRazorpayConfig();
-  if (!keyId || !keySecret || !planId) {
+  const { keyId, keySecret, planId, webhookSecret } = getRazorpayConfig();
+  if (!keyId || !keySecret || !planId || !webhookSecret) {
     throw new Error(
-      "Razorpay checkout is not configured. Set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_CANDIDATE_PLUS_PLAN_ID."
+      "Razorpay checkout is not configured. Set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_CANDIDATE_PLUS_PLAN_ID and RAZORPAY_WEBHOOK_SECRET."
     );
   }
-  return { keyId, keySecret, planId };
+  return { keyId, keySecret, planId, webhookSecret };
 }
 
 export async function razorpayRequest<T>(
@@ -61,18 +61,22 @@ export function verifyRazorpayWebhookSignature(rawBody: string, signature: strin
 }
 
 export function mapRazorpaySubscriptionStatus(event: string, status?: string | null) {
-  if (event === "subscription.activated" || event === "subscription.resumed") return "active";
-  if (event === "subscription.cancelled") return "cancelled";
-  if (event === "subscription.completed") return "completed";
-  if (event === "subscription.expired") return "expired";
-  if (event === "subscription.halted") return "halted";
-  if (event === "subscription.paused") return "paused";
-  if (event === "subscription.charged") return "active";
-  if (status === "active" || status === "authenticated") return "active";
-  if (status === "cancelled") return "cancelled";
-  if (status === "completed") return "completed";
-  if (status === "expired") return "expired";
-  if (status === "halted") return "halted";
-  if (status === "paused") return "paused";
-  return "pending";
+  // Only explicit successful lifecycle events may grant paid access.
+  // subscription.authenticated is not proof that a subscription is active.
+  if (event === "subscription.activated" || event === "subscription.resumed" || event === "subscription.charged") return "active";
+  if (event === "subscription.cancelled" || status === "cancelled") return "cancelled";
+  if (event === "subscription.completed" || event === "subscription.expired" || status === "completed" || status === "expired") return "expired";
+  if (
+    event === "subscription.halted" ||
+    event === "subscription.paused" ||
+    event === "subscription.pending" ||
+    event === "subscription.authenticated" ||
+    status === "halted" ||
+    status === "paused" ||
+    status === "pending" ||
+    status === "authenticated" ||
+    status === "past_due"
+  ) return "past_due";
+  // Fail closed: unknown events/statuses must never grant paid entitlements.
+  return "past_due";
 }

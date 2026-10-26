@@ -14,7 +14,10 @@ export async function GET() {
   const { supabase, allowed } = await adminClient();
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { data, error } = await supabase.from("moderation_appeals").select("id,case_id,job_id,recruiter_id,reason,status,submitted_at,reviewed_at,resolution").order("submitted_at", { ascending: false }).limit(100);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Moderation appeal queue load failed", { code: error.code });
+    return NextResponse.json({ error: "Unable to load the moderation queue right now." }, { status: 500 });
+  }
   return NextResponse.json({ appeals: data ?? [], phase: 29 });
 }
 
@@ -29,6 +32,10 @@ export async function PATCH(request: Request) {
   const { data: appeal } = await supabase.from("moderation_appeals").select("id,status").eq("id", appealId).single();
   if (!appeal || !["submitted","under_review"].includes(appeal.status)) return NextResponse.json({ error: "Appeal is not reviewable." }, { status: 409 });
   const { data, error } = await supabase.from("moderation_appeals").update({ status, reviewed_at: new Date().toISOString(), reviewed_by: user.id, resolution }).eq("id", appealId).select("id,status,reviewed_at,resolution").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error?.code === "PGRST116") return NextResponse.json({ error: "This appeal has already changed. Reload the queue and try again." }, { status: 409 });
+  if (error) {
+    console.error("Moderation appeal decision failed", { code: error.code });
+    return NextResponse.json({ error: "Unable to save the moderation decision right now." }, { status: 500 });
+  }
   return NextResponse.json({ appeal: data, phase: 29 });
 }

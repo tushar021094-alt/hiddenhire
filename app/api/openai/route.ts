@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Request is too large.' }, { status: 413 });
     }
 
-    const { user, error: authError } = await getAuthenticatedUser();
+    const { supabase, user, error: authError } = await getAuthenticatedUser();
     const rate = checkRateLimit(`openai:${user?.id ?? getClientIdentifier(request, 'anonymous')}`, 10, 60_000);
     if (!rate.allowed) return rateLimitResponse(rate.retryAfterSeconds);
 
@@ -22,6 +22,19 @@ export async function POST(request: Request) {
         { error: authError || 'Authentication is required.' },
         { status: 401 },
       );
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (profileError) {
+      console.error('OpenAI profile lookup failed', { code: profileError.code });
+      return NextResponse.json({ error: 'Unable to verify your account.' }, { status: 500 });
+    }
+    if (profile?.role !== 'candidate') {
+      return NextResponse.json({ error: 'Resume-to-job matching is available only to candidate accounts.' }, { status: 403 });
     }
 
     const rawBody = await request.text();
@@ -62,11 +75,28 @@ export async function POST(request: Request) {
       });
     }
 
+    const { data: quotaData, error: quotaError } = await supabase.rpc("consume_candidate_ai_quota", { p_feature_key: "resume_job_match" });
+    if (quotaError) {
+      console.error("OpenAI AI quota check failed", { code: quotaError.code });
+      return NextResponse.json({ error: "AI usage could not be verified. Please try again later." }, { status: 503 });
+    }
+    const quota = quotaData as { allowed?: boolean; reason?: string; limit?: number; used?: number } | null;
+    if (!quota?.allowed) {
+      if (quota?.reason === "upgrade_required") {
+        return NextResponse.json({ error: "AI job-match explanations are part of Candidate Plus. Core job discovery remains available on the Free plan." }, { status: 403 });
+      }
+      if (quota?.reason === "monthly_limit_reached") {
+        return NextResponse.json({ error: `You have used all ${quota.limit ?? 10} AI job-match explanations for this month. Your allowance resets next month.` }, { status: 429 });
+      }
+      return NextResponse.json({ error: "Unable to verify your AI usage allowance. Please try again later." }, { status: 503 });
+    }
+
     const openai = new OpenAI({ apiKey });
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0.2,
-      messages: [
+    const response = await openai.responses.create({
+      model: process.env.OPENAI_MODEL || 'gpt-6-luna',
+      reasoning: { effort: 'none' },
+      max_output_tokens: 600,
+      input: [
         {
           role: 'system',
           content:
@@ -79,7 +109,7 @@ export async function POST(request: Request) {
       ],
     });
 
-    const summary = response.choices[0]?.message?.content ?? 'No summary generated.';
+    const summary = response.output_text ?? 'No summary generated.';
     return NextResponse.json({ fallback: false, summary });
   } catch (error) {
     console.error('OpenAI route error', error);

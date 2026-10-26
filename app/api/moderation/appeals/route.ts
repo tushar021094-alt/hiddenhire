@@ -34,6 +34,10 @@ export async function POST(request: Request) {
     case_id: caseId, job_id: moderationCase.job_id, recruiter_id: user.id, reason: validation.reason,
   }).select("id,status,submitted_at").single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error?.code === "23505") return NextResponse.json({ error: "An active appeal already exists for this case." }, { status: 409 });
+  if (error) {
+    console.error("Appeal submission failed", { code: error.code });
+    return NextResponse.json({ error: "Unable to submit the appeal right now." }, { status: 500 });
+  }
   return NextResponse.json({ appeal: data, phase: 29 });
 }

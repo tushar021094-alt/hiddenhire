@@ -280,9 +280,9 @@ export default async function DashboardPage() {
             </div>}
 
             {role === "candidate" && <div className="hh-pro-card">
-              <div className="hh-pro-orb">✦</div><strong>Upgrade to Pro</strong>
+              <div className="hh-pro-orb">✦</div><strong>Upgrade to Candidate Plus</strong>
               <p>Unlock advanced AI insights, priority opportunities and deeper career intelligence.</p>
-              <Link href="/pricing">Explore Pro <span>→</span></Link>
+              <Link href="/pricing">View Candidate Plus <span>→</span></Link>
             </div>}
             <div className="hh-help"><span>◉</span><div><strong>Need help?</strong><small>Career guidance is here.</small></div></div>
           </aside>
@@ -355,7 +355,7 @@ export default async function DashboardPage() {
               <section id="pricing" className="hh-pricing-section">
                 <div className="hh-pricing-heading">
                   <div>
-                    <small>HIDDENHIRE PRO</small>
+                    <small>CANDIDATE PLUS</small>
                     <h2>Go deeper with career intelligence.</h2>
                     <p>Unlock deeper opportunity signals, advanced matching insights and priority career intelligence from one monthly plan.</p>
                   </div>
@@ -369,11 +369,11 @@ export default async function DashboardPage() {
                   <article className="hh-plan-option hh-plan-pro">
                     <div>
                       <small>RECOMMENDED</small>
-                      <h3>Pro</h3>
+                      <h3>Candidate Plus</h3>
                       <p>Advanced AI insights, priority opportunities and deeper career intelligence.</p>
                       <ul><li>Advanced match intelligence</li><li>Priority opportunity signals</li><li>Deeper career insights</li></ul>
                     </div>
-                    <div className="hh-plan-price"><strong>₹199</strong><span>/ month</span><a href="#pricing">Upgrade to Pro <span>→</span></a></div>
+                    <div className="hh-plan-price"><strong>₹299</strong><span>/ month</span><a href="/pricing">View plan details <span>→</span></a></div>
                   </article>
                 </div>
               </section>
